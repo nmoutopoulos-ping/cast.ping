@@ -33,18 +33,10 @@ serve(async (req) => {
 
     console.log(`Fetching Dune query ${queryId} results`);
 
-    // Build URL with parameters
-    const url = new URL(`https://api.dune.com/api/v1/query/${queryId}/results`);
-    url.searchParams.set('limit', '1000');
-    
-    // Add query parameters if provided
-    if (parameters) {
-      Object.entries(parameters).forEach(([key, value]) => {
-        url.searchParams.set(key, String(value));
-      });
-    }
+    // Build URL - just limit, no extra params
+    const url = `https://api.dune.com/api/v1/query/${queryId}/results?limit=1000`;
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       headers: {
         'x-dune-api-key': DUNE_API_KEY,
       },
