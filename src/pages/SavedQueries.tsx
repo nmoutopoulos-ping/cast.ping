@@ -184,7 +184,7 @@ export default function SavedQueries() {
               <tr>
                 <th>Name</th>
                 <th>Description</th>
-                <th>Dune Query ID</th>
+                <th>Wallet Address</th>
                 <th>Saved Txns</th>
                 <th>Created</th>
                 <th></th>
@@ -202,16 +202,13 @@ export default function SavedQueries() {
                     {query.description || "-"}
                   </td>
                   <td>
-                    <a
-                      href={`https://dune.com/queries/${query.dune_query_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 font-mono text-sm text-primary hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {query.dune_query_id}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {query.wallet_address ? (
+                      <span className="font-mono text-sm">
+                        {query.wallet_address.slice(0, 8)}...{query.wallet_address.slice(-6)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td>
                     {txCounts[query.id] > 0 ? (
