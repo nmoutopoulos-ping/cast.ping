@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -107,6 +107,12 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    // Prevent "empty table" bugs when a new search returns fewer rows than the current page.
+    setCurrentPage(1);
+    setHoveredAddress(null);
+  }, [rows, searchedWallet]);
+
   const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const paginatedRows = rows.slice(startIndex, startIndex + ROWS_PER_PAGE);
@@ -151,12 +157,12 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
   };
 
   const formatEth = (value: number | string | null | undefined) => {
-    if (value == null) return "-";
-    const num = typeof value === "string" ? parseFloat(value) : value;
-    if (isNaN(num)) return "-";
-    if (num === 0) return "0";
-    if (Math.abs(num) < 0.0001) return num.toExponential(2);
-    return num.toFixed(6);
+    if (value == null || value === "") return "-";
+    if (typeof value === "string") return value;
+    if (!Number.isFinite(value)) return "-";
+    if (value === 0) return "0";
+    const fixed = value.toFixed(18);
+    return fixed.replace(/\.?0+$/, "");
   };
 
   return (
@@ -176,7 +182,7 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
       {/* Table */}
       <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
         <div className="overflow-x-auto scrollbar-thin">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Hash</th>
@@ -208,7 +214,7 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                 
                 return (
                   <tr 
-                    key={row.tx_hash || index}
+                    key={`${row.tx_hash}-${startIndex + index}`}
                     className={cn(
                       "transition-colors duration-100",
                       rowHasHighlight ? "bg-amber-500/5" : "hover:bg-muted/40"
@@ -220,9 +226,9 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                         href={`${ETHERSCAN_BASE}/tx/${row.tx_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 font-mono text-xs text-primary hover:underline"
+                        className="inline-flex items-center gap-1.5 font-mono text-xs text-primary hover:underline whitespace-nowrap"
                       >
-                        {row.tx_hash?.slice(0, 12)}...
+                        {row.tx_hash}
                         <ExternalLink className="w-3 h-3 opacity-50" />
                       </a>
                     </td>
@@ -424,7 +430,7 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
 
                     {/* Token Amount Raw */}
                     <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground truncate max-w-[120px] block">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                         {row.token_amount_raw || "-"}
                       </span>
                     </td>
