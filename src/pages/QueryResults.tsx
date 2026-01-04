@@ -10,9 +10,22 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { CopyableAddress } from "@/components/shared/CopyableAddress";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Save } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface QueryRow {
   tx_hash: string;
@@ -36,11 +49,16 @@ interface QueryRow {
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
+const CURRENT_QUERY_ID = "6459204";
 
 export default function QueryResults() {
   const [rows, setRows] = useState<QueryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [queryName, setQueryName] = useState("");
+  const [queryDescription, setQueryDescription] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -48,7 +66,7 @@ export default function QueryResults() {
       setError(null);
 
       const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
-        body: { queryId: "6459204" },
+        body: { queryId: CURRENT_QUERY_ID },
       });
 
       if (fetchError) {
@@ -86,6 +104,30 @@ export default function QueryResults() {
     return num.toFixed(6);
   };
 
+  const handleSaveQuery = async () => {
+    if (!queryName.trim()) {
+      toast.error("Please enter a query name");
+      return;
+    }
+
+    setSaving(true);
+    const { error: insertError } = await supabase.from("saved_queries").insert({
+      name: queryName.trim(),
+      description: queryDescription.trim() || null,
+      dune_query_id: CURRENT_QUERY_ID,
+    });
+
+    if (insertError) {
+      toast.error("Failed to save query: " + insertError.message);
+    } else {
+      toast.success("Query saved successfully!");
+      setSaveDialogOpen(false);
+      setQueryName("");
+      setQueryDescription("");
+    }
+    setSaving(false);
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-4">
@@ -114,7 +156,13 @@ export default function QueryResults() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Query Results</h1>
-        <span className="text-sm text-muted-foreground">{rows.length} rows</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">{rows.length} rows</span>
+          <Button onClick={() => setSaveDialogOpen(true)} className="gap-2">
+            <Save className="w-4 h-4" />
+            Save Query
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border overflow-x-auto">
@@ -207,6 +255,48 @@ export default function QueryResults() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Query</DialogTitle>
+            <DialogDescription>
+              Save this Dune query for quick access later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Query Name</Label>
+              <Input
+                id="name"
+                placeholder="e.g., Sepolia Transaction History"
+                value={queryName}
+                onChange={(e) => setQueryName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                placeholder="Describe what this query does..."
+                value={queryDescription}
+                onChange={(e) => setQueryDescription(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Dune Query ID: <span className="font-mono">{CURRENT_QUERY_ID}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveQuery} disabled={saving}>
+              {saving ? "Saving..." : "Save Query"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
