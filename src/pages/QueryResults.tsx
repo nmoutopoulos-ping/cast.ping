@@ -5,10 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { TransactionDataTable } from "@/components/transactions/TransactionDataTable";
-import { Download, RefreshCw, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Download, RefreshCw, Search, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
 
 interface QueryRow {
   tx_hash: string;
@@ -221,6 +232,44 @@ export default function QueryResults() {
     }
   };
 
+  // Save Search Dialog state
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveDescription, setSaveDescription] = useState("");
+  const [saveDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [savingSearch, setSavingSearch] = useState(false);
+
+  const handleSaveSearch = async () => {
+    if (!user || !searchedWallet) {
+      toast.error("Please search for a wallet first");
+      return;
+    }
+
+    if (!saveName.trim()) {
+      toast.error("Please enter a name for this search");
+      return;
+    }
+
+    setSavingSearch(true);
+
+    const { error } = await supabase.from("saved_queries").insert({
+      name: saveName.trim(),
+      description: saveDescription.trim() || null,
+      dune_query_id: DEFAULT_QUERY_ID,
+      wallet_address: searchedWallet,
+      user_id: user.id,
+    });
+
+    if (error) {
+      toast.error("Failed to save search: " + error.message);
+    } else {
+      toast.success("Search saved successfully!");
+      setSaveDialogOpen(false);
+      setSaveName("");
+      setSaveDescription("");
+    }
+    setSavingSearch(false);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -285,6 +334,12 @@ export default function QueryResults() {
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </Button>
+              {!savedQueryId && searchedWallet && (
+                <Button variant="outline" onClick={() => setSaveDialogOpen(true)} className="gap-2">
+                  <Bookmark className="w-4 h-4" />
+                  Save Search
+                </Button>
+              )}
               {savedQueryId && (
                 <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
                   <Download className="w-4 h-4" />
@@ -310,6 +365,54 @@ export default function QueryResults() {
           No transactions found for this address
         </div>
       )}
+
+      {/* Save Search Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Search</DialogTitle>
+            <DialogDescription>
+              Save this wallet search for quick access later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-name">Name *</Label>
+              <Input
+                id="save-name"
+                placeholder="e.g., Main Wallet Transactions"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="save-description">Description</Label>
+              <Textarea
+                id="save-description"
+                placeholder="Describe this search..."
+                value={saveDescription}
+                onChange={(e) => setSaveDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Wallet Address</Label>
+              <Input value={searchedWallet} disabled className="font-mono text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <Label>Date Saved</Label>
+              <Input value={saveDate} disabled className="text-muted-foreground" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSearch} disabled={savingSearch}>
+              {savingSearch ? "Saving..." : "Save Search"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
