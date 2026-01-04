@@ -118,6 +118,8 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
       if (row.from_address) counts[row.from_address.toLowerCase()] = (counts[row.from_address.toLowerCase()] || 0) + 1;
       if (row.to_address) counts[row.to_address.toLowerCase()] = (counts[row.to_address.toLowerCase()] || 0) + 1;
       if (row.token_contract) counts[row.token_contract.toLowerCase()] = (counts[row.token_contract.toLowerCase()] || 0) + 1;
+      if (row.token_from) counts[row.token_from.toLowerCase()] = (counts[row.token_from.toLowerCase()] || 0) + 1;
+      if (row.token_to) counts[row.token_to.toLowerCase()] = (counts[row.token_to.toLowerCase()] || 0) + 1;
     });
     return counts;
   }, [rows]);
@@ -177,15 +179,27 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Tx Hash</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Block</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Age</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Method</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">From</th>
-                <th className="text-center font-medium text-muted-foreground px-2 py-3.5 text-xs uppercase tracking-wider w-16"></th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">To</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Value</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider">Txn Fee</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Hash</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Block</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Age</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">ETH Dir</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">From</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">To</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Nonce</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Index</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Value ETH</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Txn Fee</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Used</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Success</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Contract</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Name</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Dir</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token From</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token To</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount Raw</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -235,29 +249,8 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       </span>
                     </td>
 
-                    {/* Method */}
-                    <td className="px-4 py-3.5">
-                      <Badge 
-                        variant="outline" 
-                        className="font-mono text-[10px] px-2 py-0.5 bg-muted/50 border-border/50"
-                      >
-                        {row.token_symbol ? "Transfer" : "Txn"}
-                      </Badge>
-                    </td>
-
-                    {/* From */}
-                    <td className="px-4 py-3.5">
-                      <AddressCell
-                        address={row.from_address}
-                        isHighlighted={isHighlighted(row.from_address)}
-                        isSearchedWallet={isSearched(row.from_address)}
-                        onHover={() => setHoveredAddress(row.from_address)}
-                        onLeave={() => setHoveredAddress(null)}
-                      />
-                    </td>
-
                     {/* ETH Direction */}
-                    <td className="px-2 py-3.5 text-center">
+                    <td className="px-4 py-3.5">
                       <Badge
                         className={cn(
                           "text-[10px] font-semibold px-2 py-0.5 border-0",
@@ -272,6 +265,17 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       </Badge>
                     </td>
 
+                    {/* From */}
+                    <td className="px-4 py-3.5">
+                      <AddressCell
+                        address={row.from_address}
+                        isHighlighted={isHighlighted(row.from_address)}
+                        isSearchedWallet={isSearched(row.from_address)}
+                        onHover={() => setHoveredAddress(row.from_address)}
+                        onLeave={() => setHoveredAddress(null)}
+                      />
+                    </td>
+
                     {/* To */}
                     <td className="px-4 py-3.5">
                       <AddressCell
@@ -283,18 +287,152 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       />
                     </td>
 
-                    {/* Value */}
+                    {/* Nonce */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {row.nonce ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* Transaction Index */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {row.transaction_index ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* Value ETH */}
                     <td className="px-4 py-3.5 text-right">
                       <span className="font-mono text-xs font-medium">
                         {formatEth(row.value_eth)}
                       </span>
-                      <span className="text-muted-foreground text-xs ml-1">ETH</span>
                     </td>
 
-                    {/* Fee */}
+                    {/* Txn Fee */}
                     <td className="px-4 py-3.5 text-right">
                       <span className="font-mono text-xs text-muted-foreground">
                         {formatEth(row.tx_fee_eth)}
+                      </span>
+                    </td>
+
+                    {/* Gas Price */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {row.gas_price?.toLocaleString() ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* Gas Used */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {row.gas_used?.toLocaleString() ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* Success */}
+                    <td className="px-4 py-3.5 text-center">
+                      <Badge
+                        className={cn(
+                          "text-[10px] font-semibold px-2 py-0.5 border-0",
+                          row.success 
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
+                            : "bg-red-500/15 text-red-600 dark:text-red-400"
+                        )}
+                      >
+                        {row.success ? "✓" : "✗"}
+                      </Badge>
+                    </td>
+
+                    {/* Token Contract */}
+                    <td className="px-4 py-3.5">
+                      {row.token_contract ? (
+                        <AddressCell
+                          address={row.token_contract}
+                          isHighlighted={isHighlighted(row.token_contract)}
+                          isSearchedWallet={false}
+                          onHover={() => setHoveredAddress(row.token_contract)}
+                          onLeave={() => setHoveredAddress(null)}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Token Symbol */}
+                    <td className="px-4 py-3.5">
+                      <span className="font-mono text-xs font-medium">
+                        {row.token_symbol || "-"}
+                      </span>
+                    </td>
+
+                    {/* Token Name */}
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs text-muted-foreground">
+                        {row.token_name || "-"}
+                      </span>
+                    </td>
+
+                    {/* Token Direction */}
+                    <td className="px-4 py-3.5 text-center">
+                      {row.token_direction ? (
+                        <Badge
+                          className={cn(
+                            "text-[10px] font-semibold px-2 py-0.5 border-0",
+                            row.token_direction === "IN" 
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
+                              : row.token_direction === "OUT"
+                              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              : "bg-slate-500/15 text-slate-600 dark:text-slate-400"
+                          )}
+                        >
+                          {row.token_direction}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Token From */}
+                    <td className="px-4 py-3.5">
+                      {row.token_from ? (
+                        <AddressCell
+                          address={row.token_from}
+                          isHighlighted={isHighlighted(row.token_from)}
+                          isSearchedWallet={isSearched(row.token_from)}
+                          onHover={() => setHoveredAddress(row.token_from)}
+                          onLeave={() => setHoveredAddress(null)}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Token To */}
+                    <td className="px-4 py-3.5">
+                      {row.token_to ? (
+                        <AddressCell
+                          address={row.token_to}
+                          isHighlighted={isHighlighted(row.token_to)}
+                          isSearchedWallet={isSearched(row.token_to)}
+                          onHover={() => setHoveredAddress(row.token_to)}
+                          onLeave={() => setHoveredAddress(null)}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Token Amount Raw */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground truncate max-w-[120px] block">
+                        {row.token_amount_raw || "-"}
+                      </span>
+                    </td>
+
+                    {/* Token Amount */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs font-medium">
+                        {row.token_amount != null ? formatEth(row.token_amount) : "-"}
                       </span>
                     </td>
                   </tr>
