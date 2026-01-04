@@ -31,110 +31,43 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Executing Dune query ${queryId} with parameters:`, parameters);
+    console.log(`Fetching Dune query ${queryId} results`);
 
-    // Execute the query
-    const executeResponse = await fetch(`https://api.dune.com/api/v1/query/${queryId}/execute`, {
-      method: 'POST',
+    // Build URL with parameters
+    const url = new URL(`https://api.dune.com/api/v1/query/${queryId}/results`);
+    url.searchParams.set('limit', '1000');
+    
+    // Add query parameters if provided
+    if (parameters) {
+      Object.entries(parameters).forEach(([key, value]) => {
+        url.searchParams.set(key, String(value));
+      });
+    }
+
+    const response = await fetch(url.toString(), {
       headers: {
-        'X-Dune-API-Key': DUNE_API_KEY,
-        'Content-Type': 'application/json',
+        'x-dune-api-key': DUNE_API_KEY,
       },
-      body: JSON.stringify({
-        query_parameters: parameters || {},
-      }),
     });
 
-    if (!executeResponse.ok) {
-      const errorText = await executeResponse.text();
-      console.error('Dune execute error:', errorText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Dune API error:', errorText);
       return new Response(
-        JSON.stringify({ error: `Failed to execute query: ${errorText}` }),
-        { status: executeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: `Dune API error: ${errorText}` }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const executeData = await executeResponse.json();
-    const executionId = executeData.execution_id;
-    
-    console.log(`Query execution started, ID: ${executionId}`);
-
-    // Poll for results
-    let attempts = 0;
-    const maxAttempts = 30;
-    const pollInterval = 2000;
-
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
-      
-      const statusResponse = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/status`, {
-        headers: {
-          'X-Dune-API-Key': DUNE_API_KEY,
-        },
-      });
-
-      if (!statusResponse.ok) {
-        const errorText = await statusResponse.text();
-        console.error('Dune status error:', errorText);
-        return new Response(
-          JSON.stringify({ error: `Failed to check status: ${errorText}` }),
-          { status: statusResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const statusData = await statusResponse.json();
-      console.log(`Execution status: ${statusData.state}`);
-
-      if (statusData.state === 'QUERY_STATE_COMPLETED') {
-        // Fetch results
-        const resultsResponse = await fetch(`https://api.dune.com/api/v1/execution/${executionId}/results`, {
-          headers: {
-            'X-Dune-API-Key': DUNE_API_KEY,
-          },
-        });
-
-        if (!resultsResponse.ok) {
-          const errorText = await resultsResponse.text();
-          console.error('Dune results error:', errorText);
-          return new Response(
-            JSON.stringify({ error: `Failed to fetch results: ${errorText}` }),
-            { status: resultsResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        const resultsData = await resultsResponse.json();
-        console.log(`Query completed, ${resultsData.result?.rows?.length || 0} rows returned`);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            execution_id: executionId,
-            result: resultsData.result,
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (statusData.state === 'QUERY_STATE_FAILED') {
-        return new Response(
-          JSON.stringify({ error: 'Query execution failed', details: statusData }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (statusData.state === 'QUERY_STATE_CANCELLED') {
-        return new Response(
-          JSON.stringify({ error: 'Query execution was cancelled' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      attempts++;
-    }
+    const data = await response.json();
+    console.log(`Query completed, ${data.result?.rows?.length || 0} rows returned`);
 
     return new Response(
-      JSON.stringify({ error: 'Query execution timed out' }),
-      { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: true,
+        result: data.result,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {

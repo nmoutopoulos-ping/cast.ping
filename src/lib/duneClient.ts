@@ -3,8 +3,8 @@ import type { Transaction, TokenTransfer, Direction } from "@/types/wallet";
 
 // Default Dune query IDs - these can be customized in saved queries
 export const DEFAULT_QUERIES = {
-  TRANSACTIONS: "4993802", // Example Sepolia transactions query - replace with your own
-  TOKEN_TRANSFERS: "4993803", // Example token transfers query - replace with your own
+  TRANSACTIONS: "6459204", // Sepolia transactions query
+  TOKEN_TRANSFERS: "6459204", // Using same query for now
 };
 
 export interface DuneQueryResult {
