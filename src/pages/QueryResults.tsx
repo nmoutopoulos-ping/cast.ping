@@ -28,6 +28,11 @@ interface QueryRow {
   gas_price: number;
   gas_used: number;
   success: boolean;
+  token_contract: string;
+  token_symbol: string;
+  token_name: string;
+  token_amount_raw: string;
+  token_amount: number;
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
@@ -126,6 +131,11 @@ export default function QueryResults() {
               <TableHead>gas_price</TableHead>
               <TableHead>gas_used</TableHead>
               <TableHead>ok</TableHead>
+              <TableHead className="min-w-[380px]">token_contract</TableHead>
+              <TableHead>token_symbol</TableHead>
+              <TableHead>token_name</TableHead>
+              <TableHead>token_amount_raw</TableHead>
+              <TableHead>token_amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,6 +189,15 @@ export default function QueryResults() {
                   >
                     {row.success ? "✓" : "✗"}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {row.token_contract ? <CopyableAddress address={row.token_contract} /> : "-"}
+                </TableCell>
+                <TableCell className="font-mono text-xs">{row.token_symbol || "-"}</TableCell>
+                <TableCell className="text-xs">{row.token_name || "-"}</TableCell>
+                <TableCell className="font-mono text-xs">{row.token_amount_raw || "-"}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {row.token_amount != null ? formatEth(row.token_amount) : "-"}
                 </TableCell>
               </TableRow>
             ))}
