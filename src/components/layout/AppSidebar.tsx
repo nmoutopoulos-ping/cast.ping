@@ -6,13 +6,15 @@ import {
   Tags, 
   Settings,
   Zap,
-  CheckCircle
+  CheckCircle,
+  TableProperties
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Wallets", href: "/wallets", icon: Wallet },
+  { name: "Query Results", href: "/results", icon: TableProperties },
   { name: "Saved Queries", href: "/queries", icon: Database },
   { name: "Entities & Tags", href: "/entities", icon: Tags },
   { name: "Settings", href: "/settings", icon: Settings },

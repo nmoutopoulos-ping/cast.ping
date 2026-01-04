@@ -9,6 +9,7 @@ import Wallets from "@/pages/Wallets";
 import SavedQueries from "@/pages/SavedQueries";
 import Entities from "@/pages/Entities";
 import Settings from "@/pages/Settings";
+import QueryResults from "@/pages/QueryResults";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/queries" element={<SavedQueries />} />
             <Route path="/entities" element={<Entities />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/results" element={<QueryResults />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
