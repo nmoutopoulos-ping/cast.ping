@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CopyableAddress } from "@/components/shared/CopyableAddress";
+import { ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 interface QueryRow {
@@ -27,6 +29,8 @@ interface QueryRow {
   gas_used: number;
   success: boolean;
 }
+
+const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
 
 export default function QueryResults() {
   const [rows, setRows] = useState<QueryRow[]>([]);
@@ -60,16 +64,6 @@ export default function QueryResults() {
     fetchData();
   }, []);
 
-  const formatHash = (hash: string) => {
-    if (!hash) return "";
-    return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
-  };
-
-  const formatAddress = (addr: string) => {
-    if (!addr) return "";
-    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-  };
-
   const formatBlockTime = (blockTime: string) => {
     try {
       return format(new Date(blockTime), "yyyy-MM-dd HH:mm");
@@ -86,7 +80,7 @@ export default function QueryResults() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="p-6 space-y-4">
         <h1 className="text-2xl font-semibold">Query Results</h1>
         <div className="space-y-2">
           {[...Array(10)].map((_, i) => (
@@ -99,7 +93,7 @@ export default function QueryResults() {
 
   if (error) {
     return (
-      <div className="space-y-4">
+      <div className="p-6 space-y-4">
         <h1 className="text-2xl font-semibold">Query Results</h1>
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
           Error: {error}
@@ -109,7 +103,7 @@ export default function QueryResults() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Query Results</h1>
         <span className="text-sm text-muted-foreground">{rows.length} rows</span>
@@ -119,29 +113,37 @@ export default function QueryResults() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>tx_hash</TableHead>
-              <TableHead>block_number</TableHead>
-              <TableHead>block_time</TableHead>
-              <TableHead>direction</TableHead>
-              <TableHead>from_address</TableHead>
-              <TableHead>to_address</TableHead>
+              <TableHead className="min-w-[120px]">tx_hash</TableHead>
+              <TableHead>block</TableHead>
+              <TableHead>time</TableHead>
+              <TableHead>dir</TableHead>
+              <TableHead className="min-w-[380px]">from_address</TableHead>
+              <TableHead className="min-w-[380px]">to_address</TableHead>
               <TableHead>nonce</TableHead>
-              <TableHead>tx_index</TableHead>
+              <TableHead>idx</TableHead>
               <TableHead>value_eth</TableHead>
-              <TableHead>tx_fee_eth</TableHead>
+              <TableHead>fee_eth</TableHead>
               <TableHead>gas_price</TableHead>
               <TableHead>gas_used</TableHead>
-              <TableHead>success</TableHead>
+              <TableHead>ok</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row, index) => (
               <TableRow key={row.tx_hash || index}>
-                <TableCell className="font-mono text-xs">
-                  {formatHash(row.tx_hash)}
+                <TableCell>
+                  <a
+                    href={`${ETHERSCAN_BASE}/tx/${row.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+                  >
+                    {row.tx_hash?.slice(0, 10)}...
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </TableCell>
                 <TableCell>{row.block_number}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatBlockTime(row.block_time)}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs">{formatBlockTime(row.block_time)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={row.direction === "IN" ? "default" : "secondary"}
@@ -154,17 +156,17 @@ export default function QueryResults() {
                     {row.direction}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {formatAddress(row.from_address)}
+                <TableCell>
+                  <CopyableAddress address={row.from_address} />
                 </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {formatAddress(row.to_address)}
+                <TableCell>
+                  <CopyableAddress address={row.to_address} />
                 </TableCell>
                 <TableCell>{row.nonce}</TableCell>
                 <TableCell>{row.transaction_index}</TableCell>
                 <TableCell className="font-mono text-xs">{formatEth(row.value_eth)}</TableCell>
                 <TableCell className="font-mono text-xs">{formatEth(row.tx_fee_eth)}</TableCell>
-                <TableCell>{row.gas_price}</TableCell>
+                <TableCell className="text-xs">{row.gas_price}</TableCell>
                 <TableCell>{row.gas_used}</TableCell>
                 <TableCell>
                   <Badge
