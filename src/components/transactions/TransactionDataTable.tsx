@@ -156,26 +156,17 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Stats bar */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium">{rows.length} transactions</span>
-          {searchedWallet && (
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-primary/30 ring-1 ring-primary/50" />
-              <span className="text-xs text-muted-foreground">Searched wallet</span>
-            </div>
-          )}
-          {hoveredAddress && (
-            <div className="flex items-center gap-2 animate-fade-in">
-              <div className="w-3 h-3 rounded-full bg-amber-500/30 ring-1 ring-amber-500/50" />
-              <span className="text-xs text-muted-foreground">
-                {addressCounts[hoveredAddress.toLowerCase()] || 0} occurrences
-              </span>
-            </div>
-          )}
+      {/* Hover indicator */}
+      {hoveredAddress && (
+        <div className="flex items-center gap-4 px-1">
+          <div className="flex items-center gap-2 animate-fade-in">
+            <div className="w-3 h-3 rounded-full bg-amber-500/30 ring-1 ring-amber-500/50" />
+            <span className="text-xs text-muted-foreground">
+              {addressCounts[hoveredAddress.toLowerCase()] || 0} occurrences highlighted
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
