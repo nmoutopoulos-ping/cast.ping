@@ -7,27 +7,26 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface QueryRow {
-  tx_hash: string;
-  block_number: number;
-  block_time: string;
-  eth_direction: string;
+  transaction_hash: string;
+  method: string;
+  block: number;
+  timestamp: string;
   from_address: string;
-  to_address: string;
-  nonce: number;
-  transaction_index: number;
-  value_eth: number;
-  tx_fee_eth: number;
-  gas_price: number;
-  gas_used: number;
-  success: boolean;
-  token_contract: string;
-  token_symbol: string;
-  token_name: string;
+  interacted_with: string;
+  eth_direction: string;
   token_direction: string;
   token_from: string;
   token_to: string;
-  token_amount_raw: string;
   token_amount: number;
+  token_symbol: string;
+  token_name: string;
+  token_contract: string;
+  value_eth: number;
+  txn_fee_eth: number;
+  gas_price_gwei: number;
+  gas_price_wei: number;
+  gas_used: number;
+  status: string;
 }
 
 interface TransactionDataTableProps {
@@ -108,7 +107,6 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    // Prevent "empty table" bugs when a new search returns fewer rows than the current page.
     setCurrentPage(1);
     setHoveredAddress(null);
   }, [rows, searchedWallet]);
@@ -122,7 +120,7 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
     const counts: Record<string, number> = {};
     rows.forEach((row) => {
       if (row.from_address) counts[row.from_address.toLowerCase()] = (counts[row.from_address.toLowerCase()] || 0) + 1;
-      if (row.to_address) counts[row.to_address.toLowerCase()] = (counts[row.to_address.toLowerCase()] || 0) + 1;
+      if (row.interacted_with) counts[row.interacted_with.toLowerCase()] = (counts[row.interacted_with.toLowerCase()] || 0) + 1;
       if (row.token_contract) counts[row.token_contract.toLowerCase()] = (counts[row.token_contract.toLowerCase()] || 0) + 1;
       if (row.token_from) counts[row.token_from.toLowerCase()] = (counts[row.token_from.toLowerCase()] || 0) + 1;
       if (row.token_to) counts[row.token_to.toLowerCase()] = (counts[row.token_to.toLowerCase()] || 0) + 1;
@@ -140,19 +138,19 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
     return address.toLowerCase() === searchedWallet.toLowerCase();
   };
 
-  const formatBlockTime = (blockTime: string) => {
+  const formatTimestamp = (timestamp: string) => {
     try {
-      return formatDistanceToNow(new Date(blockTime), { addSuffix: true });
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
     } catch {
-      return blockTime;
+      return timestamp;
     }
   };
 
-  const formatFullTime = (blockTime: string) => {
+  const formatFullTime = (timestamp: string) => {
     try {
-      return format(new Date(blockTime), "MMM d, yyyy HH:mm");
+      return format(new Date(timestamp), "MMM d, yyyy HH:mm:ss");
     } catch {
-      return blockTime;
+      return timestamp;
     }
   };
 
@@ -186,35 +184,34 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
             <thead>
               <tr className="border-b border-border/60 bg-muted/30">
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Hash</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Method</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Block</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Age</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">ETH Dir</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Timestamp</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">From</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">To</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Nonce</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Index</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Value ETH</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Txn Fee</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Used</th>
-                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Success</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Contract</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Name</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Interacted With</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">ETH Dir</th>
                 <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Dir</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token From</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token To</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount Raw</th>
                 <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Name</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Contract</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Value ETH</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Txn Fee ETH</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price (Gwei)</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price (Wei)</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Used</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {paginatedRows.map((row, index) => {
-                const rowHasHighlight = isHighlighted(row.from_address) || isHighlighted(row.to_address);
+                const rowHasHighlight = isHighlighted(row.from_address) || isHighlighted(row.interacted_with);
                 
                 return (
                   <tr 
-                    key={`${row.tx_hash}-${startIndex + index}`}
+                    key={`${row.transaction_hash}-${startIndex + index}`}
                     className={cn(
                       "transition-colors duration-100",
                       rowHasHighlight ? "bg-amber-500/5" : "hover:bg-muted/40"
@@ -223,52 +220,43 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                     {/* Tx Hash */}
                     <td className="px-4 py-3.5">
                       <a
-                        href={`${ETHERSCAN_BASE}/tx/${row.tx_hash}`}
+                        href={`${ETHERSCAN_BASE}/tx/${row.transaction_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 font-mono text-xs text-primary hover:underline whitespace-nowrap"
                       >
-                        {row.tx_hash}
+                        {row.transaction_hash}
                         <ExternalLink className="w-3 h-3 opacity-50" />
                       </a>
+                    </td>
+
+                    {/* Method */}
+                    <td className="px-4 py-3.5">
+                      <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5">
+                        {row.method || "-"}
+                      </Badge>
                     </td>
 
                     {/* Block */}
                     <td className="px-4 py-3.5">
                       <a
-                        href={`${ETHERSCAN_BASE}/block/${row.block_number}`}
+                        href={`${ETHERSCAN_BASE}/block/${row.block}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-xs text-primary/80 hover:text-primary hover:underline"
                       >
-                        {row.block_number?.toLocaleString()}
+                        {row.block?.toLocaleString()}
                       </a>
                     </td>
 
-                    {/* Age */}
+                    {/* Timestamp */}
                     <td className="px-4 py-3.5">
                       <span 
-                        className="text-xs text-muted-foreground cursor-help"
-                        title={formatFullTime(row.block_time)}
+                        className="text-xs text-muted-foreground cursor-help whitespace-nowrap"
+                        title={formatFullTime(row.timestamp)}
                       >
-                        {formatBlockTime(row.block_time)}
+                        {formatTimestamp(row.timestamp)}
                       </span>
-                    </td>
-
-                    {/* ETH Direction */}
-                    <td className="px-4 py-3.5">
-                      <Badge
-                        className={cn(
-                          "text-[10px] font-semibold px-2 py-0.5 border-0",
-                          row.eth_direction === "IN" 
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
-                            : row.eth_direction === "OUT"
-                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                            : "bg-slate-500/15 text-slate-600 dark:text-slate-400"
-                        )}
-                      >
-                        {row.eth_direction || "-"}
-                      </Badge>
                     </td>
 
                     {/* From */}
@@ -282,100 +270,31 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       />
                     </td>
 
-                    {/* To */}
+                    {/* Interacted With */}
                     <td className="px-4 py-3.5">
                       <AddressCell
-                        address={row.to_address}
-                        isHighlighted={isHighlighted(row.to_address)}
-                        isSearchedWallet={isSearched(row.to_address)}
-                        onHover={() => setHoveredAddress(row.to_address)}
+                        address={row.interacted_with}
+                        isHighlighted={isHighlighted(row.interacted_with)}
+                        isSearchedWallet={isSearched(row.interacted_with)}
+                        onHover={() => setHoveredAddress(row.interacted_with)}
                         onLeave={() => setHoveredAddress(null)}
                       />
                     </td>
 
-                    {/* Nonce */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {row.nonce ?? "-"}
-                      </span>
-                    </td>
-
-                    {/* Transaction Index */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {row.transaction_index ?? "-"}
-                      </span>
-                    </td>
-
-                    {/* Value ETH */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs font-medium">
-                        {formatEth(row.value_eth)}
-                      </span>
-                    </td>
-
-                    {/* Txn Fee */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {formatEth(row.tx_fee_eth)}
-                      </span>
-                    </td>
-
-                    {/* Gas Price */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {row.gas_price?.toLocaleString() ?? "-"}
-                      </span>
-                    </td>
-
-                    {/* Gas Used */}
-                    <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {row.gas_used?.toLocaleString() ?? "-"}
-                      </span>
-                    </td>
-
-                    {/* Success */}
+                    {/* ETH Direction */}
                     <td className="px-4 py-3.5 text-center">
                       <Badge
                         className={cn(
                           "text-[10px] font-semibold px-2 py-0.5 border-0",
-                          row.success 
+                          row.eth_direction === "IN" 
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
-                            : "bg-red-500/15 text-red-600 dark:text-red-400"
+                            : row.eth_direction === "OUT"
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                            : "bg-slate-500/15 text-slate-600 dark:text-slate-400"
                         )}
                       >
-                        {row.success ? "✓" : "✗"}
+                        {row.eth_direction || "-"}
                       </Badge>
-                    </td>
-
-                    {/* Token Contract */}
-                    <td className="px-4 py-3.5">
-                      {row.token_contract ? (
-                        <AddressCell
-                          address={row.token_contract}
-                          isHighlighted={isHighlighted(row.token_contract)}
-                          isSearchedWallet={false}
-                          onHover={() => setHoveredAddress(row.token_contract)}
-                          onLeave={() => setHoveredAddress(null)}
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </td>
-
-                    {/* Token Symbol */}
-                    <td className="px-4 py-3.5">
-                      <span className="font-mono text-xs font-medium">
-                        {row.token_symbol || "-"}
-                      </span>
-                    </td>
-
-                    {/* Token Name */}
-                    <td className="px-4 py-3.5">
-                      <span className="text-xs text-muted-foreground">
-                        {row.token_name || "-"}
-                      </span>
                     </td>
 
                     {/* Token Direction */}
@@ -428,18 +347,89 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       )}
                     </td>
 
-                    {/* Token Amount Raw */}
+                    {/* Token Amount */}
                     <td className="px-4 py-3.5 text-right">
-                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                        {row.token_amount_raw || "-"}
+                      <span className="font-mono text-xs font-medium whitespace-nowrap">
+                        {row.token_amount != null ? formatEth(row.token_amount) : "-"}
                       </span>
                     </td>
 
-                    {/* Token Amount */}
-                    <td className="px-4 py-3.5 text-right">
+                    {/* Token Symbol */}
+                    <td className="px-4 py-3.5">
                       <span className="font-mono text-xs font-medium">
-                        {row.token_amount != null ? formatEth(row.token_amount) : "-"}
+                        {row.token_symbol || "-"}
                       </span>
+                    </td>
+
+                    {/* Token Name */}
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {row.token_name || "-"}
+                      </span>
+                    </td>
+
+                    {/* Token Contract */}
+                    <td className="px-4 py-3.5">
+                      {row.token_contract ? (
+                        <AddressCell
+                          address={row.token_contract}
+                          isHighlighted={isHighlighted(row.token_contract)}
+                          isSearchedWallet={false}
+                          onHover={() => setHoveredAddress(row.token_contract)}
+                          onLeave={() => setHoveredAddress(null)}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* Value ETH */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs font-medium whitespace-nowrap">
+                        {formatEth(row.value_eth)}
+                      </span>
+                    </td>
+
+                    {/* Txn Fee ETH */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {formatEth(row.txn_fee_eth)}
+                      </span>
+                    </td>
+
+                    {/* Gas Price (Gwei) */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.gas_price_gwei != null ? row.gas_price_gwei.toLocaleString() : "-"}
+                      </span>
+                    </td>
+
+                    {/* Gas Price (Wei) */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.gas_price_wei != null ? row.gas_price_wei.toLocaleString() : "-"}
+                      </span>
+                    </td>
+
+                    {/* Gas Used */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.gas_used?.toLocaleString() ?? "-"}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3.5 text-center">
+                      <Badge
+                        className={cn(
+                          "text-[10px] font-semibold px-2 py-0.5 border-0",
+                          row.status === "success" || row.status === "Success"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
+                            : "bg-red-500/15 text-red-600 dark:text-red-400"
+                        )}
+                      >
+                        {row.status || "-"}
+                      </Badge>
                     </td>
                   </tr>
                 );

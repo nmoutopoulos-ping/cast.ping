@@ -22,27 +22,26 @@ import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
 interface QueryRow {
-  tx_hash: string;
-  block_number: number;
-  block_time: string;
-  eth_direction: string;
+  transaction_hash: string;
+  method: string;
+  block: number;
+  timestamp: string;
   from_address: string;
-  to_address: string;
-  nonce: number;
-  transaction_index: number;
-  value_eth: number;
-  tx_fee_eth: number;
-  gas_price: number;
-  gas_used: number;
-  success: boolean;
-  token_contract: string;
-  token_symbol: string;
-  token_name: string;
+  interacted_with: string;
+  eth_direction: string;
   token_direction: string;
   token_from: string;
   token_to: string;
-  token_amount_raw: string;
   token_amount: number;
+  token_symbol: string;
+  token_name: string;
+  token_contract: string;
+  value_eth: number;
+  txn_fee_eth: number;
+  gas_price_gwei: number;
+  gas_price_wei: number;
+  gas_used: number;
+  status: string;
 }
 
 const DEFAULT_QUERY_ID = "6459204";
@@ -109,28 +108,28 @@ export default function QueryResults() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
+      // Map cached transaction data to new format
       setRows(cachedTx.map(tx => ({
-        tx_hash: tx.tx_hash,
-        block_number: Number(tx.block_number),
-        block_time: tx.block_time || "",
-        eth_direction: tx.direction || "",
+        transaction_hash: tx.tx_hash,
+        method: "",
+        block: Number(tx.block_number),
+        timestamp: tx.block_time || "",
         from_address: tx.from_address || "",
-        to_address: tx.to_address || "",
-        nonce: Number(tx.nonce),
-        transaction_index: Number(tx.transaction_index),
-        value_eth: Number(tx.value_eth),
-        tx_fee_eth: Number(tx.tx_fee_eth),
-        gas_price: Number(tx.gas_price),
-        gas_used: Number(tx.gas_used),
-        success: tx.success ?? true,
-        token_contract: tx.token_contract || "",
-        token_symbol: tx.token_symbol || "",
-        token_name: tx.token_name || "",
+        interacted_with: tx.to_address || "",
+        eth_direction: tx.direction || "",
         token_direction: "",
         token_from: "",
         token_to: "",
-        token_amount_raw: tx.token_amount_raw || "",
         token_amount: Number(tx.token_amount),
+        token_symbol: tx.token_symbol || "",
+        token_name: tx.token_name || "",
+        token_contract: tx.token_contract || "",
+        value_eth: Number(tx.value_eth),
+        txn_fee_eth: Number(tx.tx_fee_eth),
+        gas_price_gwei: Number(tx.gas_price) / 1e9,
+        gas_price_wei: Number(tx.gas_price),
+        gas_used: Number(tx.gas_used),
+        status: tx.success ? "success" : "failed",
       })));
       setLoading(false);
       return;
@@ -196,26 +195,27 @@ export default function QueryResults() {
       .eq("saved_query_id", savedQueryId)
       .eq("user_id", user.id);
 
+    // Map new format back to database schema
     const txRecords = rows.map(row => ({
       saved_query_id: savedQueryId,
       user_id: user.id,
-      tx_hash: row.tx_hash,
-      block_number: row.block_number,
-      block_time: row.block_time || null,
+      tx_hash: row.transaction_hash,
+      block_number: row.block,
+      block_time: row.timestamp || null,
       direction: row.eth_direction,
       from_address: row.from_address,
-      to_address: row.to_address,
-      nonce: row.nonce,
-      transaction_index: row.transaction_index,
+      to_address: row.interacted_with,
+      nonce: null,
+      transaction_index: null,
       value_eth: row.value_eth,
-      tx_fee_eth: row.tx_fee_eth,
-      gas_price: row.gas_price,
+      tx_fee_eth: row.txn_fee_eth,
+      gas_price: row.gas_price_wei,
       gas_used: row.gas_used,
-      success: row.success,
+      success: row.status === "success" || row.status === "Success",
       token_contract: row.token_contract || null,
       token_symbol: row.token_symbol || null,
       token_name: row.token_name || null,
-      token_amount_raw: row.token_amount_raw || null,
+      token_amount_raw: null,
       token_amount: row.token_amount || null,
     }));
 
