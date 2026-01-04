@@ -18,7 +18,14 @@ interface QueryRow {
   block_time: string;
   direction: string;
   from_address: string;
-  to_address?: string;
+  to_address: string;
+  nonce: number;
+  transaction_index: number;
+  value_eth: number;
+  tx_fee_eth: number;
+  gas_price: number;
+  gas_used: number;
+  success: boolean;
 }
 
 export default function QueryResults() {
@@ -55,12 +62,12 @@ export default function QueryResults() {
 
   const formatHash = (hash: string) => {
     if (!hash) return "";
-    return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+    return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
   };
 
   const formatAddress = (addr: string) => {
     if (!addr) return "";
-    return `${addr.slice(0, 10)}...${addr.slice(-8)}`;
+    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
   };
 
   const formatBlockTime = (blockTime: string) => {
@@ -69,6 +76,12 @@ export default function QueryResults() {
     } catch {
       return blockTime;
     }
+  };
+
+  const formatEth = (value: number) => {
+    if (value === 0) return "0";
+    if (value < 0.0001) return value.toExponential(2);
+    return value.toFixed(6);
   };
 
   if (loading) {
@@ -102,15 +115,23 @@ export default function QueryResults() {
         <span className="text-sm text-muted-foreground">{rows.length} rows</span>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[280px]">tx_hash</TableHead>
+              <TableHead>tx_hash</TableHead>
               <TableHead>block_number</TableHead>
               <TableHead>block_time</TableHead>
               <TableHead>direction</TableHead>
               <TableHead>from_address</TableHead>
+              <TableHead>to_address</TableHead>
+              <TableHead>nonce</TableHead>
+              <TableHead>tx_index</TableHead>
+              <TableHead>value_eth</TableHead>
+              <TableHead>tx_fee_eth</TableHead>
+              <TableHead>gas_price</TableHead>
+              <TableHead>gas_used</TableHead>
+              <TableHead>success</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -120,7 +141,7 @@ export default function QueryResults() {
                   {formatHash(row.tx_hash)}
                 </TableCell>
                 <TableCell>{row.block_number}</TableCell>
-                <TableCell>{formatBlockTime(row.block_time)}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatBlockTime(row.block_time)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={row.direction === "IN" ? "default" : "secondary"}
@@ -135,6 +156,27 @@ export default function QueryResults() {
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   {formatAddress(row.from_address)}
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {formatAddress(row.to_address)}
+                </TableCell>
+                <TableCell>{row.nonce}</TableCell>
+                <TableCell>{row.transaction_index}</TableCell>
+                <TableCell className="font-mono text-xs">{formatEth(row.value_eth)}</TableCell>
+                <TableCell className="font-mono text-xs">{formatEth(row.tx_fee_eth)}</TableCell>
+                <TableCell>{row.gas_price}</TableCell>
+                <TableCell>{row.gas_used}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={row.success ? "default" : "destructive"}
+                    className={
+                      row.success
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : "bg-red-500/10 text-red-600"
+                    }
+                  >
+                    {row.success ? "✓" : "✗"}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
