@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      saved_queries: {
+        Row: {
+          created_at: string
+          description: string | null
+          dune_query_id: string
+          id: string
+          name: string
+          updated_at: string
+          wallet_address: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          dune_query_id: string
+          id?: string
+          name: string
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          dune_query_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
