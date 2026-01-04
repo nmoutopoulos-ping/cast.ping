@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, Play, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, ExternalLink, Trash2, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +27,8 @@ import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
 
 interface SavedQuery {
   id: string;
@@ -43,14 +38,20 @@ interface SavedQuery {
   wallet_address: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string | null;
+}
+
+interface TransactionCount {
+  saved_query_id: string;
+  count: number;
 }
 
 export default function SavedQueries() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [queries, setQueries] = useState<SavedQuery[]>([]);
+  const [txCounts, setTxCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedQuery, setSelectedQuery] = useState<SavedQuery | null>(null);
-  const [testAddress, setTestAddress] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [queryToDelete, setQueryToDelete] = useState<SavedQuery | null>(null);
@@ -60,26 +61,47 @@ export default function SavedQueries() {
   const [saving, setSaving] = useState(false);
 
   const fetchQueries = async () => {
+    if (!user) return;
+    
     setLoading(true);
     const { data, error } = await supabase
       .from("saved_queries")
       .select("*")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
       toast.error("Failed to load queries: " + error.message);
     } else {
       setQueries(data || []);
+      
+      // Fetch transaction counts for each query
+      if (data && data.length > 0) {
+        const queryIds = data.map(q => q.id);
+        const counts: Record<string, number> = {};
+        
+        for (const qId of queryIds) {
+          const { count } = await supabase
+            .from("transactions")
+            .select("*", { count: "exact", head: true })
+            .eq("saved_query_id", qId)
+            .eq("user_id", user.id);
+          counts[qId] = count || 0;
+        }
+        setTxCounts(counts);
+      }
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchQueries();
-  }, []);
+    if (user) {
+      fetchQueries();
+    }
+  }, [user]);
 
   const handleCreateQuery = async () => {
-    if (!newQueryName.trim() || !newQueryDuneId.trim()) {
+    if (!newQueryName.trim() || !newQueryDuneId.trim() || !user) {
       toast.error("Please fill in required fields");
       return;
     }
@@ -89,6 +111,7 @@ export default function SavedQueries() {
       name: newQueryName.trim(),
       description: newQueryDescription.trim() || null,
       dune_query_id: newQueryDuneId.trim(),
+      user_id: user.id,
     });
 
     if (error) {
@@ -118,13 +141,12 @@ export default function SavedQueries() {
       toast.success("Query deleted successfully!");
       setDeleteDialogOpen(false);
       setQueryToDelete(null);
-      setSelectedQuery(null);
       fetchQueries();
     }
   };
 
-  const handleRunQuery = (queryId: string) => {
-    navigate(`/results?queryId=${queryId}`);
+  const handleOpenQuery = (query: SavedQuery) => {
+    navigate(`/results?id=${query.id}`);
   };
 
   return (
@@ -149,7 +171,7 @@ export default function SavedQueries() {
       ) : queries.length === 0 ? (
         <EmptyState
           title="No saved queries yet"
-          description="Save a query from the Results page or create one here to get started."
+          description="Create a query to start tracking blockchain transactions."
           action={{
             label: "Create Your First Query",
             onClick: () => setCreateDialogOpen(true),
@@ -163,6 +185,7 @@ export default function SavedQueries() {
                 <th>Name</th>
                 <th>Description</th>
                 <th>Dune Query ID</th>
+                <th>Saved Txns</th>
                 <th>Created</th>
                 <th></th>
               </tr>
@@ -171,14 +194,35 @@ export default function SavedQueries() {
               {queries.map((query) => (
                 <tr
                   key={query.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedQuery(query)}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleOpenQuery(query)}
                 >
                   <td className="font-medium">{query.name}</td>
                   <td className="text-muted-foreground max-w-xs truncate">
                     {query.description || "-"}
                   </td>
-                  <td className="font-mono text-sm">{query.dune_query_id}</td>
+                  <td>
+                    <a
+                      href={`https://dune.com/queries/${query.dune_query_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 font-mono text-sm text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {query.dune_query_id}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </td>
+                  <td>
+                    {txCounts[query.id] > 0 ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <Database className="w-3 h-3" />
+                        {txCounts[query.id]}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
                   <td className="text-muted-foreground">
                     {formatDistanceToNow(new Date(query.created_at), { addSuffix: true })}
                   </td>
@@ -201,81 +245,6 @@ export default function SavedQueries() {
           </table>
         </div>
       )}
-
-      {/* Side Drawer */}
-      <Sheet open={!!selectedQuery} onOpenChange={() => setSelectedQuery(null)}>
-        <SheetContent className="w-[500px] sm:max-w-[500px]">
-          {selectedQuery && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{selectedQuery.name}</SheetTitle>
-                <SheetDescription>{selectedQuery.description || "No description"}</SheetDescription>
-              </SheetHeader>
-
-              <div className="mt-6 space-y-6">
-                <div>
-                  <Label>Query Name</Label>
-                  <Input className="mt-1" defaultValue={selectedQuery.name} readOnly />
-                </div>
-
-                <div>
-                  <Label>Description</Label>
-                  <Textarea className="mt-1" defaultValue={selectedQuery.description || ""} readOnly />
-                </div>
-
-                <div>
-                  <Label>Dune Query ID</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input defaultValue={selectedQuery.dune_query_id} className="font-mono" readOnly />
-                    <Button variant="outline" size="icon" asChild>
-                      <a
-                        href={`https://dune.com/queries/${selectedQuery.dune_query_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border-t border-border pt-6">
-                  <Label>Test with Wallet</Label>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Input
-                      placeholder="Paste address..."
-                      value={testAddress}
-                      onChange={(e) => setTestAddress(e.target.value)}
-                      className="font-mono"
-                    />
-                    <Button
-                      onClick={() => handleRunQuery(selectedQuery.dune_query_id)}
-                      className="gap-2 shrink-0"
-                    >
-                      <Play className="w-4 h-4" />
-                      Run
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => {
-                      setQueryToDelete(selectedQuery);
-                      setDeleteDialogOpen(true);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Query
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -333,7 +302,7 @@ export default function SavedQueries() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Query</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{queryToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{queryToDelete?.name}"? This will also delete all saved transactions. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

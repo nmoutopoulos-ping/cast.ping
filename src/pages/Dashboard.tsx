@@ -2,20 +2,32 @@ import { useEffect, useState } from "react";
 import { Wallet, Building2, Database, FileText } from "lucide-react";
 import { KPICard } from "@/components/shared/KPICard";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [savedQueriesCount, setSavedQueriesCount] = useState(0);
+  const [transactionsCount, setTransactionsCount] = useState(0);
 
   useEffect(() => {
     async function fetchStats() {
-      const { count } = await supabase
-        .from("saved_queries")
-        .select("*", { count: "exact", head: true });
+      if (!user) return;
       
-      setSavedQueriesCount(count || 0);
+      const { count: queriesCount } = await supabase
+        .from("saved_queries")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      
+      const { count: txCount } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      
+      setSavedQueriesCount(queriesCount || 0);
+      setTransactionsCount(txCount || 0);
     }
     fetchStats();
-  }, []);
+  }, [user]);
 
   return (
     <div className="p-8 space-y-8 animate-fade-in">
@@ -33,8 +45,8 @@ export default function Dashboard() {
           icon={Wallet}
         />
         <KPICard
-          title="Entities"
-          value="0"
+          title="Saved Transactions"
+          value={transactionsCount.toString()}
           icon={Building2}
         />
         <KPICard

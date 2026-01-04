@@ -22,6 +22,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          user_id: string | null
           wallet_address: string | null
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          user_id?: string | null
           wallet_address?: string | null
         }
         Update: {
@@ -40,9 +42,93 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          user_id?: string | null
           wallet_address?: string | null
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          block_number: number | null
+          block_time: string | null
+          created_at: string
+          direction: string | null
+          from_address: string | null
+          gas_price: number | null
+          gas_used: number | null
+          id: string
+          nonce: number | null
+          saved_query_id: string
+          success: boolean | null
+          to_address: string | null
+          token_amount: number | null
+          token_amount_raw: string | null
+          token_contract: string | null
+          token_name: string | null
+          token_symbol: string | null
+          transaction_index: number | null
+          tx_fee_eth: number | null
+          tx_hash: string
+          user_id: string
+          value_eth: number | null
+        }
+        Insert: {
+          block_number?: number | null
+          block_time?: string | null
+          created_at?: string
+          direction?: string | null
+          from_address?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          nonce?: number | null
+          saved_query_id: string
+          success?: boolean | null
+          to_address?: string | null
+          token_amount?: number | null
+          token_amount_raw?: string | null
+          token_contract?: string | null
+          token_name?: string | null
+          token_symbol?: string | null
+          transaction_index?: number | null
+          tx_fee_eth?: number | null
+          tx_hash: string
+          user_id: string
+          value_eth?: number | null
+        }
+        Update: {
+          block_number?: number | null
+          block_time?: string | null
+          created_at?: string
+          direction?: string | null
+          from_address?: string | null
+          gas_price?: number | null
+          gas_used?: number | null
+          id?: string
+          nonce?: number | null
+          saved_query_id?: string
+          success?: boolean | null
+          to_address?: string | null
+          token_amount?: number | null
+          token_amount_raw?: string | null
+          token_contract?: string | null
+          token_name?: string | null
+          token_symbol?: string | null
+          transaction_index?: number | null
+          tx_fee_eth?: number | null
+          tx_hash?: string
+          user_id?: string
+          value_eth?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_saved_query_id_fkey"
+            columns: ["saved_query_id"]
+            isOneToOne: false
+            referencedRelation: "saved_queries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

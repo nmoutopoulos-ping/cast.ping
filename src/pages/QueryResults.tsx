@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -11,21 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { CopyableAddress } from "@/components/shared/CopyableAddress";
-import { ExternalLink, Save } from "lucide-react";
+import { ExternalLink, Download, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface QueryRow {
   tx_hash: string;
@@ -49,43 +40,156 @@ interface QueryRow {
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
-const CURRENT_QUERY_ID = "6459204";
 
 export default function QueryResults() {
+  const [searchParams] = useSearchParams();
+  const savedQueryId = searchParams.get("id");
+  const { user } = useAuth();
+  
   const [rows, setRows] = useState<QueryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [queryName, setQueryName] = useState("");
-  const [queryDescription, setQueryDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [queryName, setQueryName] = useState<string>("");
+  const [duneQueryId, setDuneQueryId] = useState<string>("");
 
   useEffect(() => {
-    async function fetchData() {
+    async function loadData() {
+      if (!savedQueryId || !user) return;
+      
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
-        body: { queryId: CURRENT_QUERY_ID },
-      });
+      // First get the saved query details
+      const { data: queryData, error: queryError } = await supabase
+        .from("saved_queries")
+        .select("*")
+        .eq("id", savedQueryId)
+        .maybeSingle();
 
-      if (fetchError) {
-        setError(fetchError.message);
+      if (queryError || !queryData) {
+        setError("Query not found");
         setLoading(false);
         return;
       }
 
-      if (data?.result?.rows) {
-        setRows(data.result.rows);
-      } else if (data?.error) {
-        setError(data.error);
+      setQueryName(queryData.name);
+      setDuneQueryId(queryData.dune_query_id);
+
+      // Check if we have cached transactions
+      const { data: cachedTx } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("saved_query_id", savedQueryId)
+        .eq("user_id", user.id);
+
+      if (cachedTx && cachedTx.length > 0) {
+        setRows(cachedTx.map(tx => ({
+          tx_hash: tx.tx_hash,
+          block_number: Number(tx.block_number),
+          block_time: tx.block_time || "",
+          direction: tx.direction || "",
+          from_address: tx.from_address || "",
+          to_address: tx.to_address || "",
+          nonce: Number(tx.nonce),
+          transaction_index: Number(tx.transaction_index),
+          value_eth: Number(tx.value_eth),
+          tx_fee_eth: Number(tx.tx_fee_eth),
+          gas_price: Number(tx.gas_price),
+          gas_used: Number(tx.gas_used),
+          success: tx.success ?? true,
+          token_contract: tx.token_contract || "",
+          token_symbol: tx.token_symbol || "",
+          token_name: tx.token_name || "",
+          token_amount_raw: tx.token_amount_raw || "",
+          token_amount: Number(tx.token_amount),
+        })));
+        setLoading(false);
+        return;
       }
 
-      setLoading(false);
+      // Fetch from Dune API
+      await fetchFromDune(queryData.dune_query_id);
     }
 
-    fetchData();
-  }, []);
+    loadData();
+  }, [savedQueryId, user]);
+
+  const fetchFromDune = async (queryId: string) => {
+    setLoading(true);
+    const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
+      body: { queryId },
+    });
+
+    if (fetchError) {
+      setError(fetchError.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data?.result?.rows) {
+      setRows(data.result.rows);
+    } else if (data?.error) {
+      setError(data.error);
+    }
+
+    setLoading(false);
+  };
+
+  const handleSaveToDatabase = async () => {
+    if (!user || !savedQueryId || rows.length === 0) return;
+    
+    setSaving(true);
+    
+    // Delete existing transactions for this query
+    await supabase
+      .from("transactions")
+      .delete()
+      .eq("saved_query_id", savedQueryId)
+      .eq("user_id", user.id);
+
+    // Insert new transactions
+    const txRecords = rows.map(row => ({
+      saved_query_id: savedQueryId,
+      user_id: user.id,
+      tx_hash: row.tx_hash,
+      block_number: row.block_number,
+      block_time: row.block_time || null,
+      direction: row.direction,
+      from_address: row.from_address,
+      to_address: row.to_address,
+      nonce: row.nonce,
+      transaction_index: row.transaction_index,
+      value_eth: row.value_eth,
+      tx_fee_eth: row.tx_fee_eth,
+      gas_price: row.gas_price,
+      gas_used: row.gas_used,
+      success: row.success,
+      token_contract: row.token_contract || null,
+      token_symbol: row.token_symbol || null,
+      token_name: row.token_name || null,
+      token_amount_raw: row.token_amount_raw || null,
+      token_amount: row.token_amount || null,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("transactions")
+      .insert(txRecords);
+
+    if (insertError) {
+      toast.error("Failed to save: " + insertError.message);
+    } else {
+      toast.success(`Saved ${rows.length} transactions to database!`);
+    }
+    
+    setSaving(false);
+  };
+
+  const handleRefresh = () => {
+    if (duneQueryId) {
+      fetchFromDune(duneQueryId);
+    }
+  };
 
   const formatBlockTime = (blockTime: string) => {
     try {
@@ -104,29 +208,13 @@ export default function QueryResults() {
     return num.toFixed(6);
   };
 
-  const handleSaveQuery = async () => {
-    if (!queryName.trim()) {
-      toast.error("Please enter a query name");
-      return;
-    }
-
-    setSaving(true);
-    const { error: insertError } = await supabase.from("saved_queries").insert({
-      name: queryName.trim(),
-      description: queryDescription.trim() || null,
-      dune_query_id: CURRENT_QUERY_ID,
-    });
-
-    if (insertError) {
-      toast.error("Failed to save query: " + insertError.message);
-    } else {
-      toast.success("Query saved successfully!");
-      setSaveDialogOpen(false);
-      setQueryName("");
-      setQueryDescription("");
-    }
-    setSaving(false);
-  };
+  if (!savedQueryId) {
+    return (
+      <div className="p-6">
+        <div className="text-muted-foreground">No query selected. Go to Saved Queries to select one.</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -155,12 +243,21 @@ export default function QueryResults() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Query Results</h1>
-        <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{queryName || "Query Results"}</h1>
+          {duneQueryId && (
+            <p className="text-sm text-muted-foreground">Dune Query ID: {duneQueryId}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{rows.length} rows</span>
-          <Button onClick={() => setSaveDialogOpen(true)} className="gap-2">
-            <Save className="w-4 h-4" />
-            Save Query
+          <Button variant="outline" onClick={handleRefresh} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
+            <Download className="w-4 h-4" />
+            {saving ? "Saving..." : "Save to Database"}
           </Button>
         </div>
       </div>
@@ -255,48 +352,6 @@ export default function QueryResults() {
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save Query</DialogTitle>
-            <DialogDescription>
-              Save this Dune query for quick access later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Query Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Sepolia Transaction History"
-                value={queryName}
-                onChange={(e) => setQueryName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe what this query does..."
-                value={queryDescription}
-                onChange={(e) => setQueryDescription(e.target.value)}
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Dune Query ID: <span className="font-mono">{CURRENT_QUERY_ID}</span>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveQuery} disabled={saving}>
-              {saving ? "Saving..." : "Save Query"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
