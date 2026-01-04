@@ -1,10 +1,7 @@
 import { Wallet, Building2, Database, FileText } from "lucide-react";
 import { WalletSearchBar } from "@/components/shared/WalletSearchBar";
 import { KPICard } from "@/components/shared/KPICard";
-import { AddressDisplay } from "@/components/shared/AddressDisplay";
-import { DirectionBadge } from "@/components/shared/DirectionBadge";
-import { mockRecentSearches, mockChartData } from "@/lib/mockData";
-import { formatDistanceToNow } from "date-fns";
+import { mockChartData } from "@/lib/mockData";
 import {
   LineChart,
   Line,
@@ -61,47 +58,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Recent Wallet Searches */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-            <h2 className="font-semibold">Recent Wallet Searches</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Address</th>
-                  <th>Last Query</th>
-                  <th>Tags</th>
-                  <th>Direction</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockRecentSearches.map((search, idx) => (
-                  <tr key={idx} className="cursor-pointer" onClick={() => navigate(`/wallets?address=${search.address}`)}>
-                    <td>
-                      <AddressDisplay address={search.address} showExternalLink={false} />
-                    </td>
-                    <td className="text-muted-foreground">
-                      {formatDistanceToNow(search.lastQuery, { addSuffix: true })}
-                    </td>
-                    <td>
-                      <span className="text-muted-foreground">{search.tagCount}</span>
-                    </td>
-                    <td>
-                      <DirectionBadge direction={search.lastDirection} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Activity Chart */}
-        <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Activity Chart */}
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
           <div className="px-6 py-4 border-b border-border">
             <h2 className="font-semibold">Transaction Activity (30 days)</h2>
           </div>
@@ -140,7 +98,6 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
     </div>
   );
 }
