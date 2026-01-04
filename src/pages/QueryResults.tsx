@@ -77,10 +77,13 @@ export default function QueryResults() {
     }
   };
 
-  const formatEth = (value: number) => {
-    if (value === 0) return "0";
-    if (value < 0.0001) return value.toExponential(2);
-    return value.toFixed(6);
+  const formatEth = (value: number | string | null | undefined) => {
+    if (value == null) return "-";
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    if (isNaN(num)) return "-";
+    if (num === 0) return "0";
+    if (Math.abs(num) < 0.0001) return num.toExponential(2);
+    return num.toFixed(6);
   };
 
   if (loading) {
