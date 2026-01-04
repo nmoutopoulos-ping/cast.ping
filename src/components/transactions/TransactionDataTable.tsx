@@ -68,7 +68,7 @@ function AddressCell({
   return (
     <div 
       className={cn(
-        "group inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-150 cursor-pointer",
+        "group inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors duration-75 cursor-pointer",
         isHighlighted && "bg-amber-500/20 ring-1 ring-amber-500/40",
         isSearchedWallet && "bg-primary/10 ring-1 ring-primary/30",
         !isHighlighted && !isSearchedWallet && "hover:bg-muted"
@@ -164,18 +164,18 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Hover indicator */}
-      {hoveredAddress && (
-        <div className="flex items-center gap-4 px-1">
-          <div className="flex items-center gap-2 animate-fade-in">
+    <div className="space-y-4">
+      {/* Hover indicator - fixed height to prevent layout shift */}
+      <div className="flex items-center gap-4 px-1 h-5">
+        {hoveredAddress && (
+          <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-amber-500/30 ring-1 ring-amber-500/50" />
             <span className="text-xs text-muted-foreground">
               {addressCounts[hoveredAddress.toLowerCase()] || 0} occurrences highlighted
             </span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Table */}
       <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
