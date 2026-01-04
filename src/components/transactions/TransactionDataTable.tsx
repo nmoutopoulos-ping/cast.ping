@@ -10,7 +10,7 @@ interface QueryRow {
   tx_hash: string;
   block_number: number;
   block_time: string;
-  direction: string;
+  eth_direction: string;
   from_address: string;
   to_address: string;
   nonce: number;
@@ -23,6 +23,9 @@ interface QueryRow {
   token_contract: string;
   token_symbol: string;
   token_name: string;
+  token_direction: string;
+  token_from: string;
+  token_to: string;
   token_amount_raw: string;
   token_amount: number;
 }
@@ -253,19 +256,19 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       />
                     </td>
 
-                    {/* Direction */}
+                    {/* ETH Direction */}
                     <td className="px-2 py-3.5 text-center">
                       <Badge
                         className={cn(
                           "text-[10px] font-semibold px-2 py-0.5 border-0",
-                          row.direction === "IN" 
+                          row.eth_direction === "IN" 
                             ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" 
-                            : row.direction === "OUT"
+                            : row.eth_direction === "OUT"
                             ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                             : "bg-slate-500/15 text-slate-600 dark:text-slate-400"
                         )}
                       >
-                        {row.direction}
+                        {row.eth_direction || "-"}
                       </Badge>
                     </td>
 
