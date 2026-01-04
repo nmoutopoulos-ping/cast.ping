@@ -1,5 +1,4 @@
 import { Wallet, Building2, Database, FileText } from "lucide-react";
-import { WalletSearchBar } from "@/components/shared/WalletSearchBar";
 import { KPICard } from "@/components/shared/KPICard";
 import { mockChartData } from "@/lib/mockData";
 import {
@@ -11,15 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-
-  const handleSearch = (address: string) => {
-    navigate(`/wallets?address=${address}`);
-  };
-
   return (
     <div className="p-8 space-y-8 animate-fade-in">
       {/* Header */}
@@ -27,9 +19,6 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your wallet tracking activity</p>
       </div>
-
-      {/* Search Bar */}
-      <WalletSearchBar onSearch={handleSearch} size="large" />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-6">
