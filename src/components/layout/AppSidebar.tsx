@@ -6,7 +6,7 @@ import {
   Database, 
   Tags, 
   Settings,
-  Zap,
+  Waves,
   CheckCircle,
   TableProperties,
   ChevronLeft,
@@ -37,9 +37,9 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center gap-3 px-4 border-b border-sidebar-border">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <Zap className="w-5 h-5 text-primary-foreground" />
+          <Waves className="w-5 h-5 text-primary-foreground" />
         </div>
-        {!collapsed && <span className="font-semibold text-lg">Ping Wallet</span>}
+        {!collapsed && <span className="font-semibold text-lg">Ping Cast</span>}
       </div>
 
       {/* Navigation */}
