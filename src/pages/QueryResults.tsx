@@ -25,7 +25,7 @@ interface QueryRow {
   tx_hash: string;
   block_number: number;
   block_time: string;
-  direction: string;
+  eth_direction: string;
   from_address: string;
   to_address: string;
   nonce: number;
@@ -38,6 +38,9 @@ interface QueryRow {
   token_contract: string;
   token_symbol: string;
   token_name: string;
+  token_direction: string;
+  token_from: string;
+  token_to: string;
   token_amount_raw: string;
   token_amount: number;
 }
@@ -110,7 +113,7 @@ export default function QueryResults() {
         tx_hash: tx.tx_hash,
         block_number: Number(tx.block_number),
         block_time: tx.block_time || "",
-        direction: tx.direction || "",
+        eth_direction: tx.direction || "",
         from_address: tx.from_address || "",
         to_address: tx.to_address || "",
         nonce: Number(tx.nonce),
@@ -123,6 +126,9 @@ export default function QueryResults() {
         token_contract: tx.token_contract || "",
         token_symbol: tx.token_symbol || "",
         token_name: tx.token_name || "",
+        token_direction: "",
+        token_from: "",
+        token_to: "",
         token_amount_raw: tx.token_amount_raw || "",
         token_amount: Number(tx.token_amount),
       })));
@@ -196,7 +202,7 @@ export default function QueryResults() {
       tx_hash: row.tx_hash,
       block_number: row.block_number,
       block_time: row.block_time || null,
-      direction: row.direction,
+      direction: row.eth_direction,
       from_address: row.from_address,
       to_address: row.to_address,
       nonce: row.nonce,
