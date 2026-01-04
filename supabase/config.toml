@@ -1,1 +1,4 @@
 project_id = "yhruxtipjqrrjwwpwjza"
+
+[functions.dune-query]
+verify_jwt = false
