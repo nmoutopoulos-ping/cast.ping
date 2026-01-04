@@ -154,12 +154,12 @@ export default function SavedQueries() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Saved Queries</h1>
-          <p className="text-muted-foreground">Manage your reusable Dune queries</p>
+          <h1 className="text-2xl font-semibold">Saved Searches</h1>
+          <p className="text-muted-foreground">Manage your saved wallet searches</p>
         </div>
         <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
           <Plus className="w-4 h-4" />
-          New Saved Query
+          New Saved Search
         </Button>
       </div>
 
@@ -170,10 +170,10 @@ export default function SavedQueries() {
         </div>
       ) : queries.length === 0 ? (
         <EmptyState
-          title="No saved queries yet"
-          description="Create a query to start tracking blockchain transactions."
+          title="No saved searches yet"
+          description="Save a search to quickly access wallet transaction data."
           action={{
-            label: "Create Your First Query",
+            label: "Create Your First Search",
             onClick: () => setCreateDialogOpen(true),
           }}
         />
@@ -250,17 +250,17 @@ export default function SavedQueries() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Saved Query</DialogTitle>
+            <DialogTitle>New Saved Search</DialogTitle>
             <DialogDescription>
-              Create a new saved query to quickly access Dune data.
+              Save a search configuration to quickly access wallet data.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="create-name">Query Name *</Label>
+              <Label htmlFor="create-name">Search Name *</Label>
               <Input
                 id="create-name"
-                placeholder="e.g., Sepolia Transaction History"
+                placeholder="e.g., My Wallet History"
                 value={newQueryName}
                 onChange={(e) => setNewQueryName(e.target.value)}
               />
@@ -279,7 +279,7 @@ export default function SavedQueries() {
               <Label htmlFor="create-description">Description</Label>
               <Textarea
                 id="create-description"
-                placeholder="Describe what this query does..."
+                placeholder="Describe what this search is for..."
                 value={newQueryDescription}
                 onChange={(e) => setNewQueryDescription(e.target.value)}
               />
@@ -290,7 +290,7 @@ export default function SavedQueries() {
               Cancel
             </Button>
             <Button onClick={handleCreateQuery} disabled={saving}>
-              {saving ? "Creating..." : "Create Query"}
+              {saving ? "Creating..." : "Create Search"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -300,7 +300,7 @@ export default function SavedQueries() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Query</AlertDialogTitle>
+            <AlertDialogTitle>Delete Search</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{queryToDelete?.name}"? This will also delete all saved transactions. This action cannot be undone.
             </AlertDialogDescription>

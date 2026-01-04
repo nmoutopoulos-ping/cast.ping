@@ -12,8 +12,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CopyableAddress } from "@/components/shared/CopyableAddress";
-import { ExternalLink, Download, RefreshCw } from "lucide-react";
+import { ExternalLink, Download, RefreshCw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,85 +41,108 @@ interface QueryRow {
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
+const DEFAULT_QUERY_ID = "6459204";
 
 export default function QueryResults() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const savedQueryId = searchParams.get("id");
+  const walletParam = searchParams.get("wallet");
   const { user } = useAuth();
   
+  const [walletAddress, setWalletAddress] = useState(walletParam || "");
+  const [searchedWallet, setSearchedWallet] = useState(walletParam || "");
   const [rows, setRows] = useState<QueryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
 
+  // Load saved query if id param is present
   useEffect(() => {
-    async function loadData() {
-      if (!savedQueryId || !user) return;
-      
-      setLoading(true);
-      setError(null);
-
-      // First get the saved query details
-      const { data: queryData, error: queryError } = await supabase
-        .from("saved_queries")
-        .select("*")
-        .eq("id", savedQueryId)
-        .maybeSingle();
-
-      if (queryError || !queryData) {
-        setError("Query not found");
-        setLoading(false);
-        return;
-      }
-
-      setQueryName(queryData.name);
-      setDuneQueryId(queryData.dune_query_id);
-
-      // Check if we have cached transactions
-      const { data: cachedTx } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("saved_query_id", savedQueryId)
-        .eq("user_id", user.id);
-
-      if (cachedTx && cachedTx.length > 0) {
-        setRows(cachedTx.map(tx => ({
-          tx_hash: tx.tx_hash,
-          block_number: Number(tx.block_number),
-          block_time: tx.block_time || "",
-          direction: tx.direction || "",
-          from_address: tx.from_address || "",
-          to_address: tx.to_address || "",
-          nonce: Number(tx.nonce),
-          transaction_index: Number(tx.transaction_index),
-          value_eth: Number(tx.value_eth),
-          tx_fee_eth: Number(tx.tx_fee_eth),
-          gas_price: Number(tx.gas_price),
-          gas_used: Number(tx.gas_used),
-          success: tx.success ?? true,
-          token_contract: tx.token_contract || "",
-          token_symbol: tx.token_symbol || "",
-          token_name: tx.token_name || "",
-          token_amount_raw: tx.token_amount_raw || "",
-          token_amount: Number(tx.token_amount),
-        })));
-        setLoading(false);
-        return;
-      }
-
-      // Fetch from Dune API
-      await fetchFromDune(queryData.dune_query_id);
+    if (savedQueryId && user) {
+      loadSavedQuery();
     }
-
-    loadData();
   }, [savedQueryId, user]);
 
-  const fetchFromDune = async (queryId: string) => {
+  // Auto-search if wallet param is present
+  useEffect(() => {
+    if (walletParam && !savedQueryId) {
+      handleSearch();
+    }
+  }, [walletParam]);
+
+  const loadSavedQuery = async () => {
+    if (!savedQueryId || !user) return;
+    
     setLoading(true);
+    setError(null);
+
+    const { data: queryData, error: queryError } = await supabase
+      .from("saved_queries")
+      .select("*")
+      .eq("id", savedQueryId)
+      .maybeSingle();
+
+    if (queryError || !queryData) {
+      setError("Query not found");
+      setLoading(false);
+      return;
+    }
+
+    setQueryName(queryData.name);
+    setDuneQueryId(queryData.dune_query_id);
+    if (queryData.wallet_address) {
+      setWalletAddress(queryData.wallet_address);
+      setSearchedWallet(queryData.wallet_address);
+    }
+
+    // Check for cached transactions
+    const { data: cachedTx } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("saved_query_id", savedQueryId)
+      .eq("user_id", user.id);
+
+    if (cachedTx && cachedTx.length > 0) {
+      setRows(cachedTx.map(tx => ({
+        tx_hash: tx.tx_hash,
+        block_number: Number(tx.block_number),
+        block_time: tx.block_time || "",
+        direction: tx.direction || "",
+        from_address: tx.from_address || "",
+        to_address: tx.to_address || "",
+        nonce: Number(tx.nonce),
+        transaction_index: Number(tx.transaction_index),
+        value_eth: Number(tx.value_eth),
+        tx_fee_eth: Number(tx.tx_fee_eth),
+        gas_price: Number(tx.gas_price),
+        gas_used: Number(tx.gas_used),
+        success: tx.success ?? true,
+        token_contract: tx.token_contract || "",
+        token_symbol: tx.token_symbol || "",
+        token_name: tx.token_name || "",
+        token_amount_raw: tx.token_amount_raw || "",
+        token_amount: Number(tx.token_amount),
+      })));
+      setLoading(false);
+      return;
+    }
+
+    // Fetch from Dune if we have a wallet address
+    if (queryData.wallet_address) {
+      await fetchFromDune(queryData.dune_query_id, queryData.wallet_address);
+    } else {
+      setLoading(false);
+    }
+  };
+
+  const fetchFromDune = async (queryId: string, address: string) => {
+    setLoading(true);
+    setError(null);
+
     const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
-      body: { queryId },
+      body: { queryId, parameters: { address: address.toLowerCase() } },
     });
 
     if (fetchError) {
@@ -136,19 +160,35 @@ export default function QueryResults() {
     setLoading(false);
   };
 
+  const handleSearch = async () => {
+    const trimmed = walletAddress.trim();
+    if (!trimmed) {
+      toast.error("Please enter a wallet address");
+      return;
+    }
+
+    // Basic validation for Ethereum address
+    if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+      toast.error("Invalid Ethereum address format");
+      return;
+    }
+
+    setSearchedWallet(trimmed);
+    setSearchParams({ wallet: trimmed });
+    await fetchFromDune(DEFAULT_QUERY_ID, trimmed);
+  };
+
   const handleSaveToDatabase = async () => {
     if (!user || !savedQueryId || rows.length === 0) return;
     
     setSaving(true);
     
-    // Delete existing transactions for this query
     await supabase
       .from("transactions")
       .delete()
       .eq("saved_query_id", savedQueryId)
       .eq("user_id", user.id);
 
-    // Insert new transactions
     const txRecords = rows.map(row => ({
       saved_query_id: savedQueryId,
       user_id: user.id,
@@ -186,8 +226,8 @@ export default function QueryResults() {
   };
 
   const handleRefresh = () => {
-    if (duneQueryId) {
-      fetchFromDune(duneQueryId);
+    if (searchedWallet) {
+      fetchFromDune(duneQueryId || DEFAULT_QUERY_ID, searchedWallet);
     }
   };
 
@@ -208,150 +248,183 @@ export default function QueryResults() {
     return num.toFixed(6);
   };
 
-  if (!savedQueryId) {
-    return (
-      <div className="p-6">
-        <div className="text-muted-foreground">No query selected. Go to Saved Queries to select one.</div>
+  return (
+    <div className="p-6 space-y-6">
+      {/* Search Bar */}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold">Search Data</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter a wallet address to search for all transactions involving that address
+        </p>
+        <div className="flex gap-3 max-w-2xl">
+          <Input
+            placeholder="0x... (wallet or contract address)"
+            value={walletAddress}
+            onChange={(e) => setWalletAddress(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="font-mono"
+          />
+          <Button onClick={handleSearch} disabled={loading} className="gap-2">
+            <Search className="w-4 h-4" />
+            Search
+          </Button>
+        </div>
       </div>
-    );
-  }
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4">
-        <h1 className="text-2xl font-semibold">Query Results</h1>
+      {/* Query Info */}
+      {queryName && (
+        <div className="text-sm text-muted-foreground">
+          Saved Search: <span className="font-medium text-foreground">{queryName}</span>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
         <div className="space-y-2">
           {[...Array(10)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  if (error) {
-    return (
-      <div className="p-6 space-y-4">
-        <h1 className="text-2xl font-semibold">Query Results</h1>
+      {/* Error State */}
+      {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
           Error: {error}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{queryName || "Query Results"}</h1>
-          {duneQueryId && (
-            <p className="text-sm text-muted-foreground">Dune Query ID: {duneQueryId}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{rows.length} rows</span>
-          <Button variant="outline" onClick={handleRefresh} className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </Button>
-          <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
-            <Download className="w-4 h-4" />
-            {saving ? "Saving..." : "Save to Database"}
-          </Button>
-        </div>
-      </div>
+      {/* Results */}
+      {!loading && !error && rows.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{rows.length} transactions found</span>
+              {searchedWallet && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {searchedWallet.slice(0, 10)}...{searchedWallet.slice(-8)}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={handleRefresh} className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </Button>
+              {savedQueryId && (
+                <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
+                  <Download className="w-4 h-4" />
+                  {saving ? "Saving..." : "Save to Database"}
+                </Button>
+              )}
+            </div>
+          </div>
 
-      <div className="rounded-lg border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[120px]">tx_hash</TableHead>
-              <TableHead>block</TableHead>
-              <TableHead>time</TableHead>
-              <TableHead>dir</TableHead>
-              <TableHead className="min-w-[380px]">from_address</TableHead>
-              <TableHead className="min-w-[380px]">to_address</TableHead>
-              <TableHead>nonce</TableHead>
-              <TableHead>idx</TableHead>
-              <TableHead>value_eth</TableHead>
-              <TableHead>fee_eth</TableHead>
-              <TableHead>gas_price</TableHead>
-              <TableHead>gas_used</TableHead>
-              <TableHead>ok</TableHead>
-              <TableHead className="min-w-[380px]">token_contract</TableHead>
-              <TableHead>token_symbol</TableHead>
-              <TableHead>token_name</TableHead>
-              <TableHead>token_amount_raw</TableHead>
-              <TableHead>token_amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row, index) => (
-              <TableRow key={row.tx_hash || index}>
-                <TableCell>
-                  <a
-                    href={`${ETHERSCAN_BASE}/tx/${row.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 font-mono text-xs text-primary hover:underline"
-                  >
-                    {row.tx_hash?.slice(0, 10)}...
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </TableCell>
-                <TableCell>{row.block_number}</TableCell>
-                <TableCell className="whitespace-nowrap text-xs">{formatBlockTime(row.block_time)}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={row.direction === "IN" ? "default" : "secondary"}
-                    className={
-                      row.direction === "IN"
-                        ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
-                        : "bg-slate-500/10 text-slate-600 hover:bg-slate-500/20"
-                    }
-                  >
-                    {row.direction}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <CopyableAddress address={row.from_address} />
-                </TableCell>
-                <TableCell>
-                  <CopyableAddress address={row.to_address} />
-                </TableCell>
-                <TableCell>{row.nonce}</TableCell>
-                <TableCell>{row.transaction_index}</TableCell>
-                <TableCell className="font-mono text-xs">{formatEth(row.value_eth)}</TableCell>
-                <TableCell className="font-mono text-xs">{formatEth(row.tx_fee_eth)}</TableCell>
-                <TableCell className="text-xs">{row.gas_price}</TableCell>
-                <TableCell>{row.gas_used}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={row.success ? "default" : "destructive"}
-                    className={
-                      row.success
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-red-500/10 text-red-600"
-                    }
-                  >
-                    {row.success ? "✓" : "✗"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {row.token_contract ? <CopyableAddress address={row.token_contract} /> : "-"}
-                </TableCell>
-                <TableCell className="font-mono text-xs">{row.token_symbol || "-"}</TableCell>
-                <TableCell className="text-xs">{row.token_name || "-"}</TableCell>
-                <TableCell className="font-mono text-xs">{row.token_amount_raw || "-"}</TableCell>
-                <TableCell className="font-mono text-xs">
-                  {row.token_amount != null ? formatEth(row.token_amount) : "-"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+          <div className="rounded-lg border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]">tx_hash</TableHead>
+                  <TableHead>block</TableHead>
+                  <TableHead>time</TableHead>
+                  <TableHead>dir</TableHead>
+                  <TableHead className="min-w-[380px]">from_address</TableHead>
+                  <TableHead className="min-w-[380px]">to_address</TableHead>
+                  <TableHead>nonce</TableHead>
+                  <TableHead>idx</TableHead>
+                  <TableHead>value_eth</TableHead>
+                  <TableHead>fee_eth</TableHead>
+                  <TableHead>gas_price</TableHead>
+                  <TableHead>gas_used</TableHead>
+                  <TableHead>ok</TableHead>
+                  <TableHead className="min-w-[380px]">token_contract</TableHead>
+                  <TableHead>token_symbol</TableHead>
+                  <TableHead>token_name</TableHead>
+                  <TableHead>token_amount_raw</TableHead>
+                  <TableHead>token_amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row, index) => (
+                  <TableRow key={row.tx_hash || index}>
+                    <TableCell>
+                      <a
+                        href={`${ETHERSCAN_BASE}/tx/${row.tx_hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 font-mono text-xs text-primary hover:underline"
+                      >
+                        {row.tx_hash?.slice(0, 10)}...
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </TableCell>
+                    <TableCell>{row.block_number}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">{formatBlockTime(row.block_time)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={row.direction === "IN" ? "default" : "secondary"}
+                        className={
+                          row.direction === "IN"
+                            ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                            : "bg-slate-500/10 text-slate-600 hover:bg-slate-500/20"
+                        }
+                      >
+                        {row.direction}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <CopyableAddress address={row.from_address} />
+                    </TableCell>
+                    <TableCell>
+                      <CopyableAddress address={row.to_address} />
+                    </TableCell>
+                    <TableCell>{row.nonce}</TableCell>
+                    <TableCell>{row.transaction_index}</TableCell>
+                    <TableCell className="font-mono text-xs">{formatEth(row.value_eth)}</TableCell>
+                    <TableCell className="font-mono text-xs">{formatEth(row.tx_fee_eth)}</TableCell>
+                    <TableCell className="text-xs">{row.gas_price}</TableCell>
+                    <TableCell>{row.gas_used}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={row.success ? "default" : "destructive"}
+                        className={
+                          row.success
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : "bg-red-500/10 text-red-600"
+                        }
+                      >
+                        {row.success ? "✓" : "✗"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {row.token_contract ? <CopyableAddress address={row.token_contract} /> : "-"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{row.token_symbol || "-"}</TableCell>
+                    <TableCell className="text-xs">{row.token_name || "-"}</TableCell>
+                    <TableCell className="font-mono text-xs">{row.token_amount_raw || "-"}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {row.token_amount != null ? formatEth(row.token_amount) : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && rows.length === 0 && !searchedWallet && (
+        <div className="text-center py-12 text-muted-foreground">
+          Enter a wallet address above to search for transactions
+        </div>
+      )}
+
+      {!loading && !error && rows.length === 0 && searchedWallet && (
+        <div className="text-center py-12 text-muted-foreground">
+          No transactions found for this address
+        </div>
+      )}
     </div>
   );
 }
