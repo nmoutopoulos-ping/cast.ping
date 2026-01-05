@@ -52,6 +52,7 @@ export default function SavedSearchDetail() {
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
   const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
   const [methodFilters, setMethodFilters] = useState<MethodType[]>([]);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
   const handleCopyAddress = async () => {
     if (savedQuery?.wallet_address) {
@@ -89,8 +90,23 @@ export default function SavedSearchDetail() {
       });
     }
     
+    // Apply date range filters
+    if (dateRange.start || dateRange.end) {
+      result = result.filter((row) => {
+        if (!row.timestamp) return false;
+        const rowDate = new Date(row.timestamp);
+        if (dateRange.start && rowDate < dateRange.start) return false;
+        if (dateRange.end) {
+          const endOfDay = new Date(dateRange.end);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (rowDate > endOfDay) return false;
+        }
+        return true;
+      });
+    }
+    
     return result;
-  }, [rows, activeFilters, filterMode, tagFilterMode, methodFilters]);
+  }, [rows, activeFilters, filterMode, tagFilterMode, methodFilters, dateRange]);
   const addressLabels = useMemo(
     () => buildAddressLabels(entities, tags),
     [entities, tags]
@@ -319,6 +335,7 @@ export default function SavedSearchDetail() {
               filterMode={filterMode}
               tagFilterMode={tagFilterMode}
               methodFilters={methodFilters}
+              dateRange={dateRange}
               totalRowCount={rows.length}
               filteredRowCount={filteredRows.length}
               onHiddenColumnsChange={setHiddenColumns}
@@ -326,6 +343,7 @@ export default function SavedSearchDetail() {
               onFilterModeChange={setFilterMode}
               onTagFilterModeChange={setTagFilterMode}
               onMethodFiltersChange={setMethodFilters}
+              onDateRangeChange={setDateRange}
             />
           )}
 
