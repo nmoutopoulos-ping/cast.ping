@@ -146,7 +146,7 @@ export default function SavedQueries() {
   };
 
   const handleOpenQuery = (query: SavedQuery) => {
-    navigate(`/results?id=${query.id}`);
+    navigate(`/queries/${query.id}`);
   };
 
   return (

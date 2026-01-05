@@ -8,6 +8,7 @@ import { AuthGuard } from "@/components/layout/AuthGuard";
 import Dashboard from "@/pages/Dashboard";
 import Wallets from "@/pages/Wallets";
 import SavedQueries from "@/pages/SavedQueries";
+import SavedSearchDetail from "@/pages/SavedSearchDetail";
 import Entities from "@/pages/Entities";
 import Settings from "@/pages/Settings";
 import QueryResults from "@/pages/QueryResults";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/wallets" element={<Wallets />} />
             <Route path="/queries" element={<SavedQueries />} />
+            <Route path="/queries/:id" element={<SavedSearchDetail />} />
             <Route path="/entities" element={<Entities />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/results" element={<QueryResults />} />
