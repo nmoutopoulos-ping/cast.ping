@@ -57,6 +57,7 @@ export type Database = {
           gas_price: number | null
           gas_used: number | null
           id: string
+          method: string | null
           nonce: number | null
           saved_query_id: string
           success: boolean | null
@@ -64,8 +65,11 @@ export type Database = {
           token_amount: number | null
           token_amount_raw: string | null
           token_contract: string | null
+          token_direction: string | null
+          token_from: string | null
           token_name: string | null
           token_symbol: string | null
+          token_to: string | null
           transaction_index: number | null
           tx_fee_eth: number | null
           tx_hash: string
@@ -81,6 +85,7 @@ export type Database = {
           gas_price?: number | null
           gas_used?: number | null
           id?: string
+          method?: string | null
           nonce?: number | null
           saved_query_id: string
           success?: boolean | null
@@ -88,8 +93,11 @@ export type Database = {
           token_amount?: number | null
           token_amount_raw?: string | null
           token_contract?: string | null
+          token_direction?: string | null
+          token_from?: string | null
           token_name?: string | null
           token_symbol?: string | null
+          token_to?: string | null
           transaction_index?: number | null
           tx_fee_eth?: number | null
           tx_hash: string
@@ -105,6 +113,7 @@ export type Database = {
           gas_price?: number | null
           gas_used?: number | null
           id?: string
+          method?: string | null
           nonce?: number | null
           saved_query_id?: string
           success?: boolean | null
@@ -112,8 +121,11 @@ export type Database = {
           token_amount?: number | null
           token_amount_raw?: string | null
           token_contract?: string | null
+          token_direction?: string | null
+          token_from?: string | null
           token_name?: string | null
           token_symbol?: string | null
+          token_to?: string | null
           transaction_index?: number | null
           tx_fee_eth?: number | null
           tx_hash?: string
