@@ -273,6 +273,8 @@ export default function SavedSearchDetail() {
               hiddenColumns={hiddenColumns}
               activeFilters={activeFilters}
               filterMode={filterMode}
+              totalRowCount={rows.length}
+              filteredRowCount={filteredRows.length}
               onHiddenColumnsChange={setHiddenColumns}
               onActiveFiltersChange={setActiveFilters}
               onFilterModeChange={setFilterMode}
