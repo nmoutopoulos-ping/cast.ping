@@ -98,7 +98,13 @@ export interface SavedView {
   active_filters: ActiveFilter[];
   filter_mode: FilterMode;
   tag_filter_mode: FilterMode;
+  method_filters: string[];
 }
+
+/**
+ * Known method types for quick filter tabs
+ */
+export type MethodType = "transfer" | "mint" | "burn";
 
 // Constants
 export const DEFAULT_QUERY_ID = "6459204";

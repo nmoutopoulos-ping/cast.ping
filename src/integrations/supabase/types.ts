@@ -158,6 +158,7 @@ export type Database = {
           filter_mode: string
           hidden_columns: string[]
           id: string
+          method_filters: string[]
           name: string
           saved_query_id: string
           tag_filter_mode: string
@@ -170,6 +171,7 @@ export type Database = {
           filter_mode?: string
           hidden_columns?: string[]
           id?: string
+          method_filters?: string[]
           name: string
           saved_query_id: string
           tag_filter_mode?: string
@@ -182,6 +184,7 @@ export type Database = {
           filter_mode?: string
           hidden_columns?: string[]
           id?: string
+          method_filters?: string[]
           name?: string
           saved_query_id?: string
           tag_filter_mode?: string
