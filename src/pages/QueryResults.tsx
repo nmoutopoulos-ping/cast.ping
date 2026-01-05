@@ -380,7 +380,7 @@ export default function QueryResults() {
             </div>
           </div>
 
-          <TransactionDataTable rows={rows} searchedWallet={searchedWallet} />
+          <TransactionDataTable rows={rows} />
         </>
       )}
 
