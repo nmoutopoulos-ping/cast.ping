@@ -272,7 +272,9 @@ export async function fetchEntitiesAndTags(): Promise<{
 }> {
   const [entitiesRes, tagsRes] = await Promise.all([
     supabase.from("entities").select("id, name, wallet_address, color"),
-    supabase.from("tags").select("id, name, color, contract_address"),
+    supabase
+      .from("tags")
+      .select("id, name, color, contract_address, decimals, token_symbol, token_name"),
   ]);
 
   return {
