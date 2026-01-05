@@ -160,7 +160,20 @@ export default function SavedSearchDetail() {
 
     if (data?.result?.rows) {
       setRows(data.result.rows);
-      setIsSavedToDb(false);
+      
+      // Check if these transactions already exist in DB (by checking tx_hash count)
+      if (user && id) {
+        const { count } = await supabase
+          .from("transactions")
+          .select("*", { count: "exact", head: true })
+          .eq("saved_query_id", id)
+          .eq("user_id", user.id);
+        
+        // If all fetched rows are already in DB, mark as saved
+        setIsSavedToDb(count !== null && count >= data.result.rows.length);
+      } else {
+        setIsSavedToDb(false);
+      }
     } else if (data?.error) {
       setError(data.error);
     }
