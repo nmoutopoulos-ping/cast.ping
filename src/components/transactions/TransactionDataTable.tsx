@@ -44,6 +44,8 @@ export const ALL_COLUMNS = [
 
 type ColumnKey = typeof ALL_COLUMNS[number]["key"];
 
+const normalizeAddress = (addr?: string | null) => (addr ?? "").trim().toLowerCase();
+
 function AddressCell({ 
   address, 
   isHighlighted, 
@@ -138,18 +140,24 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     return map;
   }, [addressLabels]);
 
-  // Build a map of contract address (lowercase) → tag info for tags with rules
+  // Build a map of contract address (normalized lowercase) → tag info for tags with rules
   const tagRulesMap = useMemo(() => {
-    const map: Record<string, { decimals: number | null; token_symbol: string | null; token_name: string | null }> = {};
+    const map: Record<
+      string,
+      { decimals: number | null; token_symbol: string | null; token_name: string | null }
+    > = {};
+
     tags.forEach((tag) => {
-      if (tag.contract_address) {
-        map[tag.contract_address.toLowerCase()] = {
-          decimals: tag.decimals ?? null,
-          token_symbol: tag.token_symbol ?? null,
-          token_name: tag.token_name ?? null,
-        };
-      }
+      const key = normalizeAddress(tag.contract_address);
+      if (!key) return;
+
+      map[key] = {
+        decimals: tag.decimals ?? null,
+        token_symbol: tag.token_symbol ?? null,
+        token_name: tag.token_name ?? null,
+      };
     });
+
     return map;
   }, [tags]);
 
@@ -195,33 +203,28 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
   // Format token amount based on decimal rule
   const formatTokenAmount = (row: TransactionRow): string => {
-    if (!row.token_contract) {
-      return "-";
-    }
+    const contractKey = normalizeAddress(row.token_contract);
+    if (!contractKey) return "-";
 
-    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    const tagRule = tagRulesMap[contractKey];
     const decimals = tagRule?.decimals;
-    if (decimals == null) {
-      return "No Rule";
-    }
+    if (decimals == null) return "No Rule";
 
     const rawValue = row.token_amount_raw;
-    if (!rawValue || rawValue === "-") {
-      return "-";
-    }
+    if (!rawValue || rawValue === "-") return "-";
 
     try {
-      const rawBigInt = BigInt(rawValue);
-      const divisor = BigInt(10 ** decimals);
+      const rawBigInt = BigInt(String(rawValue));
+      const divisor = BigInt(10) ** BigInt(decimals);
       const wholePart = rawBigInt / divisor;
       const remainder = rawBigInt % divisor;
-      
+
       if (remainder === BigInt(0)) {
         return wholePart.toString();
       }
-      
-      const remainderStr = remainder.toString().padStart(decimals, '0');
-      const trimmedRemainder = remainderStr.replace(/0+$/, '');
+
+      const remainderStr = remainder.toString().padStart(decimals, "0");
+      const trimmedRemainder = remainderStr.replace(/0+$/, "");
       return `${wholePart}.${trimmedRemainder}`;
     } catch {
       return "No Rule";
@@ -230,15 +233,19 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
   // Get token symbol from tag rule or fallback to row data
   const getTokenSymbol = (row: TransactionRow): string => {
-    if (!row.token_contract) return row.token_symbol || "-";
-    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    const contractKey = normalizeAddress(row.token_contract);
+    if (!contractKey) return row.token_symbol || "-";
+
+    const tagRule = tagRulesMap[contractKey];
     return tagRule?.token_symbol || row.token_symbol || "-";
   };
 
   // Get token name from tag rule or fallback to row data
   const getTokenName = (row: TransactionRow): string => {
-    if (!row.token_contract) return row.token_name || "-";
-    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    const contractKey = normalizeAddress(row.token_contract);
+    if (!contractKey) return row.token_name || "-";
+
+    const tagRule = tagRulesMap[contractKey];
     return tagRule?.token_name || row.token_name || "-";
   };
 
