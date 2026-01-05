@@ -93,8 +93,7 @@ export default function SavedSearchDetail() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
-      setIsSavedToDb(true);
-      setRows(cachedTx.map(tx => ({
+      const mapped = cachedTx.map((tx) => ({
         transaction_hash: tx.tx_hash,
         method: tx.method || "",
         block: Number(tx.block_number),
@@ -116,11 +115,21 @@ export default function SavedSearchDetail() {
         gas_price_wei: Number(tx.gas_price),
         gas_used: Number(tx.gas_used),
         status: tx.success ? "success" : "failed",
-      })));
-      setLoading(false);
-      return;
+      }));
+
+      setRows(mapped);
+
+      // Older saved rows won't have the new columns populated; treat that as "not saved" so user can resave.
+      const isComplete = cachedTx.every((tx) => !!tx.method);
+      setIsSavedToDb(isComplete);
+
+      if (isComplete) {
+        setLoading(false);
+        return;
+      }
+      // fall through to fetch from Dune
     }
-    
+
     setIsSavedToDb(false);
 
     // Fetch from Dune if we have a wallet address

@@ -110,19 +110,17 @@ export default function QueryResults() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
-      setIsSavedToDb(true);
-      // Map cached transaction data to new format
-      setRows(cachedTx.map(tx => ({
+      const mapped = cachedTx.map((tx) => ({
         transaction_hash: tx.tx_hash,
-        method: "",
+        method: tx.method || "",
         block: Number(tx.block_number),
         timestamp: tx.block_time || "",
         from_address: tx.from_address || "",
         interacted_with: tx.to_address || "",
         eth_direction: tx.direction || "",
-        token_direction: "",
-        token_from: "",
-        token_to: "",
+        token_direction: tx.token_direction || "",
+        token_from: tx.token_from || "",
+        token_to: tx.token_to || "",
         token_amount_raw: tx.token_amount_raw || "",
         token_amount: Number(tx.token_amount),
         token_symbol: tx.token_symbol || "",
@@ -134,9 +132,19 @@ export default function QueryResults() {
         gas_price_wei: Number(tx.gas_price),
         gas_used: Number(tx.gas_used),
         status: tx.success ? "success" : "failed",
-      })));
-      setLoading(false);
-      return;
+      }));
+
+      setRows(mapped);
+
+      // Older saved rows won't have the new columns populated; treat that as "not saved" so user can resave.
+      const isComplete = cachedTx.every((tx) => !!tx.method);
+      setIsSavedToDb(isComplete);
+
+      if (isComplete) {
+        setLoading(false);
+        return;
+      }
+      // fall through to fetch from Dune
     }
     
     setIsSavedToDb(false);
