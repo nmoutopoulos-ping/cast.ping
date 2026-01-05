@@ -40,6 +40,8 @@ interface ViewEditorProps {
   hiddenColumns: Set<string>;
   activeFilters: ActiveFilter[];
   filterMode: FilterMode;
+  totalRowCount: number;
+  filteredRowCount: number;
   onHiddenColumnsChange: (columns: Set<string>) => void;
   onActiveFiltersChange: (filters: ActiveFilter[]) => void;
   onFilterModeChange: (mode: FilterMode) => void;
@@ -55,6 +57,8 @@ export function ViewEditor({
   hiddenColumns,
   activeFilters,
   filterMode,
+  totalRowCount,
+  filteredRowCount,
   onHiddenColumnsChange,
   onActiveFiltersChange,
   onFilterModeChange,
@@ -324,9 +328,13 @@ export function ViewEditor({
         {/* Right: Controls */}
         <div className="flex items-center gap-2">
           {activeFilters.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""}
-            </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {filteredRowCount.toLocaleString()} of {totalRowCount.toLocaleString()}
+              </span>
+              <span className="text-muted-foreground/60">•</span>
+              <span>{activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""}</span>
+            </div>
           )}
 
           {activeFilters.length >= 2 && (
