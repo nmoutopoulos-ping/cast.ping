@@ -16,7 +16,8 @@ import type {
   DbTag, 
   ActiveFilter, 
   SavedQueryInfo,
-  FilterMode 
+  FilterMode,
+  MethodType 
 } from "@/types/transactions";
 import { DEFAULT_QUERY_ID } from "@/types/transactions";
 import {
@@ -49,6 +50,7 @@ export default function SavedSearchDetail() {
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
   const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
+  const [methodFilters, setMethodFilters] = useState<MethodType[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -61,10 +63,24 @@ export default function SavedSearchDetail() {
 
   const transactionAddresses = useMemo(() => extractAddressesFromRows(rows), [rows]);
   const highlightMap = useMemo(() => buildHighlightMap(activeFilters), [activeFilters]);
-  const filteredRows = useMemo(
-    () => filterRowsByActiveFilters(rows, activeFilters, filterMode, tagFilterMode),
-    [rows, activeFilters, filterMode, tagFilterMode]
-  );
+  const filteredRows = useMemo(() => {
+    let result = filterRowsByActiveFilters(rows, activeFilters, filterMode, tagFilterMode);
+    
+    // Apply method filters
+    if (methodFilters.length > 0) {
+      result = result.filter((row) => {
+        const method = row.method?.toLowerCase() || "";
+        return methodFilters.some((filter) => {
+          if (filter === "transfer") return method.includes("transfer");
+          if (filter === "mint") return method.includes("mint");
+          if (filter === "burn") return method.includes("burn");
+          return false;
+        });
+      });
+    }
+    
+    return result;
+  }, [rows, activeFilters, filterMode, tagFilterMode, methodFilters]);
   const addressLabels = useMemo(
     () => buildAddressLabels(entities, tags),
     [entities, tags]
@@ -269,18 +285,21 @@ export default function SavedSearchDetail() {
               userId={user.id}
               entities={entities}
               tags={tags}
+              rows={rows}
               transactionAddresses={transactionAddresses}
               columns={ALL_COLUMNS.map(c => ({ key: c.key, label: c.label }))}
               hiddenColumns={hiddenColumns}
               activeFilters={activeFilters}
               filterMode={filterMode}
               tagFilterMode={tagFilterMode}
+              methodFilters={methodFilters}
               totalRowCount={rows.length}
               filteredRowCount={filteredRows.length}
               onHiddenColumnsChange={setHiddenColumns}
               onActiveFiltersChange={setActiveFilters}
               onFilterModeChange={setFilterMode}
               onTagFilterModeChange={setTagFilterMode}
+              onMethodFiltersChange={setMethodFilters}
             />
           )}
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Building2, Tag, X, Columns, Save, ChevronDown, Trash2, Check, Filter } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Building2, Tag, X, Columns, Save, ChevronDown, Trash2, Check, Filter, ArrowLeftRight, Flame, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Entity, DbTag, ActiveFilter, SavedView, FilterMode } from "@/types/transactions";
+import type { Entity, DbTag, ActiveFilter, SavedView, FilterMode, TransactionRow, MethodType } from "@/types/transactions";
 
 interface ColumnDef {
   key: string;
@@ -35,18 +35,21 @@ interface ViewEditorProps {
   userId: string;
   entities: Entity[];
   tags: DbTag[];
+  rows: TransactionRow[];
   transactionAddresses: Set<string>;
   columns: ColumnDef[];
   hiddenColumns: Set<string>;
   activeFilters: ActiveFilter[];
   filterMode: FilterMode;
   tagFilterMode: FilterMode;
+  methodFilters: MethodType[];
   totalRowCount: number;
   filteredRowCount: number;
   onHiddenColumnsChange: (columns: Set<string>) => void;
   onActiveFiltersChange: (filters: ActiveFilter[]) => void;
   onFilterModeChange: (mode: FilterMode) => void;
   onTagFilterModeChange: (mode: FilterMode) => void;
+  onMethodFiltersChange: (methods: MethodType[]) => void;
 }
 
 export function ViewEditor({
@@ -54,24 +57,50 @@ export function ViewEditor({
   userId,
   entities,
   tags,
+  rows,
   transactionAddresses,
   columns,
   hiddenColumns,
   activeFilters,
   filterMode,
   tagFilterMode,
+  methodFilters,
   totalRowCount,
   filteredRowCount,
   onHiddenColumnsChange,
   onActiveFiltersChange,
   onFilterModeChange,
   onTagFilterModeChange,
+  onMethodFiltersChange,
 }: ViewEditorProps) {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newViewName, setNewViewName] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Calculate method counts from rows
+  const methodCounts = useMemo(() => {
+    const counts = { transfer: 0, mint: 0, burn: 0 };
+    rows.forEach((row) => {
+      const method = row.method?.toLowerCase() || "";
+      if (method.includes("transfer")) counts.transfer++;
+      else if (method.includes("mint")) counts.mint++;
+      else if (method.includes("burn")) counts.burn++;
+    });
+    return counts;
+  }, [rows]);
+
+  const isMethodActive = (method: MethodType) => methodFilters.includes(method);
+
+  const toggleMethodFilter = (method: MethodType) => {
+    if (isMethodActive(method)) {
+      onMethodFiltersChange(methodFilters.filter((m) => m !== method));
+    } else {
+      onMethodFiltersChange([...methodFilters, method]);
+    }
+    setCurrentViewId(null);
+  };
 
   const matchedEntities = entities.filter(
     (e) => e.wallet_address && transactionAddresses.has(e.wallet_address.toLowerCase())
@@ -90,7 +119,7 @@ export function ViewEditor({
       .select("*")
       .eq("saved_query_id" as "name", savedQueryId)
       .eq("user_id", userId)
-      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown; filter_mode?: string; tag_filter_mode?: string }> | null }>);
+      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown; filter_mode?: string; tag_filter_mode?: string; method_filters?: string[] }> | null }>);
 
     if (data) {
       setSavedViews(
@@ -101,6 +130,7 @@ export function ViewEditor({
           active_filters: (v.active_filters as ActiveFilter[]) || [],
           filter_mode: (v.filter_mode as FilterMode) || "any",
           tag_filter_mode: (v.tag_filter_mode as FilterMode) || "any",
+          method_filters: (v.method_filters as MethodType[]) || [],
         }))
       );
     }
@@ -166,6 +196,7 @@ export function ViewEditor({
     onActiveFiltersChange(view.active_filters);
     onFilterModeChange(view.filter_mode);
     onTagFilterModeChange(view.tag_filter_mode);
+    onMethodFiltersChange((view.method_filters || []) as MethodType[]);
     setCurrentViewId(view.id);
     toast.success(`Loaded view: ${view.name}`);
   };
@@ -184,9 +215,10 @@ export function ViewEditor({
         active_filters: activeFilters,
         filter_mode: filterMode,
         tag_filter_mode: tagFilterMode,
+        method_filters: methodFilters,
       } as unknown as { name: string; user_id: string })
       .select()
-      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[]; filter_mode: string; tag_filter_mode: string } | null; error: Error | null }>);
+      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[]; filter_mode: string; tag_filter_mode: string; method_filters: string[] } | null; error: Error | null }>);
 
     if (error) {
       toast.error("Failed to save view");
@@ -200,6 +232,7 @@ export function ViewEditor({
           active_filters: data.active_filters || [],
           filter_mode: (data.filter_mode as FilterMode) || "any",
           tag_filter_mode: (data.tag_filter_mode as FilterMode) || "any",
+          method_filters: (data.method_filters as MethodType[]) || [],
         },
       ]);
       setCurrentViewId(data.id);
@@ -219,6 +252,7 @@ export function ViewEditor({
         active_filters: activeFilters,
         filter_mode: filterMode,
         tag_filter_mode: tagFilterMode,
+        method_filters: methodFilters,
       } as unknown as { name: string })
       .eq("id", viewId) as unknown as Promise<{ error: Error | null }>);
 
@@ -228,7 +262,7 @@ export function ViewEditor({
       setSavedViews((prev) =>
         prev.map((v) =>
           v.id === viewId
-            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters, filter_mode: filterMode, tag_filter_mode: tagFilterMode }
+            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters, filter_mode: filterMode, tag_filter_mode: tagFilterMode, method_filters: methodFilters }
             : v
         )
       );
@@ -259,8 +293,70 @@ export function ViewEditor({
   const activeTagFilters = activeFilters.filter((f) => f.type === "tag");
   const hasMultipleTags = activeTagFilters.length >= 2;
 
+  const hasAnyMethodTransactions = methodCounts.transfer > 0 || methodCounts.mint > 0 || methodCounts.burn > 0;
+
   return (
     <div className="space-y-3">
+      {/* Method filter tabs */}
+      {hasAnyMethodTransactions && (
+        <div className="flex items-center gap-2">
+          {methodCounts.transfer > 0 && (
+            <button
+              onClick={() => toggleMethodFilter("transfer")}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                isMethodActive("transfer")
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              Transfers
+              <Badge variant={isMethodActive("transfer") ? "secondary" : "outline"} className="text-xs px-1.5 py-0">
+                {methodCounts.transfer}
+              </Badge>
+              {isMethodActive("transfer") && <X className="w-3 h-3 ml-1" />}
+            </button>
+          )}
+          {methodCounts.mint > 0 && (
+            <button
+              onClick={() => toggleMethodFilter("mint")}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                isMethodActive("mint")
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                  : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Sparkles className="w-4 h-4" />
+              Mints
+              <Badge variant={isMethodActive("mint") ? "secondary" : "outline"} className="text-xs px-1.5 py-0">
+                {methodCounts.mint}
+              </Badge>
+              {isMethodActive("mint") && <X className="w-3 h-3 ml-1" />}
+            </button>
+          )}
+          {methodCounts.burn > 0 && (
+            <button
+              onClick={() => toggleMethodFilter("burn")}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                isMethodActive("burn")
+                  ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                  : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Flame className="w-4 h-4" />
+              Burns
+              <Badge variant={isMethodActive("burn") ? "secondary" : "outline"} className="text-xs px-1.5 py-0">
+                {methodCounts.burn}
+              </Badge>
+              {isMethodActive("burn") && <X className="w-3 h-3 ml-1" />}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Main control bar */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 bg-muted/30 rounded-lg border border-border/50">
         {/* Left: Entity/Tag filters */}
