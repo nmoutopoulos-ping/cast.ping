@@ -1,26 +1,6 @@
 import { Building2, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Entity {
-  id: string;
-  name: string;
-  wallet_address: string | null;
-  color: string;
-}
-
-interface DbTag {
-  id: string;
-  name: string;
-  color: string;
-  contract_address: string | null;
-}
-
-interface ActiveFilter {
-  type: "entity" | "tag";
-  id: string;
-  address: string;
-  color: string;
-}
+import type { Entity, DbTag, ActiveFilter } from "@/types/transactions";
 
 interface EntityTagIndicatorProps {
   entities: Entity[];
@@ -37,12 +17,10 @@ export function EntityTagIndicator({
   activeFilters,
   onFilterChange,
 }: EntityTagIndicatorProps) {
-  // Find entities whose wallet addresses appear in the transactions
   const matchedEntities = entities.filter(
     (e) => e.wallet_address && transactionAddresses.has(e.wallet_address.toLowerCase())
   );
 
-  // Find tags whose contract addresses appear in the transactions
   const matchedTags = tags.filter(
     (t) => t.contract_address && transactionAddresses.has(t.contract_address.toLowerCase())
   );
@@ -95,7 +73,6 @@ export function EntityTagIndicator({
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-muted/30 rounded-lg border border-border/50">
-      {/* Entities */}
       {matchedEntities.length > 0 && (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -111,9 +88,7 @@ export function EntityTagIndicator({
                   onClick={() => handleEntityClick(entity)}
                   className={cn(
                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all border",
-                    isActive
-                      ? "shadow-sm ring-2 ring-offset-1"
-                      : "hover:opacity-80"
+                    isActive ? "shadow-sm ring-2 ring-offset-1" : "hover:opacity-80"
                   )}
                   style={{
                     backgroundColor: isActive ? entity.color : `${entity.color}20`,
@@ -130,12 +105,10 @@ export function EntityTagIndicator({
         </div>
       )}
 
-      {/* Separator */}
       {matchedEntities.length > 0 && matchedTags.length > 0 && (
         <div className="w-px h-6 bg-border/60" />
       )}
 
-      {/* Tags */}
       {matchedTags.length > 0 && (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -151,9 +124,7 @@ export function EntityTagIndicator({
                   onClick={() => handleTagClick(tag)}
                   className={cn(
                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all border",
-                    isActive
-                      ? "shadow-sm ring-2 ring-offset-1"
-                      : "hover:opacity-80"
+                    isActive ? "shadow-sm ring-2 ring-offset-1" : "hover:opacity-80"
                   )}
                   style={{
                     backgroundColor: isActive ? tag.color : `${tag.color}20`,
@@ -170,7 +141,6 @@ export function EntityTagIndicator({
         </div>
       )}
 
-      {/* Active filter info */}
       {activeFilters.length > 0 && (
         <div className="ml-auto text-xs text-muted-foreground">
           {activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""} active

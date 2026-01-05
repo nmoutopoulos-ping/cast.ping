@@ -5,47 +5,16 @@ import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-rea
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-interface QueryRow {
-  transaction_hash: string;
-  method: string;
-  block: number;
-  timestamp: string;
-  from_address: string;
-  interacted_with: string;
-  eth_direction: string;
-  token_direction: string;
-  token_from: string;
-  token_to: string;
-  token_amount_raw: string;
-  token_amount: number;
-  token_symbol: string;
-  token_name: string;
-  token_contract: string;
-  value_eth: number;
-  txn_fee_eth: number;
-  gas_price_gwei: number;
-  gas_price_wei: number;
-  gas_used: number;
-  status: string;
-}
-
-interface EntityTagInfo {
-  address: string;
-  name: string;
-  color: string;
-  type: "entity" | "tag";
-}
+import type { TransactionRow, AddressLabelInfo } from "@/types/transactions";
+import { ETHERSCAN_BASE, ROWS_PER_PAGE } from "@/types/transactions";
+import { formatEthValue } from "@/lib/transactionUtils";
 
 interface TransactionDataTableProps {
-  rows: QueryRow[];
+  rows: TransactionRow[];
   highlightMap?: Record<string, string>;
-  addressLabels?: EntityTagInfo[];
+  addressLabels?: AddressLabelInfo[];
   hiddenColumns?: Set<string>;
 }
-
-const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
-const ROWS_PER_PAGE = 25;
 
 export const ALL_COLUMNS = [
   { key: "transaction_hash", label: "Tx Hash" },
@@ -140,9 +109,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Use external hiddenColumns if provided, otherwise use internal state
   const hiddenColumns = externalHiddenColumns ?? new Set<string>();
-
   const visibleColumns = ALL_COLUMNS.filter((col) => !hiddenColumns.has(col.key));
 
   useEffect(() => {
@@ -154,16 +121,14 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const paginatedRows = rows.slice(startIndex, startIndex + ROWS_PER_PAGE);
 
-  // Build address -> label name lookup
   const addressLabelMap = useMemo(() => {
-    const map: Record<string, EntityTagInfo> = {};
+    const map: Record<string, AddressLabelInfo> = {};
     addressLabels.forEach((label) => {
       map[label.address.toLowerCase()] = label;
     });
     return map;
   }, [addressLabels]);
 
-  // Pre-calculate address occurrences for visual feedback
   const addressCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     rows.forEach((row) => {
@@ -181,15 +146,12 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     return address.toLowerCase() === hoveredAddress.toLowerCase();
   };
 
-  // Get highlight color for an address from the highlightMap
   const getHighlightColor = (address: string | null | undefined): string | undefined => {
     if (!address) return undefined;
     return highlightMap[address.toLowerCase()];
   };
 
-  // Get label info for hovered address
   const hoveredLabel = hoveredAddress ? addressLabelMap[hoveredAddress.toLowerCase()] : null;
-
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -207,18 +169,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     }
   };
 
-  const formatEth = (value: number | string | null | undefined) => {
-    if (value == null || value === "") return "-";
-    if (typeof value === "string") return value;
-    if (!Number.isFinite(value)) return "-";
-    if (value === 0) return "0";
-    const fixed = value.toFixed(18);
-    return fixed.replace(/\.?0+$/, "");
-  };
-
-  const isColumnVisible = (key: ColumnKey) => !hiddenColumns.has(key);
-
-  const renderCell = (row: QueryRow, columnKey: ColumnKey) => {
+  const renderCell = (row: TransactionRow, columnKey: ColumnKey) => {
     switch (columnKey) {
       case "transaction_hash":
         return (
@@ -343,7 +294,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "token_amount":
         return (
           <span className="font-mono text-xs font-medium whitespace-nowrap">
-            {row.token_amount != null ? formatEth(row.token_amount) : "-"}
+            {row.token_amount != null ? formatEthValue(row.token_amount) : "-"}
           </span>
         );
       case "token_symbol":
@@ -373,13 +324,13 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "value_eth":
         return (
           <span className="font-mono text-xs font-medium whitespace-nowrap">
-            {formatEth(row.value_eth)}
+            {formatEthValue(row.value_eth)}
           </span>
         );
       case "txn_fee_eth":
         return (
           <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-            {formatEth(row.txn_fee_eth)}
+            {formatEthValue(row.txn_fee_eth)}
           </span>
         );
       case "gas_price_gwei":
@@ -428,7 +379,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
   return (
     <div className="space-y-4">
-      {/* Hover indicator - fixed height to prevent layout shift */}
+      {/* Hover indicator */}
       <div className="flex items-center gap-4 h-5 px-1">
         {hoveredAddress && (
           <div className="flex items-center gap-2">
@@ -495,7 +446,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="border-t border-border/60 px-4 py-3 flex items-center justify-between bg-muted/20">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/30">
             <span className="text-xs text-muted-foreground">
               Showing {startIndex + 1}-{Math.min(startIndex + ROWS_PER_PAGE, rows.length)} of {rows.length}
             </span>
@@ -503,41 +454,23 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentPage(1)}
                 disabled={currentPage === 1}
-                className="text-xs h-8 px-2"
-              >
-                First
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="h-8 w-8"
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className="h-8 w-8 p-0"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-xs px-3 py-1 bg-muted rounded-md">
+              <span className="text-xs px-2">
                 Page {currentPage} of {totalPages}
               </span>
               <Button
                 variant="ghost"
-                size="icon"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                size="sm"
                 disabled={currentPage === totalPages}
-                className="h-8 w-8"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className="h-8 w-8 p-0"
               >
                 <ChevronRight className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="text-xs h-8 px-2"
-              >
-                Last
               </Button>
             </div>
           </div>

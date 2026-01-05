@@ -10,169 +10,64 @@ import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileTe
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-
-interface QueryRow {
-  transaction_hash: string;
-  method: string;
-  block: number;
-  timestamp: string;
-  from_address: string;
-  interacted_with: string;
-  eth_direction: string;
-  token_direction: string;
-  token_from: string;
-  token_to: string;
-  token_amount_raw: string;
-  token_amount: number;
-  token_symbol: string;
-  token_name: string;
-  token_contract: string;
-  value_eth: number;
-  txn_fee_eth: number;
-  gas_price_gwei: number;
-  gas_price_wei: number;
-  gas_used: number;
-  status: string;
-}
-
-interface SavedQuery {
-  id: string;
-  name: string;
-  description: string | null;
-  dune_query_id: string;
-  wallet_address: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Entity {
-  id: string;
-  name: string;
-  wallet_address: string | null;
-  color: string;
-}
-
-interface DbTag {
-  id: string;
-  name: string;
-  color: string;
-  contract_address: string | null;
-}
-
-interface ActiveFilter {
-  type: "entity" | "tag";
-  id: string;
-  address: string;
-  color: string;
-}
-
-const DEFAULT_QUERY_ID = "6459204";
+import type { 
+  TransactionRow, 
+  Entity, 
+  DbTag, 
+  ActiveFilter, 
+  SavedQueryInfo,
+  FilterMode 
+} from "@/types/transactions";
+import { DEFAULT_QUERY_ID } from "@/types/transactions";
+import {
+  mapDbTransactionToRow,
+  needsBackfill,
+  extractAddressesFromRows,
+  buildHighlightMap,
+  buildAddressLabels,
+  filterRowsByActiveFilters,
+  fetchFromDune,
+  saveTransactionsToDb,
+  fetchEntitiesAndTags,
+} from "@/lib/transactionUtils";
 
 export default function SavedSearchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [savedQuery, setSavedQuery] = useState<SavedQuery | null>(null);
-  const [rows, setRows] = useState<QueryRow[]>([]);
+  const [savedQuery, setSavedQuery] = useState<SavedQueryInfo | null>(null);
+  const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Entities and tags for matching
   const [entities, setEntities] = useState<Entity[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
-  const [filterMode, setFilterMode] = useState<"any" | "all">("any");
+  const [filterMode, setFilterMode] = useState<FilterMode>("any");
 
   useEffect(() => {
     if (user) {
-      fetchEntitiesAndTags();
+      fetchEntitiesAndTags().then(({ entities, tags }) => {
+        setEntities(entities);
+        setTags(tags);
+      });
     }
   }, [user]);
 
-  const fetchEntitiesAndTags = async () => {
-    const [entitiesRes, tagsRes] = await Promise.all([
-      supabase.from("entities").select("id, name, wallet_address, color"),
-      supabase.from("tags").select("id, name, color, contract_address"),
-    ]);
-    if (entitiesRes.data) setEntities(entitiesRes.data);
-    if (tagsRes.data) setTags(tagsRes.data);
-  };
-
-  // Collect all addresses from transactions for matching
-  const transactionAddresses = useMemo(() => {
-    const addresses = new Set<string>();
-    rows.forEach((row) => {
-      if (row.from_address) addresses.add(row.from_address.toLowerCase());
-      if (row.interacted_with) addresses.add(row.interacted_with.toLowerCase());
-      if (row.token_contract) addresses.add(row.token_contract.toLowerCase());
-      if (row.token_from) addresses.add(row.token_from.toLowerCase());
-      if (row.token_to) addresses.add(row.token_to.toLowerCase());
-    });
-    return addresses;
-  }, [rows]);
-
-  // Build highlight map from active filters: address -> color
-  const highlightMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    activeFilters.forEach((filter) => {
-      map[filter.address] = filter.color;
-    });
-    return map;
-  }, [activeFilters]);
-
-  // Filter rows based on active filters and filter mode
-  const filteredRows = useMemo(() => {
-    if (activeFilters.length === 0) return rows;
-
-    const filterAddresses = activeFilters.map((f) => f.address);
-
-    return rows.filter((row) => {
-      const rowAddresses = new Set<string>();
-      if (row.from_address) rowAddresses.add(row.from_address.toLowerCase());
-      if (row.interacted_with) rowAddresses.add(row.interacted_with.toLowerCase());
-      if (row.token_contract) rowAddresses.add(row.token_contract.toLowerCase());
-      if (row.token_from) rowAddresses.add(row.token_from.toLowerCase());
-      if (row.token_to) rowAddresses.add(row.token_to.toLowerCase());
-
-      if (filterMode === "all") {
-        // All selected filters must be present in the row
-        return filterAddresses.every((addr) => rowAddresses.has(addr));
-      } else {
-        // At least one filter must be present
-        return filterAddresses.some((addr) => rowAddresses.has(addr));
-      }
-    });
-  }, [rows, activeFilters, filterMode]);
-
-  // Build address labels for entity/tag name display on hover
-  const addressLabels = useMemo(() => {
-    const labels: { address: string; name: string; color: string; type: "entity" | "tag" }[] = [];
-    entities.forEach((e) => {
-      if (e.wallet_address) {
-        labels.push({
-          address: e.wallet_address.toLowerCase(),
-          name: e.name,
-          color: e.color,
-          type: "entity",
-        });
-      }
-    });
-    tags.forEach((t) => {
-      if (t.contract_address) {
-        labels.push({
-          address: t.contract_address.toLowerCase(),
-          name: t.name,
-          color: t.color,
-          type: "tag",
-        });
-      }
-    });
-    return labels;
-  }, [entities, tags]);
+  const transactionAddresses = useMemo(() => extractAddressesFromRows(rows), [rows]);
+  const highlightMap = useMemo(() => buildHighlightMap(activeFilters), [activeFilters]);
+  const filteredRows = useMemo(
+    () => filterRowsByActiveFilters(rows, activeFilters, filterMode),
+    [rows, activeFilters, filterMode]
+  );
+  const addressLabels = useMemo(
+    () => buildAddressLabels(entities, tags),
+    [entities, tags]
+  );
 
   useEffect(() => {
     if (id && user) {
@@ -186,7 +81,6 @@ export default function SavedSearchDetail() {
     setLoading(true);
     setError(null);
 
-    // Load saved query metadata
     const { data: queryData, error: queryError } = await supabase
       .from("saved_queries")
       .select("*")
@@ -201,7 +95,6 @@ export default function SavedSearchDetail() {
 
     setSavedQuery(queryData);
 
-    // Check for cached transactions
     const { data: cachedTx } = await supabase
       .from("transactions")
       .select("*")
@@ -209,89 +102,51 @@ export default function SavedSearchDetail() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
-      const mapped = cachedTx.map((tx) => ({
-        transaction_hash: tx.tx_hash,
-        method: tx.method || "",
-        block: Number(tx.block_number),
-        timestamp: tx.block_time || "",
-        from_address: tx.from_address || "",
-        interacted_with: tx.to_address || "",
-        eth_direction: tx.direction || "",
-        token_direction: tx.token_direction || "",
-        token_from: tx.token_from || "",
-        token_to: tx.token_to || "",
-        token_amount_raw: tx.token_amount_raw || "",
-        token_amount: Number(tx.token_amount),
-        token_symbol: tx.token_symbol || "",
-        token_name: tx.token_name || "",
-        token_contract: tx.token_contract || "",
-        value_eth: Number(tx.value_eth),
-        txn_fee_eth: Number(tx.tx_fee_eth),
-        gas_price_gwei: Number(tx.gas_price) / 1e9,
-        gas_price_wei: Number(tx.gas_price),
-        gas_used: Number(tx.gas_used),
-        status: tx.success ? "success" : "failed",
-      }));
-
+      const mapped = cachedTx.map(mapDbTransactionToRow);
       setRows(mapped);
 
-      // Older saved rows may not have enrichment fields populated.
-      // In that case, refetch from Dune and allow the user to re-save (UPSERT backfill).
-      const needsBackfill = cachedTx.some(
-        (tx) => !tx.method || !tx.token_direction || !tx.token_from || !tx.token_to
-      );
+      const requiresBackfill = needsBackfill(cachedTx);
+      setIsSavedToDb(!requiresBackfill);
 
-      setIsSavedToDb(!needsBackfill);
-
-      if (!needsBackfill) {
+      if (!requiresBackfill) {
         setLoading(false);
         return;
       }
-      // fall through to fetch from Dune
     }
 
     setIsSavedToDb(false);
 
-    // Fetch from Dune if we have a wallet address
     if (queryData.wallet_address) {
-      await fetchFromDune(queryData.dune_query_id, queryData.wallet_address);
+      await handleFetchFromDune(queryData.dune_query_id, queryData.wallet_address);
     } else {
       setLoading(false);
     }
   };
 
-  const fetchFromDune = async (queryId: string, address: string) => {
+  const handleFetchFromDune = async (queryId: string, address: string) => {
     setLoading(true);
     setError(null);
 
-    const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
-      body: { queryId, parameters: { address: address.toLowerCase() } },
-    });
+    const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
 
-    if (fetchError) {
-      setError(fetchError.message);
+    if (duneError) {
+      setError(duneError);
       setLoading(false);
       return;
     }
 
-    if (data?.result?.rows) {
-      setRows(data.result.rows);
+    setRows(duneRows);
+
+    if (user && id && duneRows.length > 0) {
+      const { count } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .eq("saved_query_id", id)
+        .eq("user_id", user.id);
       
-      // Check if these transactions already exist in DB (by checking tx_hash count)
-      if (user && id) {
-        const { count } = await supabase
-          .from("transactions")
-          .select("*", { count: "exact", head: true })
-          .eq("saved_query_id", id)
-          .eq("user_id", user.id);
-        
-        // If all fetched rows are already in DB, mark as saved
-        setIsSavedToDb(count !== null && count >= data.result.rows.length);
-      } else {
-        setIsSavedToDb(false);
-      }
-    } else if (data?.error) {
-      setError(data.error);
+      setIsSavedToDb(count !== null && count >= duneRows.length);
+    } else {
+      setIsSavedToDb(false);
     }
 
     setLoading(false);
@@ -299,7 +154,7 @@ export default function SavedSearchDetail() {
 
   const handleRefresh = () => {
     if (savedQuery?.wallet_address) {
-      fetchFromDune(savedQuery.dune_query_id || DEFAULT_QUERY_ID, savedQuery.wallet_address);
+      handleFetchFromDune(savedQuery.dune_query_id || DEFAULT_QUERY_ID, savedQuery.wallet_address);
     }
   };
 
@@ -307,47 +162,13 @@ export default function SavedSearchDetail() {
     if (!user || !id || rows.length === 0) return;
     
     setSaving(true);
+    const { count, error: saveError } = await saveTransactionsToDb(rows, id, user.id);
 
-    const txRecords = rows.map(row => ({
-      saved_query_id: id,
-      user_id: user.id,
-      tx_hash: row.transaction_hash,
-      block_number: row.block,
-      block_time: row.timestamp || null,
-      direction: row.eth_direction,
-      from_address: row.from_address,
-      to_address: row.interacted_with,
-      nonce: null,
-      transaction_index: null,
-      value_eth: row.value_eth,
-      tx_fee_eth: row.txn_fee_eth,
-      gas_price: row.gas_price_wei,
-      gas_used: row.gas_used,
-      success: row.status === "success" || row.status === "Success",
-      token_contract: row.token_contract || null,
-      token_symbol: row.token_symbol || null,
-      token_name: row.token_name || null,
-      token_amount_raw: row.token_amount_raw || null,
-      token_amount: row.token_amount || null,
-      method: row.method || null,
-      token_direction: row.token_direction || null,
-      token_from: row.token_from || null,
-      token_to: row.token_to || null,
-    }));
-
-    const { error: upsertError, data } = await supabase
-      .from("transactions")
-      .upsert(txRecords, { 
-        onConflict: "saved_query_id,tx_hash",
-        ignoreDuplicates: false 
-      })
-      .select();
-
-    if (upsertError) {
-      toast.error("Failed to save: " + upsertError.message);
+    if (saveError) {
+      toast.error("Failed to save: " + saveError);
     } else {
       setIsSavedToDb(true);
-      toast.success(`Saved ${data?.length || rows.length} transactions to database!`);
+      toast.success(`Saved ${count} transactions to database!`);
     }
     
     setSaving(false);
@@ -377,7 +198,6 @@ export default function SavedSearchDetail() {
               </div>
             </div>
 
-            {/* Metadata cards */}
             <div className="flex flex-wrap gap-4">
               {savedQuery.wallet_address && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
@@ -442,7 +262,6 @@ export default function SavedSearchDetail() {
             )}
           </div>
 
-          {/* View Editor - combines entity/tag filters with column visibility */}
           {user && id && (
             <ViewEditor
               savedQueryId={id}
