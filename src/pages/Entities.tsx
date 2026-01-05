@@ -485,7 +485,9 @@ export default function Entities() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contractAddress">Contract Address (optional)</Label>
+              <Label htmlFor="contractAddress">
+                Contract Address{(tagDecimals.trim() || tagTokenSymbol.trim() || tagTokenName.trim()) && <span className="text-destructive"> *</span>}
+              </Label>
               <Input
                 id="contractAddress"
                 value={tagContractAddress}
@@ -494,7 +496,9 @@ export default function Entities() {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Add a contract address to filter transactions involving this contract.
+                {(tagDecimals.trim() || tagTokenSymbol.trim() || tagTokenName.trim()) 
+                  ? "Required when setting token transformation rules."
+                  : "Add a contract address to filter transactions involving this contract."}
               </p>
             </div>
 
@@ -547,7 +551,7 @@ export default function Entities() {
             <Button variant="outline" onClick={() => setTagDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveTag} disabled={!tagName.trim() || savingTag}>
+            <Button onClick={saveTag} disabled={!tagName.trim() || savingTag || ((tagDecimals.trim() || tagTokenSymbol.trim() || tagTokenName.trim()) && !tagContractAddress.trim())}>
               {savingTag ? "Saving..." : editingTag ? "Save Changes" : "Create Tag"}
             </Button>
           </DialogFooter>
