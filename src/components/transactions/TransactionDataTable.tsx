@@ -138,12 +138,16 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     return map;
   }, [addressLabels]);
 
-  // Build a map of contract address (lowercase) → decimals for tags with decimal rules
-  const tagDecimalsMap = useMemo(() => {
-    const map: Record<string, number> = {};
+  // Build a map of contract address (lowercase) → tag info for tags with rules
+  const tagRulesMap = useMemo(() => {
+    const map: Record<string, { decimals: number | null; token_symbol: string | null; token_name: string | null }> = {};
     tags.forEach((tag) => {
-      if (tag.contract_address && tag.decimals != null) {
-        map[tag.contract_address.toLowerCase()] = tag.decimals;
+      if (tag.contract_address) {
+        map[tag.contract_address.toLowerCase()] = {
+          decimals: tag.decimals ?? null,
+          token_symbol: tag.token_symbol ?? null,
+          token_name: tag.token_name ?? null,
+        };
       }
     });
     return map;
@@ -192,42 +196,50 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
   // Format token amount based on decimal rule
   const formatTokenAmount = (row: TransactionRow): string => {
     if (!row.token_contract) {
-      // No token contract, show dash
       return "-";
     }
 
-    const decimals = tagDecimalsMap[row.token_contract.toLowerCase()];
+    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    const decimals = tagRule?.decimals;
     if (decimals == null) {
-      // No decimal rule set for this contract
       return "No Rule";
     }
 
-    // Use token_amount_raw if available, otherwise fall back to token_amount
     const rawValue = row.token_amount_raw;
     if (!rawValue || rawValue === "-") {
       return "-";
     }
 
     try {
-      // Parse the raw value and divide by 10^decimals
       const rawBigInt = BigInt(rawValue);
       const divisor = BigInt(10 ** decimals);
       const wholePart = rawBigInt / divisor;
       const remainder = rawBigInt % divisor;
       
-      // Format with proper decimal places
       if (remainder === BigInt(0)) {
         return wholePart.toString();
       }
       
-      // Pad remainder with leading zeros if needed
       const remainderStr = remainder.toString().padStart(decimals, '0');
-      // Remove trailing zeros
       const trimmedRemainder = remainderStr.replace(/0+$/, '');
       return `${wholePart}.${trimmedRemainder}`;
     } catch {
       return "No Rule";
     }
+  };
+
+  // Get token symbol from tag rule or fallback to row data
+  const getTokenSymbol = (row: TransactionRow): string => {
+    if (!row.token_contract) return row.token_symbol || "-";
+    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    return tagRule?.token_symbol || row.token_symbol || "-";
+  };
+
+  // Get token name from tag rule or fallback to row data
+  const getTokenName = (row: TransactionRow): string => {
+    if (!row.token_contract) return row.token_name || "-";
+    const tagRule = tagRulesMap[row.token_contract.toLowerCase()];
+    return tagRule?.token_name || row.token_name || "-";
   };
 
   const renderCell = (row: TransactionRow, columnKey: ColumnKey) => {
@@ -364,13 +376,13 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "token_symbol":
         return (
           <span className="font-mono text-xs font-medium">
-            {row.token_symbol || "-"}
+            {getTokenSymbol(row)}
           </span>
         );
       case "token_name":
         return (
           <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {row.token_name || "-"}
+            {getTokenName(row)}
           </span>
         );
       case "token_contract":

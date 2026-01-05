@@ -206,6 +206,8 @@ export type Database = {
           decimals: number | null
           id: string
           name: string
+          token_name: string | null
+          token_symbol: string | null
           updated_at: string
           user_id: string
         }
@@ -216,6 +218,8 @@ export type Database = {
           decimals?: number | null
           id?: string
           name: string
+          token_name?: string | null
+          token_symbol?: string | null
           updated_at?: string
           user_id: string
         }
@@ -226,6 +230,8 @@ export type Database = {
           decimals?: number | null
           id?: string
           name?: string
+          token_name?: string | null
+          token_symbol?: string | null
           updated_at?: string
           user_id?: string
         }
