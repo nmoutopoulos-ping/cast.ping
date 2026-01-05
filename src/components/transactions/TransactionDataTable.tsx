@@ -67,8 +67,6 @@ function AddressCell({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const shortAddress = `${address.slice(0, 8)}...${address.slice(-6)}`;
-
   return (
     <div 
       className={cn(
@@ -89,12 +87,12 @@ function AddressCell({
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          "font-mono text-xs transition-colors",
+          "font-mono text-xs transition-colors whitespace-nowrap",
           isSearchedWallet ? "text-primary font-medium" : "text-foreground/80 hover:text-primary"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {shortAddress}
+        {address}
       </a>
       <button
         onClick={handleCopy}
@@ -152,15 +150,6 @@ export function TransactionDataTable({ rows, searchedWallet, highlightMap = {} }
     return highlightMap[address.toLowerCase()];
   };
 
-  // Check if a row contains any highlighted address
-  const getRowHighlightColor = (row: QueryRow): string | undefined => {
-    const addresses = [row.from_address, row.interacted_with, row.token_contract, row.token_from, row.token_to];
-    for (const addr of addresses) {
-      const color = getHighlightColor(addr);
-      if (color) return color;
-    }
-    return undefined;
-  };
 
   const formatTimestamp = (timestamp: string) => {
     try {
@@ -231,18 +220,10 @@ export function TransactionDataTable({ rows, searchedWallet, highlightMap = {} }
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-            {paginatedRows.map((row, index) => {
-                const rowHighlightColor = getRowHighlightColor(row);
-                return (
+            {paginatedRows.map((row, index) => (
                   <tr 
                     key={`${row.transaction_hash}-${startIndex + index}`}
-                    className={cn(
-                      "transition-colors duration-100",
-                      !rowHighlightColor && "hover:bg-muted/40"
-                    )}
-                    style={rowHighlightColor ? {
-                      backgroundColor: `${rowHighlightColor}15`,
-                    } : undefined}
+                    className="transition-colors duration-100 hover:bg-muted/40"
                   >
                     {/* Tx Hash */}
                     <td className="px-4 py-3.5">
@@ -470,8 +451,7 @@ export function TransactionDataTable({ rows, searchedWallet, highlightMap = {} }
                       </Badge>
                     </td>
                   </tr>
-                );
-              })}
+                ))}
             </tbody>
           </table>
         </div>
