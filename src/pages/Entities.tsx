@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TagBadge } from "@/components/shared/TagBadge";
+import { CopyableAddress } from "@/components/shared/CopyableAddress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -315,15 +316,10 @@ export default function Entities() {
                       <td className="font-medium">{entity.name}</td>
                       <td>
                         {wallets.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {wallets.slice(0, 2).map((w) => (
-                              <code key={w.id} className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                                {w.wallet_address.slice(0, 6)}...{w.wallet_address.slice(-4)}
-                              </code>
+                          <div className="flex flex-col gap-1">
+                            {wallets.map((w) => (
+                              <CopyableAddress key={w.id} address={w.wallet_address} />
                             ))}
-                            {wallets.length > 2 && (
-                              <span className="text-xs text-muted-foreground">+{wallets.length - 2} more</span>
-                            )}
                           </div>
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
