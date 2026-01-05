@@ -217,9 +217,22 @@ export default function Entities() {
   return (
     <div className="p-8 space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold">Entities & Tags</h1>
-        <p className="text-muted-foreground">Group wallets and manage classification tags</p>
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Entities & Tags</h1>
+          <p className="text-muted-foreground">Group wallets and manage classification tags</p>
+        </div>
+        
+        <div className="flex gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            <span className="text-muted-foreground"><span className="font-medium text-foreground">Entities</span> — Wallet addresses you want to track</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent-foreground" />
+            <span className="text-muted-foreground"><span className="font-medium text-foreground">Tags</span> — Token contracts for filtering transactions</span>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="entities">
