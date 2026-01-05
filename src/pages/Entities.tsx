@@ -409,9 +409,7 @@ export default function Entities() {
                     </td>
                     <td>
                       {tag.contract_address ? (
-                        <span className="font-mono text-xs">
-                          {tag.contract_address.slice(0, 10)}...{tag.contract_address.slice(-8)}
-                        </span>
+                        <CopyableAddress address={tag.contract_address} />
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
