@@ -253,7 +253,7 @@ export default function SavedSearchDetail() {
               <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">
-                  Created {format(new Date(savedQuery.created_at), "MMM d, yyyy")}
+                  Created {format(new Date(savedQuery.created_at), "MMMM do, yyyy")}
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
