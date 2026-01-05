@@ -180,31 +180,31 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
 
       {/* Table */}
       <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto scrollbar-thin">
+        <div className="overflow-auto scrollbar-thin max-h-[70vh]">
           <table className="w-full min-w-max text-sm">
-            <thead>
-              <tr className="border-b border-border/60 bg-muted/30">
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Tx Hash</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Method</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Block</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Timestamp</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">From</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Interacted With</th>
-                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">ETH Dir</th>
-                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Dir</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token From</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token To</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amt Raw</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Name</th>
-                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Contract</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Value ETH</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Txn Fee ETH</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price (Gwei)</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Price (Wei)</th>
-                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Gas Used</th>
-                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Status</th>
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-border/60 bg-muted">
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Tx Hash</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Method</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Block</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Timestamp</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">From</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Interacted With</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">ETH Dir</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token Dir</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token From</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token To</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token Amt Raw</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token Amount</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token Name</th>
+                <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Token Contract</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Value ETH</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Txn Fee ETH</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Gas Price (Gwei)</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Gas Price (Wei)</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Gas Used</th>
+                <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap bg-muted">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
