@@ -219,13 +219,16 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       const wholePart = rawBigInt / divisor;
       const remainder = rawBigInt % divisor;
 
+      // Format whole part with commas
+      const wholePartWithCommas = wholePart.toLocaleString("en-US");
+
       if (remainder === BigInt(0)) {
-        return wholePart.toString();
+        return wholePartWithCommas;
       }
 
       const remainderStr = remainder.toString().padStart(decimals, "0");
       const trimmedRemainder = remainderStr.replace(/0+$/, "");
-      return `${wholePart}.${trimmedRemainder}`;
+      return `${wholePartWithCommas}.${trimmedRemainder}`;
     } catch {
       return "No Rule";
     }
