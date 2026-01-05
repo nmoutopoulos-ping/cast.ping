@@ -40,11 +40,13 @@ interface ViewEditorProps {
   hiddenColumns: Set<string>;
   activeFilters: ActiveFilter[];
   filterMode: FilterMode;
+  tagFilterMode: FilterMode;
   totalRowCount: number;
   filteredRowCount: number;
   onHiddenColumnsChange: (columns: Set<string>) => void;
   onActiveFiltersChange: (filters: ActiveFilter[]) => void;
   onFilterModeChange: (mode: FilterMode) => void;
+  onTagFilterModeChange: (mode: FilterMode) => void;
 }
 
 export function ViewEditor({
@@ -57,11 +59,13 @@ export function ViewEditor({
   hiddenColumns,
   activeFilters,
   filterMode,
+  tagFilterMode,
   totalRowCount,
   filteredRowCount,
   onHiddenColumnsChange,
   onActiveFiltersChange,
   onFilterModeChange,
+  onTagFilterModeChange,
 }: ViewEditorProps) {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
@@ -86,7 +90,7 @@ export function ViewEditor({
       .select("*")
       .eq("saved_query_id" as "name", savedQueryId)
       .eq("user_id", userId)
-      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown; filter_mode?: string }> | null }>);
+      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown; filter_mode?: string; tag_filter_mode?: string }> | null }>);
 
     if (data) {
       setSavedViews(
@@ -96,6 +100,7 @@ export function ViewEditor({
           hidden_columns: v.hidden_columns || [],
           active_filters: (v.active_filters as ActiveFilter[]) || [],
           filter_mode: (v.filter_mode as FilterMode) || "any",
+          tag_filter_mode: (v.tag_filter_mode as FilterMode) || "any",
         }))
       );
     }
@@ -160,6 +165,7 @@ export function ViewEditor({
     onHiddenColumnsChange(new Set(view.hidden_columns));
     onActiveFiltersChange(view.active_filters);
     onFilterModeChange(view.filter_mode);
+    onTagFilterModeChange(view.tag_filter_mode);
     setCurrentViewId(view.id);
     toast.success(`Loaded view: ${view.name}`);
   };
@@ -177,9 +183,10 @@ export function ViewEditor({
         hidden_columns: Array.from(hiddenColumns),
         active_filters: activeFilters,
         filter_mode: filterMode,
+        tag_filter_mode: tagFilterMode,
       } as unknown as { name: string; user_id: string })
       .select()
-      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[]; filter_mode: string } | null; error: Error | null }>);
+      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[]; filter_mode: string; tag_filter_mode: string } | null; error: Error | null }>);
 
     if (error) {
       toast.error("Failed to save view");
@@ -192,6 +199,7 @@ export function ViewEditor({
           hidden_columns: data.hidden_columns || [],
           active_filters: data.active_filters || [],
           filter_mode: (data.filter_mode as FilterMode) || "any",
+          tag_filter_mode: (data.tag_filter_mode as FilterMode) || "any",
         },
       ]);
       setCurrentViewId(data.id);
@@ -210,6 +218,7 @@ export function ViewEditor({
         hidden_columns: Array.from(hiddenColumns),
         active_filters: activeFilters,
         filter_mode: filterMode,
+        tag_filter_mode: tagFilterMode,
       } as unknown as { name: string })
       .eq("id", viewId) as unknown as Promise<{ error: Error | null }>);
 
@@ -219,7 +228,7 @@ export function ViewEditor({
       setSavedViews((prev) =>
         prev.map((v) =>
           v.id === viewId
-            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters, filter_mode: filterMode }
+            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters, filter_mode: filterMode, tag_filter_mode: tagFilterMode }
             : v
         )
       );
@@ -245,6 +254,10 @@ export function ViewEditor({
 
   const currentView = savedViews.find((v) => v.id === currentViewId);
   const hasMatchedActors = matchedEntities.length > 0 || matchedTags.length > 0;
+  
+  const activeEntityFilters = activeFilters.filter((f) => f.type === "entity");
+  const activeTagFilters = activeFilters.filter((f) => f.type === "tag");
+  const hasMultipleTags = activeTagFilters.length >= 2;
 
   return (
     <div className="space-y-3">
@@ -337,45 +350,52 @@ export function ViewEditor({
             </div>
           )}
 
-          {activeFilters.length >= 2 && (
+          {hasMultipleTags && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   <Filter className="w-4 h-4" />
-                  Rules
+                  Tag Rules
                   <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 uppercase">
-                    {filterMode}
+                    {tagFilterMode}
                   </Badge>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-3">
+              <PopoverContent align="end" className="w-72 p-3">
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground">Show transactions where:</p>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">When filtering by tags:</p>
+                    <p className="text-[10px] text-muted-foreground/70">
+                      {activeEntityFilters.length > 0 
+                        ? "Entities must all match. Tags use the rule below:"
+                        : "Apply the following rule to selected tags:"}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <label className="flex items-start gap-3 p-2 rounded-md hover:bg-muted cursor-pointer">
                       <input
                         type="radio"
-                        name="filterMode"
-                        checked={filterMode === "any"}
-                        onChange={() => onFilterModeChange("any")}
+                        name="tagFilterMode"
+                        checked={tagFilterMode === "any"}
+                        onChange={() => onTagFilterModeChange("any")}
                         className="mt-0.5"
                       />
                       <div>
-                        <span className="text-sm font-medium">Any match</span>
-                        <p className="text-xs text-muted-foreground">1+ selected entities/tags are present</p>
+                        <span className="text-sm font-medium">Any tag (OR)</span>
+                        <p className="text-xs text-muted-foreground">Show if 1+ selected tags are present</p>
                       </div>
                     </label>
                     <label className="flex items-start gap-3 p-2 rounded-md hover:bg-muted cursor-pointer">
                       <input
                         type="radio"
-                        name="filterMode"
-                        checked={filterMode === "all"}
-                        onChange={() => onFilterModeChange("all")}
+                        name="tagFilterMode"
+                        checked={tagFilterMode === "all"}
+                        onChange={() => onTagFilterModeChange("all")}
                         className="mt-0.5"
                       />
                       <div>
-                        <span className="text-sm font-medium">All match</span>
-                        <p className="text-xs text-muted-foreground">All selected entities/tags are present</p>
+                        <span className="text-sm font-medium">All tags (AND)</span>
+                        <p className="text-xs text-muted-foreground">Show only if all selected tags are present</p>
                       </div>
                     </label>
                   </div>

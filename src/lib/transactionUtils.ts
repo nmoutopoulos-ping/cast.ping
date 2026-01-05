@@ -169,16 +169,21 @@ export function buildAddressLabels(
 }
 
 /**
- * Filters rows based on active filters and filter mode
+ * Filters rows based on active filters with separate entity/tag logic.
+ * - Entities are always matched with AND (all selected entities must be present)
+ * - Tags use the tagFilterMode (any/all) to combine
+ * - When both entities and tags are selected: entity match AND tag match
  */
 export function filterRowsByActiveFilters(
   rows: TransactionRow[],
   activeFilters: ActiveFilter[],
-  filterMode: FilterMode
+  filterMode: FilterMode,
+  tagFilterMode: FilterMode = "any"
 ): TransactionRow[] {
   if (activeFilters.length === 0) return rows;
 
-  const filterAddresses = activeFilters.map((f) => f.address);
+  const entityFilters = activeFilters.filter((f) => f.type === "entity");
+  const tagFilters = activeFilters.filter((f) => f.type === "tag");
 
   return rows.filter((row) => {
     const rowAddresses = new Set<string>();
@@ -188,11 +193,22 @@ export function filterRowsByActiveFilters(
     if (row.token_from) rowAddresses.add(row.token_from.toLowerCase());
     if (row.token_to) rowAddresses.add(row.token_to.toLowerCase());
 
-    if (filterMode === "all") {
-      return filterAddresses.every((addr) => rowAddresses.has(addr));
-    } else {
-      return filterAddresses.some((addr) => rowAddresses.has(addr));
+    // Check entities: ALL selected entities must match
+    const entityMatch = entityFilters.length === 0 || 
+      entityFilters.every((f) => rowAddresses.has(f.address));
+
+    // Check tags based on tagFilterMode
+    let tagMatch = true;
+    if (tagFilters.length > 0) {
+      if (tagFilterMode === "all") {
+        tagMatch = tagFilters.every((f) => rowAddresses.has(f.address));
+      } else {
+        tagMatch = tagFilters.some((f) => rowAddresses.has(f.address));
+      }
     }
+
+    // Both must match when both are selected
+    return entityMatch && tagMatch;
   });
 }
 

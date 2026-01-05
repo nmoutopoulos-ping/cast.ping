@@ -48,6 +48,7 @@ export default function SavedSearchDetail() {
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
+  const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
 
   useEffect(() => {
     if (user) {
@@ -61,8 +62,8 @@ export default function SavedSearchDetail() {
   const transactionAddresses = useMemo(() => extractAddressesFromRows(rows), [rows]);
   const highlightMap = useMemo(() => buildHighlightMap(activeFilters), [activeFilters]);
   const filteredRows = useMemo(
-    () => filterRowsByActiveFilters(rows, activeFilters, filterMode),
-    [rows, activeFilters, filterMode]
+    () => filterRowsByActiveFilters(rows, activeFilters, filterMode, tagFilterMode),
+    [rows, activeFilters, filterMode, tagFilterMode]
   );
   const addressLabels = useMemo(
     () => buildAddressLabels(entities, tags),
@@ -273,11 +274,13 @@ export default function SavedSearchDetail() {
               hiddenColumns={hiddenColumns}
               activeFilters={activeFilters}
               filterMode={filterMode}
+              tagFilterMode={tagFilterMode}
               totalRowCount={rows.length}
               filteredRowCount={filteredRows.length}
               onHiddenColumnsChange={setHiddenColumns}
               onActiveFiltersChange={setActiveFilters}
               onFilterModeChange={setFilterMode}
+              onTagFilterModeChange={setTagFilterMode}
             />
           )}
 
