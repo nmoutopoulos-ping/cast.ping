@@ -30,6 +30,7 @@ interface DbEntity {
   name: string;
   notes: string | null;
   wallet_address: string | null;
+  color: string;
 }
 
 export default function Entities() {
@@ -52,6 +53,7 @@ export default function Entities() {
   const [entityName, setEntityName] = useState("");
   const [entityNotes, setEntityNotes] = useState("");
   const [entityWalletAddress, setEntityWalletAddress] = useState("");
+  const [entityColor, setEntityColor] = useState("#3B82F6");
   const [savingEntity, setSavingEntity] = useState(false);
 
   useEffect(() => {
@@ -143,6 +145,7 @@ export default function Entities() {
     setEntityName("");
     setEntityNotes("");
     setEntityWalletAddress("");
+    setEntityColor("#3B82F6");
     setEntityDialogOpen(true);
   };
 
@@ -151,6 +154,7 @@ export default function Entities() {
     setEntityName(entity.name);
     setEntityNotes(entity.notes || "");
     setEntityWalletAddress(entity.wallet_address || "");
+    setEntityColor(entity.color || "#3B82F6");
     setEntityDialogOpen(true);
   };
 
@@ -162,6 +166,7 @@ export default function Entities() {
       name: entityName.trim(),
       notes: entityNotes.trim() || null,
       wallet_address: entityWalletAddress.trim() || null,
+      color: entityColor,
       user_id: user.id,
     };
 
@@ -237,6 +242,7 @@ export default function Entities() {
               <thead>
                 <tr>
                   <th>Entity Name</th>
+                  <th>Color</th>
                   <th>Wallet Address</th>
                   <th>Notes</th>
                   <th className="w-24">Actions</th>
@@ -245,13 +251,13 @@ export default function Entities() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
                       Loading...
                     </td>
                   </tr>
                 ) : entities.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
                       No entities yet. Create one to get started.
                     </td>
                   </tr>
@@ -259,6 +265,17 @@ export default function Entities() {
                   entities.map((entity) => (
                     <tr key={entity.id}>
                       <td className="font-medium">{entity.name}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-5 h-5 rounded border border-border"
+                            style={{ backgroundColor: entity.color }}
+                          />
+                          <span className="font-mono text-sm text-muted-foreground">
+                            {entity.color}
+                          </span>
+                        </div>
+                      </td>
                       <td>
                         {entity.wallet_address ? (
                           <CopyableAddress address={entity.wallet_address} />
@@ -477,6 +494,29 @@ export default function Entities() {
                 onChange={(e) => setEntityName(e.target.value)}
                 placeholder="e.g. Acme Corporation"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {colorPresets.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      entityColor === color ? "border-foreground scale-110" : "border-transparent"
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setEntityColor(color)}
+                  />
+                ))}
+                <Input
+                  type="color"
+                  value={entityColor}
+                  onChange={(e) => setEntityColor(e.target.value)}
+                  className="w-10 h-8 p-0 border-0 cursor-pointer"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

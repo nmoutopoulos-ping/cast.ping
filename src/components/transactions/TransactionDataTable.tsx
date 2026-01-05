@@ -33,7 +33,7 @@ interface QueryRow {
 interface TransactionDataTableProps {
   rows: QueryRow[];
   searchedWallet?: string;
-  highlightAddress?: string | null;
+  highlightMap?: Record<string, string>;
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
@@ -42,12 +42,14 @@ const ROWS_PER_PAGE = 25;
 function AddressCell({ 
   address, 
   isHighlighted, 
+  highlightColor,
   onHover, 
   onLeave,
   isSearchedWallet 
 }: { 
   address: string; 
   isHighlighted: boolean;
+  highlightColor?: string;
   onHover: () => void;
   onLeave: () => void;
   isSearchedWallet?: boolean;
@@ -71,10 +73,14 @@ function AddressCell({
     <div 
       className={cn(
         "group inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors duration-75 cursor-pointer",
-        isHighlighted && "bg-amber-500/20 ring-1 ring-amber-500/40",
-        isSearchedWallet && "bg-primary/10 ring-1 ring-primary/30",
-        !isHighlighted && !isSearchedWallet && "hover:bg-muted"
+        isHighlighted && !highlightColor && "bg-amber-500/20 ring-1 ring-amber-500/40",
+        isSearchedWallet && !highlightColor && "bg-primary/10 ring-1 ring-primary/30",
+        !isHighlighted && !isSearchedWallet && !highlightColor && "hover:bg-muted"
       )}
+      style={highlightColor ? {
+        backgroundColor: `${highlightColor}30`,
+        boxShadow: `inset 0 0 0 1px ${highlightColor}60`,
+      } : undefined}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
     >
@@ -104,7 +110,7 @@ function AddressCell({
   );
 }
 
-export function TransactionDataTable({ rows, searchedWallet, highlightAddress }: TransactionDataTableProps) {
+export function TransactionDataTable({ rows, searchedWallet, highlightMap = {} }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -140,17 +146,20 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
     return address.toLowerCase() === searchedWallet.toLowerCase();
   };
 
-  // Check if a row contains the highlight address from entity/tag filter
-  const rowContainsHighlightAddress = (row: QueryRow) => {
-    if (!highlightAddress) return false;
-    const addr = highlightAddress.toLowerCase();
-    return (
-      row.from_address?.toLowerCase() === addr ||
-      row.interacted_with?.toLowerCase() === addr ||
-      row.token_contract?.toLowerCase() === addr ||
-      row.token_from?.toLowerCase() === addr ||
-      row.token_to?.toLowerCase() === addr
-    );
+  // Get highlight color for an address from the highlightMap
+  const getHighlightColor = (address: string | null | undefined): string | undefined => {
+    if (!address) return undefined;
+    return highlightMap[address.toLowerCase()];
+  };
+
+  // Check if a row contains any highlighted address
+  const getRowHighlightColor = (row: QueryRow): string | undefined => {
+    const addresses = [row.from_address, row.interacted_with, row.token_contract, row.token_from, row.token_to];
+    for (const addr of addresses) {
+      const color = getHighlightColor(addr);
+      if (color) return color;
+    }
+    return undefined;
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -223,16 +232,17 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
             </thead>
             <tbody className="divide-y divide-border/40">
             {paginatedRows.map((row, index) => {
-                const isRowHighlighted = rowContainsHighlightAddress(row);
+                const rowHighlightColor = getRowHighlightColor(row);
                 return (
                   <tr 
                     key={`${row.transaction_hash}-${startIndex + index}`}
                     className={cn(
                       "transition-colors duration-100",
-                      isRowHighlighted 
-                        ? "bg-primary/10 hover:bg-primary/15" 
-                        : "hover:bg-muted/40"
+                      !rowHighlightColor && "hover:bg-muted/40"
                     )}
+                    style={rowHighlightColor ? {
+                      backgroundColor: `${rowHighlightColor}15`,
+                    } : undefined}
                   >
                     {/* Tx Hash */}
                     <td className="px-4 py-3.5">
@@ -281,6 +291,7 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
                       <AddressCell
                         address={row.from_address}
                         isHighlighted={isHighlighted(row.from_address)}
+                        highlightColor={getHighlightColor(row.from_address)}
                         isSearchedWallet={isSearched(row.from_address)}
                         onHover={() => setHoveredAddress(row.from_address)}
                         onLeave={() => setHoveredAddress(null)}
@@ -292,6 +303,7 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
                       <AddressCell
                         address={row.interacted_with}
                         isHighlighted={isHighlighted(row.interacted_with)}
+                        highlightColor={getHighlightColor(row.interacted_with)}
                         isSearchedWallet={isSearched(row.interacted_with)}
                         onHover={() => setHoveredAddress(row.interacted_with)}
                         onLeave={() => setHoveredAddress(null)}
@@ -340,6 +352,7 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
                         <AddressCell
                           address={row.token_from}
                           isHighlighted={isHighlighted(row.token_from)}
+                          highlightColor={getHighlightColor(row.token_from)}
                           isSearchedWallet={isSearched(row.token_from)}
                           onHover={() => setHoveredAddress(row.token_from)}
                           onLeave={() => setHoveredAddress(null)}
@@ -355,6 +368,7 @@ export function TransactionDataTable({ rows, searchedWallet, highlightAddress }:
                         <AddressCell
                           address={row.token_to}
                           isHighlighted={isHighlighted(row.token_to)}
+                          highlightColor={getHighlightColor(row.token_to)}
                           isSearchedWallet={isSearched(row.token_to)}
                           onHover={() => setHoveredAddress(row.token_to)}
                           onLeave={() => setHoveredAddress(null)}
