@@ -190,12 +190,6 @@ export default function QueryResults() {
     if (!user || !savedQueryId || rows.length === 0) return;
     
     setSaving(true);
-    
-    await supabase
-      .from("transactions")
-      .delete()
-      .eq("saved_query_id", savedQueryId)
-      .eq("user_id", user.id);
 
     // Map new format back to database schema
     const txRecords = rows.map(row => ({
@@ -217,18 +211,23 @@ export default function QueryResults() {
       token_contract: row.token_contract || null,
       token_symbol: row.token_symbol || null,
       token_name: row.token_name || null,
-      token_amount_raw: null,
+      token_amount_raw: row.token_amount_raw || null,
       token_amount: row.token_amount || null,
     }));
 
-    const { error: insertError } = await supabase
+    // Use upsert to update existing transactions or insert new ones
+    const { error: upsertError, data } = await supabase
       .from("transactions")
-      .insert(txRecords);
+      .upsert(txRecords, { 
+        onConflict: "saved_query_id,tx_hash",
+        ignoreDuplicates: false 
+      })
+      .select();
 
-    if (insertError) {
-      toast.error("Failed to save: " + insertError.message);
+    if (upsertError) {
+      toast.error("Failed to save: " + upsertError.message);
     } else {
-      toast.success(`Saved ${rows.length} transactions to database!`);
+      toast.success(`Saved ${data?.length || rows.length} transactions to database!`);
     }
     
     setSaving(false);
