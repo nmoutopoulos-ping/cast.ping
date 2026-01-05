@@ -118,16 +118,9 @@ export default function SavedSearchDetail() {
       }));
 
       setRows(mapped);
-
-      // Older saved rows won't have the new columns populated; treat that as "not saved" so user can resave.
-      const isComplete = cachedTx.every((tx) => !!tx.method);
-      setIsSavedToDb(isComplete);
-
-      if (isComplete) {
-        setLoading(false);
-        return;
-      }
-      // fall through to fetch from Dune
+      setIsSavedToDb(true);
+      setLoading(false);
+      return;
     }
 
     setIsSavedToDb(false);
