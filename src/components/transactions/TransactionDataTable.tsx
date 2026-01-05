@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { TransactionRow, AddressLabelInfo } from "@/types/transactions";
-import { ETHERSCAN_BASE, ROWS_PER_PAGE } from "@/types/transactions";
+import { ETHERSCAN_BASE, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE } from "@/types/transactions";
 import { formatEthValue } from "@/lib/transactionUtils";
 
 interface TransactionDataTableProps {
@@ -108,6 +109,7 @@ function AddressCell({
 export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const hiddenColumns = externalHiddenColumns ?? new Set<string>();
   const visibleColumns = ALL_COLUMNS.filter((col) => !hiddenColumns.has(col.key));
@@ -117,9 +119,15 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     setHoveredAddress(null);
   }, [rows]);
 
-  const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-  const paginatedRows = rows.slice(startIndex, startIndex + ROWS_PER_PAGE);
+  // Reset to page 1 when page size changes
+  const handlePageSizeChange = (newSize: string) => {
+    setPageSize(Number(newSize));
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(rows.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedRows = rows.slice(startIndex, startIndex + pageSize);
 
   const addressLabelMap = useMemo(() => {
     const map: Record<string, AddressLabelInfo> = {};
@@ -445,34 +453,50 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {rows.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/30">
-            <span className="text-xs text-muted-foreground">
-              Showing {startIndex + 1}-{Math.min(startIndex + ROWS_PER_PAGE, rows.length)} of {rows.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-xs px-2">
-                Page {currentPage} of {totalPages}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                Showing {startIndex + 1}-{Math.min(startIndex + pageSize, rows.length)} of {rows.length}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="h-7 w-[70px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={String(size)} className="text-xs">
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-xs px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

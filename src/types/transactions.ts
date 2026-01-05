@@ -99,4 +99,5 @@ export interface SavedView {
 // Constants
 export const DEFAULT_QUERY_ID = "6459204";
 export const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
-export const ROWS_PER_PAGE = 25;
+export const PAGE_SIZE_OPTIONS = [25, 50] as const;
+export const DEFAULT_PAGE_SIZE = 25;
