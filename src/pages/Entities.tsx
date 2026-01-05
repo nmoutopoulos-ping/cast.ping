@@ -225,9 +225,28 @@ export default function Entities() {
     }
   };
 
+  // 30 colors across RGBV gradient
   const colorPresets = [
-    "#10B981", "#3B82F6", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4",
-    "#EF4444", "#84CC16", "#F97316", "#6366F1"
+    // Reds
+    "#DC2626", "#EF4444", "#F87171",
+    // Oranges
+    "#EA580C", "#F97316", "#FB923C",
+    // Yellows
+    "#CA8A04", "#EAB308", "#FACC15",
+    // Yellow-Greens
+    "#65A30D", "#84CC16", "#A3E635",
+    // Greens
+    "#16A34A", "#22C55E", "#4ADE80",
+    // Teals
+    "#0D9488", "#14B8A6", "#2DD4BF",
+    // Cyans
+    "#0891B2", "#06B6D4", "#22D3EE",
+    // Blues
+    "#2563EB", "#3B82F6", "#60A5FA",
+    // Purples
+    "#7C3AED", "#8B5CF6", "#A78BFA",
+    // Pinks/Magentas
+    "#DB2777", "#EC4899", "#F472B6",
   ];
 
   return (
