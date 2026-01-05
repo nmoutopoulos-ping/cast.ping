@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
-import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -19,7 +19,7 @@ import type {
   FilterMode,
   MethodType 
 } from "@/types/transactions";
-import { DEFAULT_QUERY_ID } from "@/types/transactions";
+import { DEFAULT_QUERY_ID, ETHERSCAN_BASE } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
   needsBackfill,
@@ -43,6 +43,7 @@ export default function SavedSearchDetail() {
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addressCopied, setAddressCopied] = useState(false);
   
   const [entities, setEntities] = useState<Entity[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
@@ -51,6 +52,15 @@ export default function SavedSearchDetail() {
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
   const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
   const [methodFilters, setMethodFilters] = useState<MethodType[]>([]);
+
+  const handleCopyAddress = async () => {
+    if (savedQuery?.wallet_address) {
+      await navigator.clipboard.writeText(savedQuery.wallet_address);
+      setAddressCopied(true);
+      toast.success("Address copied");
+      setTimeout(() => setAddressCopied(false), 1500);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -215,13 +225,29 @@ export default function SavedSearchDetail() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               {savedQuery.wallet_address && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
+                <div className="group flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Wallet:</span>
-                  <code className="font-mono text-sm">
-                    {savedQuery.wallet_address.slice(0, 10)}...{savedQuery.wallet_address.slice(-8)}
-                  </code>
+                  <a
+                    href={`${ETHERSCAN_BASE}/address/${savedQuery.wallet_address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 font-mono text-sm text-foreground/80 hover:text-primary transition-colors"
+                  >
+                    {savedQuery.wallet_address}
+                    <ExternalLink className="w-3.5 h-3.5 opacity-50" />
+                  </a>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                  >
+                    {addressCopied ? (
+                      <Check className="w-3.5 h-3.5 text-green-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </button>
                 </div>
               )}
               <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
