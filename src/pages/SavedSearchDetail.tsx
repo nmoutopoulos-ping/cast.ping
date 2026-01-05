@@ -85,6 +85,7 @@ export default function SavedSearchDetail() {
   const [tags, setTags] = useState<DbTag[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [filterMode, setFilterMode] = useState<"any" | "all">("any");
 
   useEffect(() => {
     if (user) {
@@ -122,6 +123,30 @@ export default function SavedSearchDetail() {
     });
     return map;
   }, [activeFilters]);
+
+  // Filter rows based on active filters and filter mode
+  const filteredRows = useMemo(() => {
+    if (activeFilters.length === 0) return rows;
+
+    const filterAddresses = activeFilters.map((f) => f.address);
+
+    return rows.filter((row) => {
+      const rowAddresses = new Set<string>();
+      if (row.from_address) rowAddresses.add(row.from_address.toLowerCase());
+      if (row.interacted_with) rowAddresses.add(row.interacted_with.toLowerCase());
+      if (row.token_contract) rowAddresses.add(row.token_contract.toLowerCase());
+      if (row.token_from) rowAddresses.add(row.token_from.toLowerCase());
+      if (row.token_to) rowAddresses.add(row.token_to.toLowerCase());
+
+      if (filterMode === "all") {
+        // All selected filters must be present in the row
+        return filterAddresses.every((addr) => rowAddresses.has(addr));
+      } else {
+        // At least one filter must be present
+        return filterAddresses.some((addr) => rowAddresses.has(addr));
+      }
+    });
+  }, [rows, activeFilters, filterMode]);
 
   // Build address labels for entity/tag name display on hover
   const addressLabels = useMemo(() => {
@@ -428,13 +453,15 @@ export default function SavedSearchDetail() {
               columns={ALL_COLUMNS.map(c => ({ key: c.key, label: c.label }))}
               hiddenColumns={hiddenColumns}
               activeFilters={activeFilters}
+              filterMode={filterMode}
               onHiddenColumnsChange={setHiddenColumns}
               onActiveFiltersChange={setActiveFilters}
+              onFilterModeChange={setFilterMode}
             />
           )}
 
           <TransactionDataTable 
-            rows={rows} 
+            rows={filteredRows} 
             highlightMap={highlightMap}
             addressLabels={addressLabels}
             hiddenColumns={hiddenColumns}
