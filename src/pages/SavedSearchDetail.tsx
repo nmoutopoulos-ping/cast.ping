@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable } from "@/components/transactions/TransactionDataTable";
+import { EntityTagIndicator } from "@/components/transactions/EntityTagIndicator";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,6 +45,19 @@ interface SavedQuery {
   updated_at: string;
 }
 
+interface Entity {
+  id: string;
+  name: string;
+  wallet_address: string | null;
+}
+
+interface DbTag {
+  id: string;
+  name: string;
+  color: string;
+  contract_address: string | null;
+}
+
 const DEFAULT_QUERY_ID = "6459204";
 
 export default function SavedSearchDetail() {
@@ -57,13 +71,58 @@ export default function SavedSearchDetail() {
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Entities and tags for matching
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [tags, setTags] = useState<DbTag[]>([]);
+  const [activeFilter, setActiveFilter] = useState<{ type: "entity" | "tag"; id: string } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchEntitiesAndTags();
+    }
+  }, [user]);
+
+  const fetchEntitiesAndTags = async () => {
+    const [entitiesRes, tagsRes] = await Promise.all([
+      supabase.from("entities").select("id, name, wallet_address"),
+      supabase.from("tags").select("id, name, color, contract_address"),
+    ]);
+    if (entitiesRes.data) setEntities(entitiesRes.data);
+    if (tagsRes.data) setTags(tagsRes.data);
+  };
+
+  // Collect all addresses from transactions for matching
+  const transactionAddresses = useMemo(() => {
+    const addresses = new Set<string>();
+    rows.forEach((row) => {
+      if (row.from_address) addresses.add(row.from_address.toLowerCase());
+      if (row.interacted_with) addresses.add(row.interacted_with.toLowerCase());
+      if (row.token_contract) addresses.add(row.token_contract.toLowerCase());
+      if (row.token_from) addresses.add(row.token_from.toLowerCase());
+      if (row.token_to) addresses.add(row.token_to.toLowerCase());
+    });
+    return addresses;
+  }, [rows]);
+
+  // Get the highlight address based on active filter
+  const highlightAddress = useMemo(() => {
+    if (!activeFilter) return null;
+    if (activeFilter.type === "entity") {
+      const entity = entities.find((e) => e.id === activeFilter.id);
+      return entity?.wallet_address?.toLowerCase() || null;
+    } else {
+      const tag = tags.find((t) => t.id === activeFilter.id);
+      return tag?.contract_address?.toLowerCase() || null;
+    }
+  }, [activeFilter, entities, tags]);
 
   useEffect(() => {
     if (id && user) {
       loadSavedSearch();
     }
   }, [id, user]);
-
+  
   const loadSavedSearch = async () => {
     if (!id || !user) return;
     
@@ -326,7 +385,20 @@ export default function SavedSearchDetail() {
             )}
           </div>
 
-          <TransactionDataTable rows={rows} searchedWallet={savedQuery?.wallet_address || ""} />
+          {/* Entity/Tag Indicator */}
+          <EntityTagIndicator
+            entities={entities}
+            tags={tags}
+            transactionAddresses={transactionAddresses}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+          />
+
+          <TransactionDataTable 
+            rows={rows} 
+            searchedWallet={savedQuery?.wallet_address || ""} 
+            highlightAddress={highlightAddress}
+          />
         </>
       )}
 

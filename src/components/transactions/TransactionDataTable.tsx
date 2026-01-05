@@ -33,6 +33,7 @@ interface QueryRow {
 interface TransactionDataTableProps {
   rows: QueryRow[];
   searchedWallet?: string;
+  highlightAddress?: string | null;
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
@@ -103,7 +104,7 @@ function AddressCell({
   );
 }
 
-export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTableProps) {
+export function TransactionDataTable({ rows, searchedWallet, highlightAddress }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -137,6 +138,19 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
   const isSearched = (address: string | null | undefined) => {
     if (!address || !searchedWallet) return false;
     return address.toLowerCase() === searchedWallet.toLowerCase();
+  };
+
+  // Check if a row contains the highlight address from entity/tag filter
+  const rowContainsHighlightAddress = (row: QueryRow) => {
+    if (!highlightAddress) return false;
+    const addr = highlightAddress.toLowerCase();
+    return (
+      row.from_address?.toLowerCase() === addr ||
+      row.interacted_with?.toLowerCase() === addr ||
+      row.token_contract?.toLowerCase() === addr ||
+      row.token_from?.toLowerCase() === addr ||
+      row.token_to?.toLowerCase() === addr
+    );
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -209,10 +223,16 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
             </thead>
             <tbody className="divide-y divide-border/40">
             {paginatedRows.map((row, index) => {
+                const isRowHighlighted = rowContainsHighlightAddress(row);
                 return (
                   <tr 
                     key={`${row.transaction_hash}-${startIndex + index}`}
-                    className="transition-colors duration-100 hover:bg-muted/40"
+                    className={cn(
+                      "transition-colors duration-100",
+                      isRowHighlighted 
+                        ? "bg-primary/10 hover:bg-primary/15" 
+                        : "hover:bg-muted/40"
+                    )}
                   >
                     {/* Tx Hash */}
                     <td className="px-4 py-3.5">
