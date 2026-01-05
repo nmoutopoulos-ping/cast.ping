@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, RefreshCw, Search, Bookmark } from "lucide-react";
+import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -58,6 +58,7 @@ export default function QueryResults() {
   const [rows, setRows] = useState<QueryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
@@ -109,6 +110,7 @@ export default function QueryResults() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
+      setIsSavedToDb(true);
       // Map cached transaction data to new format
       setRows(cachedTx.map(tx => ({
         transaction_hash: tx.tx_hash,
@@ -136,6 +138,8 @@ export default function QueryResults() {
       setLoading(false);
       return;
     }
+    
+    setIsSavedToDb(false);
 
     // Fetch from Dune if we have a wallet address
     if (queryData.wallet_address) {
@@ -227,6 +231,7 @@ export default function QueryResults() {
     if (upsertError) {
       toast.error("Failed to save: " + upsertError.message);
     } else {
+      setIsSavedToDb(true);
       toast.success(`Saved ${data?.length || rows.length} transactions to database!`);
     }
     
@@ -348,10 +353,17 @@ export default function QueryResults() {
                 </Button>
               )}
               {savedQueryId && (
-                <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
-                  <Download className="w-4 h-4" />
-                  {saving ? "Saving..." : "Save to Database"}
-                </Button>
+                isSavedToDb ? (
+                  <Button variant="outline" disabled className="gap-2 text-green-600 border-green-600/50">
+                    <CheckCircle className="w-4 h-4" />
+                    Saved to Database
+                  </Button>
+                ) : (
+                  <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
+                    <Download className="w-4 h-4" />
+                    {saving ? "Saving..." : "Save to Database"}
+                  </Button>
+                )
               )}
             </div>
           </div>
