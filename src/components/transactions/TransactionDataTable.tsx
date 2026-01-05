@@ -1,9 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight, Columns } from "lucide-react";
+import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,12 +41,13 @@ interface TransactionDataTableProps {
   rows: QueryRow[];
   highlightMap?: Record<string, string>;
   addressLabels?: EntityTagInfo[];
+  hiddenColumns?: Set<string>;
 }
 
 const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
 const ROWS_PER_PAGE = 25;
 
-const ALL_COLUMNS = [
+export const ALL_COLUMNS = [
   { key: "transaction_hash", label: "Tx Hash" },
   { key: "method", label: "Method" },
   { key: "block", label: "Block" },
@@ -137,22 +136,12 @@ function AddressCell({
   );
 }
 
-export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [] }: TransactionDataTableProps) {
+export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(new Set());
 
-  const toggleColumn = (key: ColumnKey) => {
-    setHiddenColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
+  // Use external hiddenColumns if provided, otherwise use internal state
+  const hiddenColumns = externalHiddenColumns ?? new Set<string>();
 
   const visibleColumns = ALL_COLUMNS.filter((col) => !hiddenColumns.has(col.key));
 
@@ -439,64 +428,30 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
   return (
     <div className="space-y-4">
-      {/* Controls row */}
-      <div className="flex items-center justify-between px-1">
-        {/* Hover indicator - fixed height to prevent layout shift */}
-        <div className="flex items-center gap-4 h-5">
-          {hoveredAddress && (
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full ring-1"
-                style={{
-                  backgroundColor: hoveredLabel ? `${hoveredLabel.color}50` : "rgb(245 158 11 / 0.3)",
-                  boxShadow: hoveredLabel ? `0 0 0 1px ${hoveredLabel.color}80` : "0 0 0 1px rgb(245 158 11 / 0.5)",
-                }}
-              />
-              <span className="text-xs text-muted-foreground">
-                {addressCounts[hoveredAddress.toLowerCase()] || 0} occurrences
-                {hoveredLabel && (
-                  <span 
-                    className="ml-1.5 font-medium"
-                    style={{ color: hoveredLabel.color }}
-                  >
-                    ({hoveredLabel.type === "entity" ? "Entity" : "Tag"}: {hoveredLabel.name})
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Column visibility toggle */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Columns className="w-4 h-4" />
-              Columns
-              {hiddenColumns.size > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
-                  {ALL_COLUMNS.length - hiddenColumns.size}/{ALL_COLUMNS.length}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-56 p-2 max-h-80 overflow-y-auto">
-            <div className="space-y-1">
-              {ALL_COLUMNS.map((col) => (
-                <label
-                  key={col.key}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer text-sm"
+      {/* Hover indicator - fixed height to prevent layout shift */}
+      <div className="flex items-center gap-4 h-5 px-1">
+        {hoveredAddress && (
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-full ring-1"
+              style={{
+                backgroundColor: hoveredLabel ? `${hoveredLabel.color}50` : "rgb(245 158 11 / 0.3)",
+                boxShadow: hoveredLabel ? `0 0 0 1px ${hoveredLabel.color}80` : "0 0 0 1px rgb(245 158 11 / 0.5)",
+              }}
+            />
+            <span className="text-xs text-muted-foreground">
+              {addressCounts[hoveredAddress.toLowerCase()] || 0} occurrences
+              {hoveredLabel && (
+                <span 
+                  className="ml-1.5 font-medium"
+                  style={{ color: hoveredLabel.color }}
                 >
-                  <Checkbox
-                    checked={!hiddenColumns.has(col.key)}
-                    onCheckedChange={() => toggleColumn(col.key)}
-                  />
-                  {col.label}
-                </label>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+                  ({hoveredLabel.type === "entity" ? "Entity" : "Tag"}: {hoveredLabel.name})
+                </span>
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Table */}

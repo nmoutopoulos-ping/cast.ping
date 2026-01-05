@@ -151,6 +151,47 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_views: {
+        Row: {
+          active_filters: Json
+          created_at: string
+          hidden_columns: string[]
+          id: string
+          name: string
+          saved_query_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_filters?: Json
+          created_at?: string
+          hidden_columns?: string[]
+          id?: string
+          name: string
+          saved_query_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_filters?: Json
+          created_at?: string
+          hidden_columns?: string[]
+          id?: string
+          name?: string
+          saved_query_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_views_saved_query_id_fkey"
+            columns: ["saved_query_id"]
+            isOneToOne: false
+            referencedRelation: "saved_queries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           color: string
