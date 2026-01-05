@@ -23,42 +23,12 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface Entity {
-  id: string;
-  name: string;
-  wallet_address: string | null;
-  color: string;
-}
-
-interface DbTag {
-  id: string;
-  name: string;
-  color: string;
-  contract_address: string | null;
-}
-
-interface ActiveFilter {
-  type: "entity" | "tag";
-  id: string;
-  address: string;
-  color: string;
-}
-
-interface SavedView {
-  id: string;
-  name: string;
-  hidden_columns: string[];
-  active_filters: ActiveFilter[];
-  filter_mode: FilterMode;
-}
+import type { Entity, DbTag, ActiveFilter, SavedView, FilterMode } from "@/types/transactions";
 
 interface ColumnDef {
   key: string;
   label: string;
 }
-
-type FilterMode = "any" | "all";
 
 interface ViewEditorProps {
   savedQueryId: string;
@@ -95,7 +65,6 @@ export function ViewEditor({
   const [newViewName, setNewViewName] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Find matched entities/tags in transaction data
   const matchedEntities = entities.filter(
     (e) => e.wallet_address && transactionAddresses.has(e.wallet_address.toLowerCase())
   );
@@ -108,7 +77,6 @@ export function ViewEditor({
   }, [savedQueryId, userId]);
 
   const fetchSavedViews = async () => {
-    // Use type assertion as saved_views table was just created
     const { data } = await (supabase
       .from("saved_views" as "tags")
       .select("*")
@@ -137,7 +105,7 @@ export function ViewEditor({
       next.add(key);
     }
     onHiddenColumnsChange(next);
-    setCurrentViewId(null); // Mark as modified
+    setCurrentViewId(null);
   };
 
   const isEntityActive = (entityId: string) =>
@@ -196,7 +164,6 @@ export function ViewEditor({
     if (!newViewName.trim()) return;
     setSaving(true);
 
-    // Use type assertion as saved_views table was just created
     const { data, error } = await (supabase
       .from("saved_views" as "tags")
       .insert({
@@ -281,7 +248,6 @@ export function ViewEditor({
       <div className="flex items-center justify-between gap-4 px-4 py-3 bg-muted/30 rounded-lg border border-border/50">
         {/* Left: Entity/Tag filters */}
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          {/* Entities */}
           {matchedEntities.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -314,12 +280,10 @@ export function ViewEditor({
             </div>
           )}
 
-          {/* Separator */}
           {matchedEntities.length > 0 && matchedTags.length > 0 && (
             <div className="w-px h-6 bg-border/60" />
           )}
 
-          {/* Tags */}
           {matchedTags.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -352,7 +316,6 @@ export function ViewEditor({
             </div>
           )}
 
-          {/* Empty state */}
           {!hasMatchedActors && (
             <span className="text-xs text-muted-foreground">No matching entities or tags found</span>
           )}
@@ -360,14 +323,12 @@ export function ViewEditor({
 
         {/* Right: Controls */}
         <div className="flex items-center gap-2">
-          {/* Active filter count */}
           {activeFilters.length > 0 && (
             <span className="text-xs text-muted-foreground">
               {activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""}
             </span>
           )}
 
-          {/* Rules toggle - only show when 2+ filters are active */}
           {activeFilters.length >= 2 && (
             <Popover>
               <PopoverTrigger asChild>
@@ -415,7 +376,6 @@ export function ViewEditor({
             </Popover>
           )}
 
-          {/* Column visibility */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -446,7 +406,6 @@ export function ViewEditor({
             </PopoverContent>
           </Popover>
 
-          {/* Views dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
@@ -495,11 +454,7 @@ export function ViewEditor({
                   ))}
                   <DropdownMenuSeparator />
                 </>
-              ) : (
-                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                  No saved views yet
-                </div>
-              )}
+              ) : null}
               <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
                 <Save className="w-4 h-4 mr-2" />
                 Save current as new view
@@ -515,15 +470,15 @@ export function ViewEditor({
           <DialogHeader>
             <DialogTitle>Save View</DialogTitle>
             <DialogDescription>
-              Save the current column visibility and active filters as a reusable view.
+              Save the current column visibility and filter settings as a named view.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
+              placeholder="View name..."
               value={newViewName}
               onChange={(e) => setNewViewName(e.target.value)}
-              placeholder="View name (e.g., Token Analysis)"
-              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && handleSaveView()}
             />
           </div>
           <DialogFooter>

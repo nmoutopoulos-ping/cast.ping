@@ -20,32 +20,13 @@ import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-
-interface QueryRow {
-  transaction_hash: string;
-  method: string;
-  block: number;
-  timestamp: string;
-  from_address: string;
-  interacted_with: string;
-  eth_direction: string;
-  token_direction: string;
-  token_from: string;
-  token_to: string;
-  token_amount_raw: string;
-  token_amount: number;
-  token_symbol: string;
-  token_name: string;
-  token_contract: string;
-  value_eth: number;
-  txn_fee_eth: number;
-  gas_price_gwei: number;
-  gas_price_wei: number;
-  gas_used: number;
-  status: string;
-}
-
-const DEFAULT_QUERY_ID = "6459204";
+import type { TransactionRow } from "@/types/transactions";
+import { DEFAULT_QUERY_ID } from "@/types/transactions";
+import {
+  mapDbTransactionToRow,
+  fetchFromDune,
+  saveTransactionsToDb,
+} from "@/lib/transactionUtils";
 
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -55,7 +36,7 @@ export default function QueryResults() {
   
   const [walletAddress, setWalletAddress] = useState(walletParam || "");
   const [searchedWallet, setSearchedWallet] = useState(walletParam || "");
-  const [rows, setRows] = useState<QueryRow[]>([]);
+  const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
@@ -63,14 +44,12 @@ export default function QueryResults() {
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
 
-  // Load saved query if id param is present
   useEffect(() => {
     if (savedQueryId && user) {
       loadSavedQuery();
     }
   }, [savedQueryId, user]);
 
-  // Auto-search if wallet param is present
   useEffect(() => {
     if (walletParam && !savedQueryId) {
       handleSearch();
@@ -102,7 +81,6 @@ export default function QueryResults() {
       setSearchedWallet(queryData.wallet_address);
     }
 
-    // Check for cached transactions
     const { data: cachedTx } = await supabase
       .from("transactions")
       .select("*")
@@ -110,33 +88,9 @@ export default function QueryResults() {
       .eq("user_id", user.id);
 
     if (cachedTx && cachedTx.length > 0) {
-      const mapped = cachedTx.map((tx) => ({
-        transaction_hash: tx.tx_hash,
-        method: tx.method || "",
-        block: Number(tx.block_number),
-        timestamp: tx.block_time || "",
-        from_address: tx.from_address || "",
-        interacted_with: tx.to_address || "",
-        eth_direction: tx.direction || "",
-        token_direction: tx.token_direction || "",
-        token_from: tx.token_from || "",
-        token_to: tx.token_to || "",
-        token_amount_raw: tx.token_amount_raw || "",
-        token_amount: Number(tx.token_amount),
-        token_symbol: tx.token_symbol || "",
-        token_name: tx.token_name || "",
-        token_contract: tx.token_contract || "",
-        value_eth: Number(tx.value_eth),
-        txn_fee_eth: Number(tx.tx_fee_eth),
-        gas_price_gwei: Number(tx.gas_price) / 1e9,
-        gas_price_wei: Number(tx.gas_price),
-        gas_used: Number(tx.gas_used),
-        status: tx.success ? "success" : "failed",
-      }));
-
+      const mapped = cachedTx.map(mapDbTransactionToRow);
       setRows(mapped);
 
-      // Older saved rows won't have the new columns populated; treat that as "not saved" so user can resave.
       const isComplete = cachedTx.every((tx) => !!tx.method);
       setIsSavedToDb(isComplete);
 
@@ -144,39 +98,30 @@ export default function QueryResults() {
         setLoading(false);
         return;
       }
-      // fall through to fetch from Dune
     }
     
     setIsSavedToDb(false);
 
-    // Fetch from Dune if we have a wallet address
     if (queryData.wallet_address) {
-      await fetchFromDune(queryData.dune_query_id, queryData.wallet_address);
+      await handleFetchFromDune(queryData.dune_query_id, queryData.wallet_address);
     } else {
       setLoading(false);
     }
   };
 
-  const fetchFromDune = async (queryId: string, address: string) => {
+  const handleFetchFromDune = async (queryId: string, address: string) => {
     setLoading(true);
     setError(null);
 
-    const { data, error: fetchError } = await supabase.functions.invoke("dune-query", {
-      body: { queryId, parameters: { address: address.toLowerCase() } },
-    });
+    const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
 
-    if (fetchError) {
-      setError(fetchError.message);
+    if (duneError) {
+      setError(duneError);
       setLoading(false);
       return;
     }
 
-    if (data?.result?.rows) {
-      setRows(data.result.rows);
-    } else if (data?.error) {
-      setError(data.error);
-    }
-
+    setRows(duneRows);
     setLoading(false);
   };
 
@@ -187,7 +132,6 @@ export default function QueryResults() {
       return;
     }
 
-    // Basic validation for Ethereum address
     if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
       toast.error("Invalid Ethereum address format");
       return;
@@ -195,56 +139,20 @@ export default function QueryResults() {
 
     setSearchedWallet(trimmed);
     setSearchParams({ wallet: trimmed });
-    await fetchFromDune(DEFAULT_QUERY_ID, trimmed);
+    await handleFetchFromDune(DEFAULT_QUERY_ID, trimmed);
   };
 
   const handleSaveToDatabase = async () => {
     if (!user || !savedQueryId || rows.length === 0) return;
     
     setSaving(true);
+    const { count, error: saveError } = await saveTransactionsToDb(rows, savedQueryId, user.id);
 
-    // Map new format back to database schema
-    const txRecords = rows.map(row => ({
-      saved_query_id: savedQueryId,
-      user_id: user.id,
-      tx_hash: row.transaction_hash,
-      block_number: row.block,
-      block_time: row.timestamp || null,
-      direction: row.eth_direction,
-      from_address: row.from_address,
-      to_address: row.interacted_with,
-      nonce: null,
-      transaction_index: null,
-      value_eth: row.value_eth,
-      tx_fee_eth: row.txn_fee_eth,
-      gas_price: row.gas_price_wei,
-      gas_used: row.gas_used,
-      success: row.status === "success" || row.status === "Success",
-      token_contract: row.token_contract || null,
-      token_symbol: row.token_symbol || null,
-      token_name: row.token_name || null,
-      token_amount_raw: row.token_amount_raw || null,
-      token_amount: row.token_amount || null,
-      method: row.method || null,
-      token_direction: row.token_direction || null,
-      token_from: row.token_from || null,
-      token_to: row.token_to || null,
-    }));
-
-    // Use upsert to update existing transactions or insert new ones
-    const { error: upsertError, data } = await supabase
-      .from("transactions")
-      .upsert(txRecords, { 
-        onConflict: "saved_query_id,tx_hash",
-        ignoreDuplicates: false 
-      })
-      .select();
-
-    if (upsertError) {
-      toast.error("Failed to save: " + upsertError.message);
+    if (saveError) {
+      toast.error("Failed to save: " + saveError);
     } else {
       setIsSavedToDb(true);
-      toast.success(`Saved ${data?.length || rows.length} transactions to database!`);
+      toast.success(`Saved ${count} transactions to database!`);
     }
     
     setSaving(false);
@@ -252,7 +160,7 @@ export default function QueryResults() {
 
   const handleRefresh = () => {
     if (searchedWallet) {
-      fetchFromDune(duneQueryId || DEFAULT_QUERY_ID, searchedWallet);
+      handleFetchFromDune(duneQueryId || DEFAULT_QUERY_ID, searchedWallet);
     }
   };
 
