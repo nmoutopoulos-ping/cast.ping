@@ -17,6 +17,7 @@ interface QueryRow {
   token_direction: string;
   token_from: string;
   token_to: string;
+  token_amount_raw: string;
   token_amount: number;
   token_symbol: string;
   token_name: string;
@@ -193,6 +194,7 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                 <th className="text-center font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Dir</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token From</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token To</th>
+                <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amt Raw</th>
                 <th className="text-right font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Amount</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token</th>
                 <th className="text-left font-medium text-muted-foreground px-4 py-3.5 text-xs uppercase tracking-wider whitespace-nowrap">Token Name</th>
@@ -345,6 +347,13 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
+                    </td>
+
+                    {/* Token Amount Raw */}
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        {row.token_amount_raw || "-"}
+                      </span>
                     </td>
 
                     {/* Token Amount */}

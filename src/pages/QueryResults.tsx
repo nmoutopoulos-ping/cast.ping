@@ -32,6 +32,7 @@ interface QueryRow {
   token_direction: string;
   token_from: string;
   token_to: string;
+  token_amount_raw: string;
   token_amount: number;
   token_symbol: string;
   token_name: string;
@@ -120,6 +121,7 @@ export default function QueryResults() {
         token_direction: "",
         token_from: "",
         token_to: "",
+        token_amount_raw: tx.token_amount_raw || "",
         token_amount: Number(tx.token_amount),
         token_symbol: tx.token_symbol || "",
         token_name: tx.token_name || "",
