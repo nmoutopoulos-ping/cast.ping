@@ -20,7 +20,7 @@ import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
-import type { TransactionRow } from "@/types/transactions";
+import type { TransactionRow, DbTag } from "@/types/transactions";
 import { DEFAULT_QUERY_ID } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
@@ -37,6 +37,7 @@ export default function QueryResults() {
   const [walletAddress, setWalletAddress] = useState(walletParam || "");
   const [searchedWallet, setSearchedWallet] = useState(walletParam || "");
   const [rows, setRows] = useState<TransactionRow[]>([]);
+  const [tags, setTags] = useState<DbTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
@@ -45,10 +46,21 @@ export default function QueryResults() {
   const [duneQueryId, setDuneQueryId] = useState<string>("");
 
   useEffect(() => {
+    if (user) {
+      fetchTags();
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (savedQueryId && user) {
       loadSavedQuery();
     }
   }, [savedQueryId, user]);
+
+  const fetchTags = async () => {
+    const { data } = await supabase.from("tags").select("*");
+    if (data) setTags(data);
+  };
 
   useEffect(() => {
     if (walletParam && !savedQueryId) {
@@ -288,7 +300,7 @@ export default function QueryResults() {
             </div>
           </div>
 
-          <TransactionDataTable rows={rows} />
+          <TransactionDataTable rows={rows} tags={tags} />
         </>
       )}
 
