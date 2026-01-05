@@ -94,6 +94,7 @@ export interface SavedView {
   hidden_columns: string[];
   active_filters: ActiveFilter[];
   filter_mode: FilterMode;
+  tag_filter_mode: FilterMode;
 }
 
 // Constants
