@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       entities: {
         Row: {
+          color: string
           created_at: string
           id: string
           name: string
@@ -25,6 +26,7 @@ export type Database = {
           wallet_address: string | null
         }
         Insert: {
+          color?: string
           created_at?: string
           id?: string
           name: string
@@ -34,6 +36,7 @@ export type Database = {
           wallet_address?: string | null
         }
         Update: {
+          color?: string
           created_at?: string
           id?: string
           name?: string

@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { Building2, Tag, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Entity {
   id: string;
   name: string;
   wallet_address: string | null;
+  color: string;
 }
 
 interface DbTag {
@@ -16,19 +15,26 @@ interface DbTag {
   contract_address: string | null;
 }
 
+interface ActiveFilter {
+  type: "entity" | "tag";
+  id: string;
+  address: string;
+  color: string;
+}
+
 interface EntityTagIndicatorProps {
   entities: Entity[];
   tags: DbTag[];
   transactionAddresses: Set<string>;
-  activeFilter: { type: "entity" | "tag"; id: string } | null;
-  onFilterChange: (filter: { type: "entity" | "tag"; id: string } | null) => void;
+  activeFilters: ActiveFilter[];
+  onFilterChange: (filters: ActiveFilter[]) => void;
 }
 
 export function EntityTagIndicator({
   entities,
   tags,
   transactionAddresses,
-  activeFilter,
+  activeFilters,
   onFilterChange,
 }: EntityTagIndicatorProps) {
   // Find entities whose wallet addresses appear in the transactions
@@ -45,19 +51,45 @@ export function EntityTagIndicator({
     return null;
   }
 
+  const isEntityActive = (entityId: string) =>
+    activeFilters.some((f) => f.type === "entity" && f.id === entityId);
+
+  const isTagActive = (tagId: string) =>
+    activeFilters.some((f) => f.type === "tag" && f.id === tagId);
+
   const handleEntityClick = (entity: Entity) => {
-    if (activeFilter?.type === "entity" && activeFilter.id === entity.id) {
-      onFilterChange(null);
+    if (!entity.wallet_address) return;
+    
+    if (isEntityActive(entity.id)) {
+      onFilterChange(activeFilters.filter((f) => !(f.type === "entity" && f.id === entity.id)));
     } else {
-      onFilterChange({ type: "entity", id: entity.id });
+      onFilterChange([
+        ...activeFilters,
+        {
+          type: "entity",
+          id: entity.id,
+          address: entity.wallet_address.toLowerCase(),
+          color: entity.color,
+        },
+      ]);
     }
   };
 
   const handleTagClick = (tag: DbTag) => {
-    if (activeFilter?.type === "tag" && activeFilter.id === tag.id) {
-      onFilterChange(null);
+    if (!tag.contract_address) return;
+    
+    if (isTagActive(tag.id)) {
+      onFilterChange(activeFilters.filter((f) => !(f.type === "tag" && f.id === tag.id)));
     } else {
-      onFilterChange({ type: "tag", id: tag.id });
+      onFilterChange([
+        ...activeFilters,
+        {
+          type: "tag",
+          id: tag.id,
+          address: tag.contract_address.toLowerCase(),
+          color: tag.color,
+        },
+      ]);
     }
   };
 
@@ -72,17 +104,22 @@ export function EntityTagIndicator({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {matchedEntities.map((entity) => {
-              const isActive = activeFilter?.type === "entity" && activeFilter.id === entity.id;
+              const isActive = isEntityActive(entity.id);
               return (
                 <button
                   key={entity.id}
                   onClick={() => handleEntityClick(entity)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all border",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-background hover:bg-accent border border-border/60"
+                      ? "shadow-sm ring-2 ring-offset-1"
+                      : "hover:opacity-80"
                   )}
+                  style={{
+                    backgroundColor: isActive ? entity.color : `${entity.color}20`,
+                    borderColor: entity.color,
+                    color: isActive ? "#fff" : entity.color,
+                  }}
                 >
                   {entity.name}
                   {isActive && <X className="w-3 h-3" />}
@@ -107,7 +144,7 @@ export function EntityTagIndicator({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {matchedTags.map((tag) => {
-              const isActive = activeFilter?.type === "tag" && activeFilter.id === tag.id;
+              const isActive = isTagActive(tag.id);
               return (
                 <button
                   key={tag.id}
@@ -122,7 +159,6 @@ export function EntityTagIndicator({
                     backgroundColor: isActive ? tag.color : `${tag.color}20`,
                     borderColor: tag.color,
                     color: isActive ? "#fff" : tag.color,
-                    ...(isActive && { ringColor: tag.color }),
                   }}
                 >
                   {tag.name}
@@ -135,9 +171,9 @@ export function EntityTagIndicator({
       )}
 
       {/* Active filter info */}
-      {activeFilter && (
+      {activeFilters.length > 0 && (
         <div className="ml-auto text-xs text-muted-foreground">
-          Showing matching transactions
+          {activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""} active
         </div>
       )}
     </div>

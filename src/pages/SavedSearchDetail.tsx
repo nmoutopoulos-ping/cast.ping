@@ -49,6 +49,7 @@ interface Entity {
   id: string;
   name: string;
   wallet_address: string | null;
+  color: string;
 }
 
 interface DbTag {
@@ -56,6 +57,13 @@ interface DbTag {
   name: string;
   color: string;
   contract_address: string | null;
+}
+
+interface ActiveFilter {
+  type: "entity" | "tag";
+  id: string;
+  address: string;
+  color: string;
 }
 
 const DEFAULT_QUERY_ID = "6459204";
@@ -75,8 +83,7 @@ export default function SavedSearchDetail() {
   // Entities and tags for matching
   const [entities, setEntities] = useState<Entity[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
-  const [activeFilter, setActiveFilter] = useState<{ type: "entity" | "tag"; id: string } | null>(null);
-
+  const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   useEffect(() => {
     if (user) {
       fetchEntitiesAndTags();
@@ -85,7 +92,7 @@ export default function SavedSearchDetail() {
 
   const fetchEntitiesAndTags = async () => {
     const [entitiesRes, tagsRes] = await Promise.all([
-      supabase.from("entities").select("id, name, wallet_address"),
+      supabase.from("entities").select("id, name, wallet_address, color"),
       supabase.from("tags").select("id, name, color, contract_address"),
     ]);
     if (entitiesRes.data) setEntities(entitiesRes.data);
@@ -105,17 +112,14 @@ export default function SavedSearchDetail() {
     return addresses;
   }, [rows]);
 
-  // Get the highlight address based on active filter
-  const highlightAddress = useMemo(() => {
-    if (!activeFilter) return null;
-    if (activeFilter.type === "entity") {
-      const entity = entities.find((e) => e.id === activeFilter.id);
-      return entity?.wallet_address?.toLowerCase() || null;
-    } else {
-      const tag = tags.find((t) => t.id === activeFilter.id);
-      return tag?.contract_address?.toLowerCase() || null;
-    }
-  }, [activeFilter, entities, tags]);
+  // Build highlight map from active filters: address -> color
+  const highlightMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    activeFilters.forEach((filter) => {
+      map[filter.address] = filter.color;
+    });
+    return map;
+  }, [activeFilters]);
 
   useEffect(() => {
     if (id && user) {
@@ -390,14 +394,14 @@ export default function SavedSearchDetail() {
             entities={entities}
             tags={tags}
             transactionAddresses={transactionAddresses}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
+            activeFilters={activeFilters}
+            onFilterChange={setActiveFilters}
           />
 
           <TransactionDataTable 
             rows={rows} 
             searchedWallet={savedQuery?.wallet_address || ""} 
-            highlightAddress={highlightAddress}
+            highlightMap={highlightMap}
           />
         </>
       )}
