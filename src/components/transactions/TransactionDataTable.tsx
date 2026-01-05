@@ -187,7 +187,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
 
   const formatTimestamp = (timestamp: string) => {
     try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+      return format(new Date(timestamp), "yyyy-MM-dd HH:mm");
     } catch {
       return timestamp;
     }
