@@ -157,9 +157,9 @@ export default function SavedQueries() {
           <h1 className="text-2xl font-semibold">Saved Searches</h1>
           <p className="text-muted-foreground">Manage your saved wallet searches</p>
         </div>
-        <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+        <Button className="gap-2" onClick={() => navigate("/wallets")}>
           <Plus className="w-4 h-4" />
-          New Saved Search
+          New Search
         </Button>
       </div>
 
@@ -185,7 +185,8 @@ export default function SavedQueries() {
                 <th>Name</th>
                 <th>Description</th>
                 <th>Wallet Address</th>
-                <th>Saved Txns</th>
+                <th>Network</th>
+                <th>Total Txns</th>
                 <th>Created</th>
                 <th></th>
               </tr>
@@ -211,14 +212,15 @@ export default function SavedQueries() {
                     )}
                   </td>
                   <td>
-                    {txCounts[query.id] > 0 ? (
-                      <Badge variant="secondary" className="gap-1">
-                        <Database className="w-3 h-3" />
-                        {txCounts[query.id]}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Ethereum
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge variant="secondary" className="gap-1">
+                      <Database className="w-3 h-3" />
+                      {txCounts[query.id] || 0}
+                    </Badge>
                   </td>
                   <td className="text-muted-foreground">
                     {formatDistanceToNow(new Date(query.created_at), { addSuffix: true })}
