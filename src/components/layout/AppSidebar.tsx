@@ -2,7 +2,6 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
-  Wallet, 
   Database, 
   Tags, 
   Settings,
@@ -16,7 +15,6 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Wallets", href: "/wallets", icon: Wallet },
   { name: "Search Data", href: "/results", icon: TableProperties },
   { name: "Saved Searches", href: "/queries", icon: Database },
   { name: "Entities & Tags", href: "/entities", icon: Tags },
