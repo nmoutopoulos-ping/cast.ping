@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { TransactionDataTable } from "@/components/transactions/TransactionDataTable";
-import { EntityTagIndicator } from "@/components/transactions/EntityTagIndicator";
+import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
+import { ViewEditor } from "@/components/transactions/ViewEditor";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,6 +84,8 @@ export default function SavedSearchDetail() {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (user) {
       fetchEntitiesAndTags();
@@ -415,19 +417,27 @@ export default function SavedSearchDetail() {
             )}
           </div>
 
-          {/* Entity/Tag Indicator */}
-          <EntityTagIndicator
-            entities={entities}
-            tags={tags}
-            transactionAddresses={transactionAddresses}
-            activeFilters={activeFilters}
-            onFilterChange={setActiveFilters}
-          />
+          {/* View Editor - combines entity/tag filters with column visibility */}
+          {user && id && (
+            <ViewEditor
+              savedQueryId={id}
+              userId={user.id}
+              entities={entities}
+              tags={tags}
+              transactionAddresses={transactionAddresses}
+              columns={ALL_COLUMNS.map(c => ({ key: c.key, label: c.label }))}
+              hiddenColumns={hiddenColumns}
+              activeFilters={activeFilters}
+              onHiddenColumnsChange={setHiddenColumns}
+              onActiveFiltersChange={setActiveFilters}
+            />
+          )}
 
           <TransactionDataTable 
             rows={rows} 
             highlightMap={highlightMap}
             addressLabels={addressLabels}
+            hiddenColumns={hiddenColumns}
           />
         </>
       )}
