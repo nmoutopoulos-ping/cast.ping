@@ -118,9 +118,20 @@ export default function SavedSearchDetail() {
       }));
 
       setRows(mapped);
-      setIsSavedToDb(true);
-      setLoading(false);
-      return;
+
+      // Older saved rows may not have enrichment fields populated.
+      // In that case, refetch from Dune and allow the user to re-save (UPSERT backfill).
+      const needsBackfill = cachedTx.some(
+        (tx) => !tx.method || !tx.token_direction || !tx.token_from || !tx.token_to
+      );
+
+      setIsSavedToDb(!needsBackfill);
+
+      if (!needsBackfill) {
+        setLoading(false);
+        return;
+      }
+      // fall through to fetch from Dune
     }
 
     setIsSavedToDb(false);
