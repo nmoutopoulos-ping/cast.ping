@@ -24,6 +24,8 @@ interface DbTag {
   color: string;
   contract_address: string | null;
   decimals: number | null;
+  token_symbol: string | null;
+  token_name: string | null;
 }
 
 interface DbEntity {
@@ -47,6 +49,8 @@ export default function Entities() {
   const [tagColor, setTagColor] = useState("#3B82F6");
   const [tagContractAddress, setTagContractAddress] = useState("");
   const [tagDecimals, setTagDecimals] = useState<string>("");
+  const [tagTokenSymbol, setTagTokenSymbol] = useState("");
+  const [tagTokenName, setTagTokenName] = useState("");
   const [savingTag, setSavingTag] = useState(false);
 
   // Entity dialog state
@@ -83,6 +87,8 @@ export default function Entities() {
     setTagColor("#3B82F6");
     setTagContractAddress("");
     setTagDecimals("");
+    setTagTokenSymbol("");
+    setTagTokenName("");
     setTagDialogOpen(true);
   };
 
@@ -92,6 +98,8 @@ export default function Entities() {
     setTagColor(tag.color);
     setTagContractAddress(tag.contract_address || "");
     setTagDecimals(tag.decimals != null ? String(tag.decimals) : "");
+    setTagTokenSymbol(tag.token_symbol || "");
+    setTagTokenName(tag.token_name || "");
     setTagDialogOpen(true);
   };
 
@@ -105,6 +113,8 @@ export default function Entities() {
       color: tagColor,
       contract_address: tagContractAddress.trim() || null,
       decimals: decimalsValue,
+      token_symbol: tagTokenSymbol.trim() || null,
+      token_name: tagTokenName.trim() || null,
       user_id: user.id,
     };
 
@@ -502,6 +512,33 @@ export default function Entities() {
               />
               <p className="text-xs text-muted-foreground">
                 Set decimal places to format Token Amount from raw value. Leave empty to show "No Rule".
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tagTokenSymbol">Token Symbol (optional)</Label>
+              <Input
+                id="tagTokenSymbol"
+                value={tagTokenSymbol}
+                onChange={(e) => setTagTokenSymbol(e.target.value)}
+                placeholder="e.g. PYUSD, USDC"
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Override the "Token" column value for this contract.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tagTokenName">Token Name (optional)</Label>
+              <Input
+                id="tagTokenName"
+                value={tagTokenName}
+                onChange={(e) => setTagTokenName(e.target.value)}
+                placeholder="e.g. PayPal USD"
+              />
+              <p className="text-xs text-muted-foreground">
+                Override the "Token Name" column value for this contract.
               </p>
             </div>
           </div>

@@ -46,6 +46,8 @@ export interface DbTag {
   color: string;
   contract_address: string | null;
   decimals: number | null;
+  token_symbol: string | null;
+  token_name: string | null;
 }
 
 /**
