@@ -155,6 +155,7 @@ export type Database = {
         Row: {
           active_filters: Json
           created_at: string
+          filter_mode: string
           hidden_columns: string[]
           id: string
           name: string
@@ -165,6 +166,7 @@ export type Database = {
         Insert: {
           active_filters?: Json
           created_at?: string
+          filter_mode?: string
           hidden_columns?: string[]
           id?: string
           name: string
@@ -175,6 +177,7 @@ export type Database = {
         Update: {
           active_filters?: Json
           created_at?: string
+          filter_mode?: string
           hidden_columns?: string[]
           id?: string
           name?: string

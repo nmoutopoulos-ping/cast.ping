@@ -50,6 +50,7 @@ interface SavedView {
   name: string;
   hidden_columns: string[];
   active_filters: ActiveFilter[];
+  filter_mode: FilterMode;
 }
 
 interface ColumnDef {
@@ -113,7 +114,7 @@ export function ViewEditor({
       .select("*")
       .eq("saved_query_id" as "name", savedQueryId)
       .eq("user_id", userId)
-      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown }> | null }>);
+      .order("name") as unknown as Promise<{ data: Array<{ id: string; name: string; hidden_columns: string[]; active_filters: unknown; filter_mode?: string }> | null }>);
 
     if (data) {
       setSavedViews(
@@ -122,6 +123,7 @@ export function ViewEditor({
           name: v.name,
           hidden_columns: v.hidden_columns || [],
           active_filters: (v.active_filters as ActiveFilter[]) || [],
+          filter_mode: (v.filter_mode as FilterMode) || "any",
         }))
       );
     }
@@ -185,6 +187,7 @@ export function ViewEditor({
   const loadView = (view: SavedView) => {
     onHiddenColumnsChange(new Set(view.hidden_columns));
     onActiveFiltersChange(view.active_filters);
+    onFilterModeChange(view.filter_mode);
     setCurrentViewId(view.id);
     toast.success(`Loaded view: ${view.name}`);
   };
@@ -202,9 +205,10 @@ export function ViewEditor({
         name: newViewName.trim(),
         hidden_columns: Array.from(hiddenColumns),
         active_filters: activeFilters,
+        filter_mode: filterMode,
       } as unknown as { name: string; user_id: string })
       .select()
-      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[] } | null; error: Error | null }>);
+      .single() as unknown as Promise<{ data: { id: string; name: string; hidden_columns: string[]; active_filters: ActiveFilter[]; filter_mode: string } | null; error: Error | null }>);
 
     if (error) {
       toast.error("Failed to save view");
@@ -216,6 +220,7 @@ export function ViewEditor({
           name: data.name,
           hidden_columns: data.hidden_columns || [],
           active_filters: data.active_filters || [],
+          filter_mode: (data.filter_mode as FilterMode) || "any",
         },
       ]);
       setCurrentViewId(data.id);
@@ -233,6 +238,7 @@ export function ViewEditor({
       .update({
         hidden_columns: Array.from(hiddenColumns),
         active_filters: activeFilters,
+        filter_mode: filterMode,
       } as unknown as { name: string })
       .eq("id", viewId) as unknown as Promise<{ error: Error | null }>);
 
@@ -242,7 +248,7 @@ export function ViewEditor({
       setSavedViews((prev) =>
         prev.map((v) =>
           v.id === viewId
-            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters }
+            ? { ...v, hidden_columns: Array.from(hiddenColumns), active_filters: activeFilters, filter_mode: filterMode }
             : v
         )
       );
