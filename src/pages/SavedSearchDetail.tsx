@@ -96,15 +96,15 @@ export default function SavedSearchDetail() {
       setIsSavedToDb(true);
       setRows(cachedTx.map(tx => ({
         transaction_hash: tx.tx_hash,
-        method: "",
+        method: tx.method || "",
         block: Number(tx.block_number),
         timestamp: tx.block_time || "",
         from_address: tx.from_address || "",
         interacted_with: tx.to_address || "",
         eth_direction: tx.direction || "",
-        token_direction: "",
-        token_from: "",
-        token_to: "",
+        token_direction: tx.token_direction || "",
+        token_from: tx.token_from || "",
+        token_to: tx.token_to || "",
         token_amount_raw: tx.token_amount_raw || "",
         token_amount: Number(tx.token_amount),
         token_symbol: tx.token_symbol || "",
@@ -187,6 +187,10 @@ export default function SavedSearchDetail() {
       token_name: row.token_name || null,
       token_amount_raw: row.token_amount_raw || null,
       token_amount: row.token_amount || null,
+      method: row.method || null,
+      token_direction: row.token_direction || null,
+      token_from: row.token_from || null,
+      token_to: row.token_to || null,
     }));
 
     const { error: upsertError, data } = await supabase

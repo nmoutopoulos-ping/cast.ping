@@ -217,6 +217,10 @@ export default function QueryResults() {
       token_name: row.token_name || null,
       token_amount_raw: row.token_amount_raw || null,
       token_amount: row.token_amount || null,
+      method: row.method || null,
+      token_direction: row.token_direction || null,
+      token_from: row.token_from || null,
+      token_to: row.token_to || null,
     }));
 
     // Use upsert to update existing transactions or insert new ones
