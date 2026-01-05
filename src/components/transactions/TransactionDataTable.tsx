@@ -208,16 +208,11 @@ export function TransactionDataTable({ rows, searchedWallet }: TransactionDataTa
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {paginatedRows.map((row, index) => {
-                const rowHasHighlight = isHighlighted(row.from_address) || isHighlighted(row.interacted_with);
-                
+            {paginatedRows.map((row, index) => {
                 return (
                   <tr 
                     key={`${row.transaction_hash}-${startIndex + index}`}
-                    className={cn(
-                      "transition-colors duration-100",
-                      rowHasHighlight ? "bg-amber-500/5" : "hover:bg-muted/40"
-                    )}
+                    className="transition-colors duration-100 hover:bg-muted/40"
                   >
                     {/* Tx Hash */}
                     <td className="px-4 py-3.5">
