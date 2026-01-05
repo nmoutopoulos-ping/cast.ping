@@ -29,19 +29,13 @@ interface DbEntity {
   id: string;
   name: string;
   notes: string | null;
-}
-
-interface DbEntityWallet {
-  id: string;
-  entity_id: string;
-  wallet_address: string;
+  wallet_address: string | null;
 }
 
 export default function Entities() {
   const { user } = useAuth();
   const [tags, setTags] = useState<DbTag[]>([]);
   const [entities, setEntities] = useState<DbEntity[]>([]);
-  const [entityWallets, setEntityWallets] = useState<Record<string, DbEntityWallet[]>>({});
   const [loading, setLoading] = useState(true);
 
   // Tag dialog state
@@ -57,8 +51,7 @@ export default function Entities() {
   const [editingEntity, setEditingEntity] = useState<DbEntity | null>(null);
   const [entityName, setEntityName] = useState("");
   const [entityNotes, setEntityNotes] = useState("");
-  const [entityWalletAddresses, setEntityWalletAddresses] = useState<string[]>([]);
-  const [newWalletAddress, setNewWalletAddress] = useState("");
+  const [entityWalletAddress, setEntityWalletAddress] = useState("");
   const [savingEntity, setSavingEntity] = useState(false);
 
   useEffect(() => {
@@ -69,24 +62,13 @@ export default function Entities() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [tagsRes, entitiesRes, walletsRes] = await Promise.all([
+    const [tagsRes, entitiesRes] = await Promise.all([
       supabase.from("tags").select("*").order("name"),
       supabase.from("entities").select("*").order("name"),
-      supabase.from("entity_wallets").select("*"),
     ]);
 
     if (tagsRes.data) setTags(tagsRes.data);
     if (entitiesRes.data) setEntities(entitiesRes.data);
-    
-    // Group wallets by entity_id
-    if (walletsRes.data) {
-      const grouped: Record<string, DbEntityWallet[]> = {};
-      walletsRes.data.forEach((w) => {
-        if (!grouped[w.entity_id]) grouped[w.entity_id] = [];
-        grouped[w.entity_id].push(w);
-      });
-      setEntityWallets(grouped);
-    }
     setLoading(false);
   };
 
@@ -160,8 +142,7 @@ export default function Entities() {
     setEditingEntity(null);
     setEntityName("");
     setEntityNotes("");
-    setEntityWalletAddresses([]);
-    setNewWalletAddress("");
+    setEntityWalletAddress("");
     setEntityDialogOpen(true);
   };
 
@@ -169,22 +150,8 @@ export default function Entities() {
     setEditingEntity(entity);
     setEntityName(entity.name);
     setEntityNotes(entity.notes || "");
-    const wallets = entityWallets[entity.id] || [];
-    setEntityWalletAddresses(wallets.map((w) => w.wallet_address));
-    setNewWalletAddress("");
+    setEntityWalletAddress(entity.wallet_address || "");
     setEntityDialogOpen(true);
-  };
-
-  const addWalletAddress = () => {
-    const addr = newWalletAddress.trim();
-    if (addr && !entityWalletAddresses.includes(addr)) {
-      setEntityWalletAddresses([...entityWalletAddresses, addr]);
-      setNewWalletAddress("");
-    }
-  };
-
-  const removeWalletAddress = (addr: string) => {
-    setEntityWalletAddresses(entityWalletAddresses.filter((a) => a !== addr));
   };
 
   const saveEntity = async () => {
@@ -194,10 +161,9 @@ export default function Entities() {
     const entityData = {
       name: entityName.trim(),
       notes: entityNotes.trim() || null,
+      wallet_address: entityWalletAddress.trim() || null,
       user_id: user.id,
     };
-
-    let entityId = editingEntity?.id;
 
     if (editingEntity) {
       const { error } = await supabase
@@ -211,33 +177,14 @@ export default function Entities() {
         return;
       }
     } else {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("entities")
-        .insert(entityData)
-        .select()
-        .single();
+        .insert(entityData);
 
-      if (error || !data) {
+      if (error) {
         toast.error("Failed to create entity");
         setSavingEntity(false);
         return;
-      }
-      entityId = data.id;
-    }
-
-    // Sync wallet addresses
-    if (entityId) {
-      // Delete existing wallets for this entity
-      await supabase.from("entity_wallets").delete().eq("entity_id", entityId);
-
-      // Insert new wallets
-      if (entityWalletAddresses.length > 0) {
-        const walletRecords = entityWalletAddresses.map((addr) => ({
-          entity_id: entityId,
-          wallet_address: addr,
-          user_id: user.id,
-        }));
-        await supabase.from("entity_wallets").insert(walletRecords);
       }
     }
 
@@ -290,7 +237,7 @@ export default function Entities() {
               <thead>
                 <tr>
                   <th>Entity Name</th>
-                  <th>Wallet Addresses</th>
+                  <th>Wallet Address</th>
                   <th>Notes</th>
                   <th className="w-24">Actions</th>
                 </tr>
@@ -309,18 +256,12 @@ export default function Entities() {
                     </td>
                   </tr>
                 ) : (
-                  entities.map((entity) => {
-                    const wallets = entityWallets[entity.id] || [];
-                    return (
+                  entities.map((entity) => (
                     <tr key={entity.id}>
                       <td className="font-medium">{entity.name}</td>
                       <td>
-                        {wallets.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {wallets.map((w) => (
-                              <CopyableAddress key={w.id} address={w.wallet_address} />
-                            ))}
-                          </div>
+                        {entity.wallet_address ? (
+                          <CopyableAddress address={entity.wallet_address} />
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
@@ -349,7 +290,7 @@ export default function Entities() {
                         </div>
                       </td>
                     </tr>
-                  )})
+                  ))
                 )}
               </tbody>
             </table>
@@ -539,38 +480,14 @@ export default function Entities() {
             </div>
 
             <div className="space-y-2">
-              <Label>Wallet Addresses</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newWalletAddress}
-                  onChange={(e) => setNewWalletAddress(e.target.value)}
-                  placeholder="0x..."
-                  className="font-mono"
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addWalletAddress())}
-                />
-                <Button type="button" variant="outline" onClick={addWalletAddress}>
-                  Add
-                </Button>
-              </div>
-              {entityWalletAddresses.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {entityWalletAddresses.map((addr) => (
-                    <div
-                      key={addr}
-                      className="flex items-center gap-1 bg-muted px-2 py-1 rounded text-sm font-mono"
-                    >
-                      <span>{addr.slice(0, 10)}...{addr.slice(-6)}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeWalletAddress(addr)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <Label htmlFor="walletAddress">Wallet Address</Label>
+              <Input
+                id="walletAddress"
+                value={entityWalletAddress}
+                onChange={(e) => setEntityWalletAddress(e.target.value)}
+                placeholder="0x..."
+                className="font-mono"
+              />
             </div>
 
             <div className="space-y-2">
