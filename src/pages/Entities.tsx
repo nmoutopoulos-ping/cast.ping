@@ -306,7 +306,18 @@ export default function Entities() {
               ) : (
                 entities.map((entity) => (
                   <tr key={entity.id}>
-                    <td className="font-medium">{entity.name}</td>
+                    <td>
+                      <span
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
+                        style={{
+                          backgroundColor: `${entity.color}20`,
+                          borderColor: `${entity.color}40`,
+                          color: entity.color,
+                        }}
+                      >
+                        {entity.name}
+                      </span>
+                    </td>
                     <td>
                       <div className="flex items-center gap-2">
                         <div
