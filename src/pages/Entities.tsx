@@ -3,7 +3,6 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -270,192 +269,187 @@ export default function Entities() {
         </div>
       </div>
 
-      <Tabs defaultValue="entities">
-        <TabsList>
-          <TabsTrigger value="entities">Entities</TabsTrigger>
-          <TabsTrigger value="tags">Tags</TabsTrigger>
-        </TabsList>
+      {/* Entities Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Entities</h2>
+          <Button className="gap-2" onClick={openNewEntityDialog}>
+            <Plus className="w-4 h-4" />
+            New Entity
+          </Button>
+        </div>
 
-        {/* Entities Tab */}
-        <TabsContent value="entities" className="mt-6">
-          <div className="flex justify-end mb-4">
-            <Button className="gap-2" onClick={openNewEntityDialog}>
-              <Plus className="w-4 h-4" />
-              New Entity
-            </Button>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="data-table">
-              <thead>
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Entity Name</th>
+                <th>Color</th>
+                <th>Wallet Address</th>
+                <th>Notes</th>
+                <th className="w-24">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <th>Entity Name</th>
-                  <th>Color</th>
-                  <th>Wallet Address</th>
-                  <th>Notes</th>
-                  <th className="w-24">Actions</th>
+                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Loading...
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : entities.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No entities yet. Create one to get started.
-                    </td>
-                  </tr>
-                ) : (
-                  entities.map((entity) => (
-                    <tr key={entity.id}>
-                      <td className="font-medium">{entity.name}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-5 h-5 rounded border border-border"
-                            style={{ backgroundColor: entity.color }}
-                          />
-                          <span className="font-mono text-sm text-muted-foreground">
-                            {entity.color}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        {entity.wallet_address ? (
-                          <CopyableAddress address={entity.wallet_address} />
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="text-muted-foreground max-w-xs truncate">
-                        {entity.notes || "-"}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8"
-                            onClick={() => openEditEntityDialog(entity)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 text-destructive"
-                            onClick={() => deleteEntity(entity.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        {/* Tags Tab */}
-        <TabsContent value="tags" className="mt-6">
-          <div className="flex justify-end mb-4">
-            <Button className="gap-2" onClick={openNewTagDialog}>
-              <Plus className="w-4 h-4" />
-              New Tag
-            </Button>
-          </div>
-
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="data-table">
-              <thead>
+              ) : entities.length === 0 ? (
                 <tr>
-                  <th>Tag</th>
-                  <th>Color</th>
-                  <th>Contract Address</th>
-                  <th>Decimals</th>
-                  <th className="w-24">Actions</th>
+                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No entities yet. Create one to get started.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Loading...
+              ) : (
+                entities.map((entity) => (
+                  <tr key={entity.id}>
+                    <td className="font-medium">{entity.name}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded border border-border"
+                          style={{ backgroundColor: entity.color }}
+                        />
+                        <span className="font-mono text-sm text-muted-foreground">
+                          {entity.color}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {entity.wallet_address ? (
+                        <CopyableAddress address={entity.wallet_address} />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="text-muted-foreground max-w-xs truncate">
+                      {entity.notes || "-"}
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8"
+                          onClick={() => openEditEntityDialog(entity)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8 text-destructive"
+                          onClick={() => deleteEntity(entity.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                ) : tags.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No tags yet. Create one to get started.
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Tags Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Tags</h2>
+          <Button className="gap-2" onClick={openNewTagDialog}>
+            <Plus className="w-4 h-4" />
+            New Tag
+          </Button>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tag</th>
+                <th>Color</th>
+                <th>Contract Address</th>
+                <th>Decimals</th>
+                <th className="w-24">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Loading...
+                  </td>
+                </tr>
+              ) : tags.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No tags yet. Create one to get started.
+                  </td>
+                </tr>
+              ) : (
+                tags.map((tag) => (
+                  <tr key={tag.id}>
+                    <td>
+                      <TagBadge tag={{ id: tag.id, name: tag.name, color: tag.color }} />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded border border-border"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <span className="font-mono text-sm text-muted-foreground">
+                          {tag.color}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {tag.contract_address ? (
+                        <span className="font-mono text-xs">
+                          {tag.contract_address.slice(0, 10)}...{tag.contract_address.slice(-8)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                    <td>
+                      {tag.decimals != null ? (
+                        <span className="font-mono text-sm">{tag.decimals}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8"
+                          onClick={() => openEditTagDialog(tag)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8 text-destructive"
+                          onClick={() => deleteTag(tag.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  tags.map((tag) => (
-                    <tr key={tag.id}>
-                      <td>
-                        <TagBadge tag={{ id: tag.id, name: tag.name, color: tag.color }} />
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-5 h-5 rounded border border-border"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          <span className="font-mono text-sm text-muted-foreground">
-                            {tag.color}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        {tag.contract_address ? (
-                          <span className="font-mono text-xs">
-                            {tag.contract_address.slice(0, 10)}...{tag.contract_address.slice(-8)}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {tag.decimals != null ? (
-                          <span className="font-mono text-sm">{tag.decimals}</span>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8"
-                            onClick={() => openEditTagDialog(tag)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-8 h-8 text-destructive"
-                            onClick={() => deleteTag(tag.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-      </Tabs>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Tag Dialog */}
       <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
