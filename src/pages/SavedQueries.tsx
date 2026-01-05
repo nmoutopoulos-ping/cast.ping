@@ -154,8 +154,8 @@ export default function SavedQueries() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Saved Searches</h1>
-          <p className="text-muted-foreground">Manage your saved wallet searches</p>
+          <h1 className="text-2xl font-semibold">Saved Data</h1>
+          <p className="text-muted-foreground">Manage your saved wallet data from Dune</p>
         </div>
         <Button className="gap-2" onClick={() => navigate("/wallets")}>
           <Plus className="w-4 h-4" />

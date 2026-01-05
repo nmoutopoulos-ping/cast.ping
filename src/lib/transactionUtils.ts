@@ -100,12 +100,16 @@ export function mapRowToDbTransaction(
 }
 
 /**
- * Checks if cached transactions need backfill (missing enrichment fields)
+ * Checks if cached transactions need backfill (missing core fields)
+ * Only checks for truly required fields - method and block_time
+ * Token fields can be legitimately empty for ETH-only transactions
  */
 export function needsBackfill(transactions: DbTransaction[]): boolean {
-  return transactions.some(
-    (tx) => !tx.method || !tx.token_direction || !tx.token_from || !tx.token_to
-  );
+  // If we have transactions and they have core fields, no backfill needed
+  if (transactions.length === 0) return false;
+  
+  // Check if ANY transaction is missing core fields (method should always exist from Dune)
+  return transactions.every(tx => !tx.method && !tx.block_time);
 }
 
 /**

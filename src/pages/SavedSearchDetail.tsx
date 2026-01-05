@@ -227,7 +227,7 @@ export default function SavedSearchDetail() {
           className="gap-2 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Saved Searches
+          Back to Saved Data
         </Button>
 
         {savedQuery && (
