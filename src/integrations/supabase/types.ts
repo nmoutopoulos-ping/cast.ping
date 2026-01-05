@@ -203,6 +203,7 @@ export type Database = {
           color: string
           contract_address: string | null
           created_at: string
+          decimals: number | null
           id: string
           name: string
           updated_at: string
@@ -212,6 +213,7 @@ export type Database = {
           color?: string
           contract_address?: string | null
           created_at?: string
+          decimals?: number | null
           id?: string
           name: string
           updated_at?: string
@@ -221,6 +223,7 @@ export type Database = {
           color?: string
           contract_address?: string | null
           created_at?: string
+          decimals?: number | null
           id?: string
           name?: string
           updated_at?: string

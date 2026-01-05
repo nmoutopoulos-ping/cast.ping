@@ -23,6 +23,7 @@ interface DbTag {
   name: string;
   color: string;
   contract_address: string | null;
+  decimals: number | null;
 }
 
 interface DbEntity {
@@ -45,6 +46,7 @@ export default function Entities() {
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState("#3B82F6");
   const [tagContractAddress, setTagContractAddress] = useState("");
+  const [tagDecimals, setTagDecimals] = useState<string>("");
   const [savingTag, setSavingTag] = useState(false);
 
   // Entity dialog state
@@ -80,6 +82,7 @@ export default function Entities() {
     setTagName("");
     setTagColor("#3B82F6");
     setTagContractAddress("");
+    setTagDecimals("");
     setTagDialogOpen(true);
   };
 
@@ -88,6 +91,7 @@ export default function Entities() {
     setTagName(tag.name);
     setTagColor(tag.color);
     setTagContractAddress(tag.contract_address || "");
+    setTagDecimals(tag.decimals != null ? String(tag.decimals) : "");
     setTagDialogOpen(true);
   };
 
@@ -95,10 +99,12 @@ export default function Entities() {
     if (!user || !tagName.trim()) return;
     setSavingTag(true);
 
+    const decimalsValue = tagDecimals.trim() ? parseInt(tagDecimals.trim(), 10) : null;
     const tagData = {
       name: tagName.trim(),
       color: tagColor,
       contract_address: tagContractAddress.trim() || null,
+      decimals: decimalsValue,
       user_id: user.id,
     };
 
@@ -343,19 +349,20 @@ export default function Entities() {
                   <th>Tag</th>
                   <th>Color</th>
                   <th>Contract Address</th>
+                  <th>Decimals</th>
                   <th className="w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
                       Loading...
                     </td>
                   </tr>
                 ) : tags.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
                       No tags yet. Create one to get started.
                     </td>
                   </tr>
@@ -381,6 +388,13 @@ export default function Entities() {
                           <span className="font-mono text-xs">
                             {tag.contract_address.slice(0, 10)}...{tag.contract_address.slice(-8)}
                           </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {tag.decimals != null ? (
+                          <span className="font-mono text-sm">{tag.decimals}</span>
                         ) : (
                           <span className="text-muted-foreground text-sm">-</span>
                         )}
@@ -471,6 +485,23 @@ export default function Entities() {
               />
               <p className="text-xs text-muted-foreground">
                 Add a contract address to filter transactions involving this contract.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tagDecimals">Decimals (optional)</Label>
+              <Input
+                id="tagDecimals"
+                type="number"
+                min="0"
+                max="18"
+                value={tagDecimals}
+                onChange={(e) => setTagDecimals(e.target.value)}
+                placeholder="e.g. 6 for USDC, 18 for ETH"
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Set decimal places to format Token Amount from raw value. Leave empty to show "No Rule".
               </p>
             </div>
           </div>

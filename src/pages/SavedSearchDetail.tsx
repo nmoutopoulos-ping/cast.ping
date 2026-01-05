@@ -289,6 +289,7 @@ export default function SavedSearchDetail() {
             highlightMap={highlightMap}
             addressLabels={addressLabels}
             hiddenColumns={hiddenColumns}
+            tags={tags}
           />
         </>
       )}

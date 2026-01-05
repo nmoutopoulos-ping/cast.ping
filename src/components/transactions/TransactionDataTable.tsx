@@ -6,7 +6,7 @@ import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-rea
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { TransactionRow, AddressLabelInfo } from "@/types/transactions";
+import type { TransactionRow, AddressLabelInfo, DbTag } from "@/types/transactions";
 import { ETHERSCAN_BASE, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE } from "@/types/transactions";
 import { formatEthValue } from "@/lib/transactionUtils";
 
@@ -15,6 +15,7 @@ interface TransactionDataTableProps {
   highlightMap?: Record<string, string>;
   addressLabels?: AddressLabelInfo[];
   hiddenColumns?: Set<string>;
+  tags?: DbTag[];
 }
 
 export const ALL_COLUMNS = [
@@ -106,7 +107,7 @@ function AddressCell({
   );
 }
 
-export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns }: TransactionDataTableProps) {
+export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns, tags = [] }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -136,6 +137,17 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
     });
     return map;
   }, [addressLabels]);
+
+  // Build a map of contract address (lowercase) → decimals for tags with decimal rules
+  const tagDecimalsMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    tags.forEach((tag) => {
+      if (tag.contract_address && tag.decimals != null) {
+        map[tag.contract_address.toLowerCase()] = tag.decimals;
+      }
+    });
+    return map;
+  }, [tags]);
 
   const addressCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -174,6 +186,47 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       return format(new Date(timestamp), "MMM d, yyyy HH:mm:ss");
     } catch {
       return timestamp;
+    }
+  };
+
+  // Format token amount based on decimal rule
+  const formatTokenAmount = (row: TransactionRow): string => {
+    if (!row.token_contract) {
+      // No token contract, show dash
+      return "-";
+    }
+
+    const decimals = tagDecimalsMap[row.token_contract.toLowerCase()];
+    if (decimals == null) {
+      // No decimal rule set for this contract
+      return "No Rule";
+    }
+
+    // Use token_amount_raw if available, otherwise fall back to token_amount
+    const rawValue = row.token_amount_raw;
+    if (!rawValue || rawValue === "-") {
+      return "-";
+    }
+
+    try {
+      // Parse the raw value and divide by 10^decimals
+      const rawBigInt = BigInt(rawValue);
+      const divisor = BigInt(10 ** decimals);
+      const wholePart = rawBigInt / divisor;
+      const remainder = rawBigInt % divisor;
+      
+      // Format with proper decimal places
+      if (remainder === BigInt(0)) {
+        return wholePart.toString();
+      }
+      
+      // Pad remainder with leading zeros if needed
+      const remainderStr = remainder.toString().padStart(decimals, '0');
+      // Remove trailing zeros
+      const trimmedRemainder = remainderStr.replace(/0+$/, '');
+      return `${wholePart}.${trimmedRemainder}`;
+    } catch {
+      return "No Rule";
     }
   };
 
@@ -299,12 +352,15 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             {row.token_amount_raw || "-"}
           </span>
         );
-      case "token_amount":
+      case "token_amount": {
+        const formattedAmount = formatTokenAmount(row);
+        const isNoRule = formattedAmount === "No Rule";
         return (
-          <span className="font-mono text-xs font-medium whitespace-nowrap">
-            {row.token_amount != null ? formatEthValue(row.token_amount) : "-"}
+          <span className={cn("font-mono text-xs whitespace-nowrap", isNoRule ? "text-muted-foreground italic" : "font-medium")}>
+            {formattedAmount}
           </span>
         );
+      }
       case "token_symbol":
         return (
           <span className="font-mono text-xs font-medium">
