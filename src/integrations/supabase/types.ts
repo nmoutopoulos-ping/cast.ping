@@ -160,6 +160,7 @@ export type Database = {
           id: string
           name: string
           saved_query_id: string
+          tag_filter_mode: string
           updated_at: string
           user_id: string
         }
@@ -171,6 +172,7 @@ export type Database = {
           id?: string
           name: string
           saved_query_id: string
+          tag_filter_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -182,6 +184,7 @@ export type Database = {
           id?: string
           name?: string
           saved_query_id?: string
+          tag_filter_mode?: string
           updated_at?: string
           user_id?: string
         }
