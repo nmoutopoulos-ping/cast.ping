@@ -121,6 +121,32 @@ export default function SavedSearchDetail() {
     return map;
   }, [activeFilters]);
 
+  // Build address labels for entity/tag name display on hover
+  const addressLabels = useMemo(() => {
+    const labels: { address: string; name: string; color: string; type: "entity" | "tag" }[] = [];
+    entities.forEach((e) => {
+      if (e.wallet_address) {
+        labels.push({
+          address: e.wallet_address.toLowerCase(),
+          name: e.name,
+          color: e.color,
+          type: "entity",
+        });
+      }
+    });
+    tags.forEach((t) => {
+      if (t.contract_address) {
+        labels.push({
+          address: t.contract_address.toLowerCase(),
+          name: t.name,
+          color: t.color,
+          type: "tag",
+        });
+      }
+    });
+    return labels;
+  }, [entities, tags]);
+
   useEffect(() => {
     if (id && user) {
       loadSavedSearch();
@@ -400,8 +426,8 @@ export default function SavedSearchDetail() {
 
           <TransactionDataTable 
             rows={rows} 
-            searchedWallet={savedQuery?.wallet_address || ""} 
             highlightMap={highlightMap}
+            addressLabels={addressLabels}
           />
         </>
       )}
