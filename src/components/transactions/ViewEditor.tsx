@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Tag, X, Columns, Save, ChevronDown, Trash2, Check } from "lucide-react";
+import { Building2, Tag, X, Columns, Save, ChevronDown, Trash2, Check, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -57,6 +57,8 @@ interface ColumnDef {
   label: string;
 }
 
+type FilterMode = "any" | "all";
+
 interface ViewEditorProps {
   savedQueryId: string;
   userId: string;
@@ -66,8 +68,10 @@ interface ViewEditorProps {
   columns: ColumnDef[];
   hiddenColumns: Set<string>;
   activeFilters: ActiveFilter[];
+  filterMode: FilterMode;
   onHiddenColumnsChange: (columns: Set<string>) => void;
   onActiveFiltersChange: (filters: ActiveFilter[]) => void;
+  onFilterModeChange: (mode: FilterMode) => void;
 }
 
 export function ViewEditor({
@@ -79,8 +83,10 @@ export function ViewEditor({
   columns,
   hiddenColumns,
   activeFilters,
+  filterMode,
   onHiddenColumnsChange,
   onActiveFiltersChange,
+  onFilterModeChange,
 }: ViewEditorProps) {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
@@ -353,6 +359,54 @@ export function ViewEditor({
             <span className="text-xs text-muted-foreground">
               {activeFilters.length} filter{activeFilters.length > 1 ? "s" : ""}
             </span>
+          )}
+
+          {/* Rules toggle - only show when 2+ filters are active */}
+          {activeFilters.length >= 2 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="w-4 h-4" />
+                  Rules
+                  <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0 uppercase">
+                    {filterMode}
+                  </Badge>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-3">
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground">Show transactions where:</p>
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 p-2 rounded-md hover:bg-muted cursor-pointer">
+                      <input
+                        type="radio"
+                        name="filterMode"
+                        checked={filterMode === "any"}
+                        onChange={() => onFilterModeChange("any")}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <span className="text-sm font-medium">Any match</span>
+                        <p className="text-xs text-muted-foreground">1+ selected entities/tags are present</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 p-2 rounded-md hover:bg-muted cursor-pointer">
+                      <input
+                        type="radio"
+                        name="filterMode"
+                        checked={filterMode === "all"}
+                        onChange={() => onFilterModeChange("all")}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <span className="text-sm font-medium">All match</span>
+                        <p className="text-xs text-muted-foreground">All selected entities/tags are present</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
 
           {/* Column visibility */}
