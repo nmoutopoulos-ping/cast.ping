@@ -35,6 +35,7 @@ export interface Entity {
   name: string;
   wallet_address: string | null;
   color: string;
+  notes?: string | null;
 }
 
 /**
@@ -140,3 +141,29 @@ export const DEFAULT_QUERY_ID = CHAIN_CONFIGS.sepolia.queryId;
 export const ETHERSCAN_BASE = CHAIN_CONFIGS.sepolia.explorerBaseUrl;
 export const PAGE_SIZE_OPTIONS = [25, 50] as const;
 export const DEFAULT_PAGE_SIZE = 25;
+
+/**
+ * Color presets for entities and tags (30 colors across RGBV gradient)
+ */
+export const COLOR_PRESETS = [
+  // Reds
+  "#DC2626", "#EF4444", "#F87171",
+  // Oranges
+  "#EA580C", "#F97316", "#FB923C",
+  // Yellows
+  "#CA8A04", "#EAB308", "#FACC15",
+  // Yellow-Greens
+  "#65A30D", "#84CC16", "#A3E635",
+  // Greens
+  "#16A34A", "#22C55E", "#4ADE80",
+  // Teals
+  "#0D9488", "#14B8A6", "#2DD4BF",
+  // Cyans
+  "#0891B2", "#06B6D4", "#22D3EE",
+  // Blues
+  "#2563EB", "#3B82F6", "#60A5FA",
+  // Purples
+  "#7C3AED", "#8B5CF6", "#A78BFA",
+  // Pinks/Magentas
+  "#DB2777", "#EC4899", "#F472B6",
+] as const;

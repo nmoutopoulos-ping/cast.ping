@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +15,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, RefreshCw, Search, Bookmark, CheckCircle, Loader2, AlertCircle, Wifi } from "lucide-react";
+import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { useElapsedTimer, formatElapsedTime } from "@/hooks/useElapsedTimer";
+import { useElapsedTimer } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
-import type { TransactionRow, DbTag, ChainConfig } from "@/types/transactions";
+import type { TransactionRow, DbTag } from "@/types/transactions";
 import { CHAIN_CONFIGS, DEFAULT_CHAIN } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
@@ -35,8 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
+import { ApiStatusIndicator, type ApiStatus } from "@/components/shared/ApiStatusIndicator";
+import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
 
 interface ApiStatusInfo {
   status: ApiStatus;
@@ -312,55 +311,11 @@ export default function QueryResults() {
       </div>
 
       {/* API Status Indicator */}
-      {apiStatus.status !== "idle" && (
-        <div className={`flex items-center gap-3 p-4 rounded-lg border ${
-          apiStatus.status === "error" 
-            ? "bg-destructive/10 border-destructive/50 text-destructive"
-            : apiStatus.status === "complete"
-            ? "bg-green-500/10 border-green-500/50 text-green-600"
-            : "bg-primary/10 border-primary/50 text-primary"
-        }`}>
-          {apiStatus.status === "connecting" && (
-            <>
-              <Wifi className="w-5 h-5 animate-pulse" />
-              <span className="font-medium flex-1">Connecting to Dune API...</span>
-              <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
-            </>
-          )}
-          {apiStatus.status === "fetching" && (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <div className="flex-1">
-                <span className="font-medium">{apiStatus.message}</span>
-                <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes...</p>
-              </div>
-              <span className="font-mono text-lg tabular-nums font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
-            </>
-          )}
-          {apiStatus.status === "processing" && (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="font-medium flex-1">Processing transaction data...</span>
-              <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
-            </>
-          )}
-          {apiStatus.status === "complete" && (
-            <>
-              <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">{apiStatus.message}</span>
-            </>
-          )}
-          {apiStatus.status === "error" && (
-            <>
-              <AlertCircle className="w-5 h-5" />
-              <div className="flex-1">
-                <span className="font-medium">API Error</span>
-                <p className="text-sm mt-1 opacity-90">{apiStatus.message}</p>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      <ApiStatusIndicator
+        status={apiStatus.status}
+        message={apiStatus.message}
+        elapsedSeconds={elapsedSeconds}
+      />
 
       {/* Query Info */}
       {queryName && (
@@ -370,13 +325,7 @@ export default function QueryResults() {
       )}
 
       {/* Loading State */}
-      {loading && (
-        <div className="space-y-2">
-          {[...Array(10)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      )}
+      {loading && <TransactionSkeletons />}
 
       {/* Error State */}
       {error && apiStatus.status !== "error" && (

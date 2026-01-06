@@ -16,24 +16,8 @@ import { CopyableAddress } from "@/components/shared/CopyableAddress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-
-interface DbTag {
-  id: string;
-  name: string;
-  color: string;
-  contract_address: string | null;
-  decimals: number | null;
-  token_symbol: string | null;
-  token_name: string | null;
-}
-
-interface DbEntity {
-  id: string;
-  name: string;
-  notes: string | null;
-  wallet_address: string | null;
-  color: string;
-}
+import type { Entity, DbTag } from "@/types/transactions";
+import { COLOR_PRESETS } from "@/types/transactions";
 
 interface TransactionCounts {
   entities: Record<string, number>;
@@ -43,7 +27,7 @@ interface TransactionCounts {
 export default function Entities() {
   const { user } = useAuth();
   const [tags, setTags] = useState<DbTag[]>([]);
-  const [entities, setEntities] = useState<DbEntity[]>([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
   const [txnCounts, setTxnCounts] = useState<TransactionCounts>({ entities: {}, tags: {} });
 
@@ -60,7 +44,7 @@ export default function Entities() {
 
   // Entity dialog state
   const [entityDialogOpen, setEntityDialogOpen] = useState(false);
-  const [editingEntity, setEditingEntity] = useState<DbEntity | null>(null);
+  const [editingEntity, setEditingEntity] = useState<Entity | null>(null);
   const [entityName, setEntityName] = useState("");
   const [entityNotes, setEntityNotes] = useState("");
   const [entityWalletAddress, setEntityWalletAddress] = useState("");
@@ -215,7 +199,7 @@ export default function Entities() {
     setEntityDialogOpen(true);
   };
 
-  const openEditEntityDialog = (entity: DbEntity) => {
+  const openEditEntityDialog = (entity: Entity) => {
     setEditingEntity(entity);
     setEntityName(entity.name);
     setEntityNotes(entity.notes || "");
@@ -275,29 +259,6 @@ export default function Entities() {
     }
   };
 
-  // 30 colors across RGBV gradient
-  const colorPresets = [
-    // Reds
-    "#DC2626", "#EF4444", "#F87171",
-    // Oranges
-    "#EA580C", "#F97316", "#FB923C",
-    // Yellows
-    "#CA8A04", "#EAB308", "#FACC15",
-    // Yellow-Greens
-    "#65A30D", "#84CC16", "#A3E635",
-    // Greens
-    "#16A34A", "#22C55E", "#4ADE80",
-    // Teals
-    "#0D9488", "#14B8A6", "#2DD4BF",
-    // Cyans
-    "#0891B2", "#06B6D4", "#22D3EE",
-    // Blues
-    "#2563EB", "#3B82F6", "#60A5FA",
-    // Purples
-    "#7C3AED", "#8B5CF6", "#A78BFA",
-    // Pinks/Magentas
-    "#DB2777", "#EC4899", "#F472B6",
-  ];
 
   return (
     <div className="p-8 space-y-6 animate-fade-in">
@@ -553,7 +514,7 @@ export default function Entities() {
             <div className="space-y-2">
               <Label>Color</Label>
               <div className="flex items-center gap-2 flex-wrap">
-                {colorPresets.map((color) => (
+                {COLOR_PRESETS.map((color) => (
                   <button
                     key={color}
                     type="button"
@@ -673,7 +634,7 @@ export default function Entities() {
             <div className="space-y-2">
               <Label>Color</Label>
               <div className="flex items-center gap-2 flex-wrap">
-                {colorPresets.map((color) => (
+                {COLOR_PRESETS.map((color) => (
                   <button
                     key={color}
                     type="button"

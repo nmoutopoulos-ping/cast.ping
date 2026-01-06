@@ -2,15 +2,14 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
 import { FullscreenTableDialog, FullscreenTableTrigger } from "@/components/transactions/FullscreenTableDialog";
-import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check, Loader2, Wifi } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { useElapsedTimer, formatElapsedTime } from "@/hooks/useElapsedTimer";
+import { useElapsedTimer } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
 import type { 
   TransactionRow, 
@@ -34,6 +33,8 @@ import {
   fetchEntitiesAndTags,
   type DateRange,
 } from "@/lib/transactionUtils";
+import { ApiStatusIndicator, type ApiStatus } from "@/components/shared/ApiStatusIndicator";
+import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
 
 export default function SavedSearchDetail() {
   const { id } = useParams<{ id: string }>();
@@ -274,27 +275,12 @@ export default function SavedSearchDetail() {
       {/* Loading State with Timer */}
       {loading && (
         <div className="space-y-4">
-          {fetchingFromDune && (
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <div className="flex-1">
-                <span className="font-medium">Fetching from Dune API...</span>
-                <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes</p>
-              </div>
-              <span className="font-mono text-lg tabular-nums font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
-            </div>
-          )}
-          {!fetchingFromDune && (
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
-              <Wifi className="w-5 h-5 animate-pulse text-muted-foreground" />
-              <span className="font-medium text-muted-foreground">Loading saved data...</span>
-            </div>
-          )}
-          <div className="space-y-2">
-            {[...Array(10)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
+          <ApiStatusIndicator
+            status={fetchingFromDune ? "fetching" : "connecting"}
+            message={fetchingFromDune ? "Fetching from Dune API..." : "Loading saved data..."}
+            elapsedSeconds={elapsedSeconds}
+          />
+          <TransactionSkeletons />
         </div>
       )}
 
