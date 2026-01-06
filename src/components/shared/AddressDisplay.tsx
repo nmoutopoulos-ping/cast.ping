@@ -9,6 +9,7 @@ interface AddressDisplayProps {
   showCopy?: boolean;
   showExternalLink?: boolean;
   className?: string;
+  explorerBaseUrl?: string;
 }
 
 export function AddressDisplay({ 
@@ -16,7 +17,8 @@ export function AddressDisplay({
   shortened = true, 
   showCopy = true, 
   showExternalLink = true,
-  className 
+  className,
+  explorerBaseUrl = "https://sepolia.etherscan.io"
 }: AddressDisplayProps) {
   const [copied, setCopied] = useState(false);
 
@@ -31,7 +33,7 @@ export function AddressDisplay({
   };
 
   const openEtherscan = () => {
-    window.open(`https://sepolia.etherscan.io/address/${address}`, "_blank");
+    window.open(`${explorerBaseUrl}/address/${address}`, "_blank");
   };
 
   return (

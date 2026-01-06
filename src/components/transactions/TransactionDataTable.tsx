@@ -16,6 +16,7 @@ interface TransactionDataTableProps {
   addressLabels?: AddressLabelInfo[];
   hiddenColumns?: Set<string>;
   tags?: DbTag[];
+  explorerBaseUrl?: string;
 }
 
 export const ALL_COLUMNS = [
@@ -52,12 +53,14 @@ function AddressCell({
   highlightColor,
   onHover, 
   onLeave,
+  explorerBaseUrl,
 }: { 
   address: string; 
   isHighlighted: boolean;
   highlightColor?: string;
   onHover: () => void;
   onLeave: () => void;
+  explorerBaseUrl: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -87,7 +90,7 @@ function AddressCell({
       onMouseLeave={onLeave}
     >
       <a
-        href={`${ETHERSCAN_BASE}/address/${address}`}
+        href={`${explorerBaseUrl}/address/${address}`}
         target="_blank"
         rel="noopener noreferrer"
         className="font-mono text-xs transition-colors whitespace-nowrap text-foreground/80 hover:text-primary"
@@ -109,7 +112,7 @@ function AddressCell({
   );
 }
 
-export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns, tags = [] }: TransactionDataTableProps) {
+export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns, tags = [], explorerBaseUrl = ETHERSCAN_BASE }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -257,7 +260,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "transaction_hash":
         return (
           <a
-            href={`${ETHERSCAN_BASE}/tx/${row.transaction_hash}`}
+            href={`${explorerBaseUrl}/tx/${row.transaction_hash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 font-mono text-xs text-primary hover:underline whitespace-nowrap"
@@ -269,7 +272,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "method":
         return row.method ? (
           <a
-            href={`${ETHERSCAN_BASE}/tx/${row.transaction_hash}`}
+            href={`${explorerBaseUrl}/tx/${row.transaction_hash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex"
@@ -286,7 +289,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
       case "block":
         return (
           <a
-            href={`${ETHERSCAN_BASE}/block/${row.block}`}
+            href={`${explorerBaseUrl}/block/${row.block}`}
             target="_blank"
             rel="noopener noreferrer"
             className="font-mono text-xs text-primary/80 hover:text-primary hover:underline"
@@ -311,6 +314,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             highlightColor={getHighlightColor(row.from_address)}
             onHover={() => setHoveredAddress(row.from_address)}
             onLeave={() => setHoveredAddress(null)}
+            explorerBaseUrl={explorerBaseUrl}
           />
         );
       case "interacted_with":
@@ -321,6 +325,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             highlightColor={getHighlightColor(row.interacted_with)}
             onHover={() => setHoveredAddress(row.interacted_with)}
             onLeave={() => setHoveredAddress(null)}
+            explorerBaseUrl={explorerBaseUrl}
           />
         );
       case "eth_direction":
@@ -363,6 +368,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             highlightColor={getHighlightColor(row.token_from)}
             onHover={() => setHoveredAddress(row.token_from)}
             onLeave={() => setHoveredAddress(null)}
+            explorerBaseUrl={explorerBaseUrl}
           />
         ) : (
           <span className="text-muted-foreground text-xs">-</span>
@@ -375,6 +381,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             highlightColor={getHighlightColor(row.token_to)}
             onHover={() => setHoveredAddress(row.token_to)}
             onLeave={() => setHoveredAddress(null)}
+            explorerBaseUrl={explorerBaseUrl}
           />
         ) : (
           <span className="text-muted-foreground text-xs">-</span>
@@ -414,6 +421,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
             highlightColor={getHighlightColor(row.token_contract)}
             onHover={() => setHoveredAddress(row.token_contract)}
             onLeave={() => setHoveredAddress(null)}
+            explorerBaseUrl={explorerBaseUrl}
           />
         ) : (
           <span className="text-muted-foreground text-xs">-</span>
