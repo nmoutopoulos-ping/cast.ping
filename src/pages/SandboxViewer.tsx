@@ -83,14 +83,16 @@ export default function SandboxViewer() {
   }, [user]);
 
   // Ensure a saved query exists (metadata only) so saved views work for this sandbox dataset.
+  // Sandbox entries use user_id = null so they don't appear in user's saved data list.
   useEffect(() => {
     const ensureSavedQuery = async () => {
-      if (!user || !queryId) return;
+      if (!queryId) return;
 
+      // Look for existing sandbox entry (user_id is null for sandbox datasets)
       const { data: existing, error: selectError } = await supabase
         .from("saved_queries")
         .select("id")
-        .eq("user_id", user.id)
+        .is("user_id", null)
         .eq("dune_query_id", queryId)
         .eq("wallet_address", address)
         .limit(1);
@@ -103,14 +105,16 @@ export default function SandboxViewer() {
         return;
       }
 
+      // Create sandbox entry without user_id so it stays separate from user saves
       const { data: created, error: insertError } = await supabase
         .from("saved_queries")
         .insert({
-          user_id: user.id,
+          user_id: null, // Sandbox datasets have no owner
           name,
           description: "Sandbox dataset",
           dune_query_id: queryId,
           wallet_address: address,
+          search_type: "token",
         })
         .select("id")
         .single();
@@ -121,7 +125,7 @@ export default function SandboxViewer() {
     };
 
     ensureSavedQuery();
-  }, [user, queryId, address, name]);
+  }, [queryId, address, name]);
 
   // Fetch cached results on mount
   useEffect(() => {
