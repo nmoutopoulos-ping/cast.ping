@@ -18,14 +18,14 @@ export function EmptyState({
   action 
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-muted-foreground" />
+    <div className="empty-state">
+      <div className="empty-state-icon">
+        <Icon className="w-6 h-6 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground max-w-sm mb-6">{description}</p>
+      <h3 className="empty-state-title">{title}</h3>
+      <p className="empty-state-description mb-6">{description}</p>
       {action && (
-        <Button onClick={action.onClick}>
+        <Button onClick={action.onClick} size="sm">
           {action.label}
         </Button>
       )}
