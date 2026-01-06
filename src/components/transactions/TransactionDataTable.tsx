@@ -267,9 +267,20 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
           </a>
         );
       case "method":
-        return (
+        return row.method ? (
+          <a
+            href={`${ETHERSCAN_BASE}/tx/${row.transaction_hash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex"
+          >
+            <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5 hover:bg-primary/10 hover:border-primary/50 transition-colors cursor-pointer">
+              {row.method}
+            </Badge>
+          </a>
+        ) : (
           <Badge variant="outline" className="text-[10px] font-mono px-2 py-0.5">
-            {row.method || "-"}
+            -
           </Badge>
         );
       case "block":
