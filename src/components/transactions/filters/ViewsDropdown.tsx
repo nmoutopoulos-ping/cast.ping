@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ChevronDown, Save, Trash2, Check, RefreshCw } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronDown, Save, Trash2, Check, RefreshCw, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +33,37 @@ interface ViewsDropdownProps {
   currentViewId: string | null;
   onViewLoad: (view: SavedView) => void;
   onCurrentViewIdChange: (id: string | null) => void;
+}
+
+// Helper to check if current settings differ from saved view
+function hasUnsavedChanges(
+  currentView: SavedView | undefined,
+  hiddenColumns: Set<string>,
+  activeFilters: ActiveFilter[],
+  filterMode: FilterMode,
+  tagFilterMode: FilterMode,
+  methodFilters: MethodType[]
+): boolean {
+  if (!currentView) return false;
+  
+  const savedHidden = new Set(currentView.hidden_columns);
+  if (hiddenColumns.size !== savedHidden.size || ![...hiddenColumns].every(c => savedHidden.has(c))) {
+    return true;
+  }
+  
+  if (JSON.stringify(activeFilters) !== JSON.stringify(currentView.active_filters)) {
+    return true;
+  }
+  
+  if (filterMode !== currentView.filter_mode) return true;
+  if (tagFilterMode !== currentView.tag_filter_mode) return true;
+  
+  const savedMethods = currentView.method_filters || [];
+  if (methodFilters.length !== savedMethods.length || !methodFilters.every(m => savedMethods.includes(m))) {
+    return true;
+  }
+  
+  return false;
 }
 
 export function ViewsDropdown({
@@ -165,18 +196,23 @@ export function ViewsDropdown({
   };
 
   const currentView = savedViews.find((v) => v.id === currentViewId);
+  
+  const isModified = useMemo(() => 
+    hasUnsavedChanges(currentView, hiddenColumns, activeFilters, filterMode, tagFilterMode, methodFilters),
+    [currentView, hiddenColumns, activeFilters, filterMode, tagFilterMode, methodFilters]
+  );
 
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Update View button - visible when in a view */}
-        {currentView && (
+        {/* Update View button - visible when in a view with unsaved changes */}
+        {currentView && isModified && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleUpdateView(currentView.id)}
-            className="gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
-            title="Update current view with current settings"
+            className="gap-1.5 text-amber-600 border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-700"
+            title="Save changes to current view"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Update View
@@ -195,8 +231,13 @@ export function ViewsDropdown({
             >
               {currentView ? (
                 <>
-                  <Check className="w-3.5 h-3.5" />
+                  {isModified ? (
+                    <Circle className="w-2 h-2 fill-amber-400 text-amber-400" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
                   {currentView.name}
+                  {isModified && <span className="text-[10px] opacity-70">(modified)</span>}
                 </>
               ) : (
                 "Views"

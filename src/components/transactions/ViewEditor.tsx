@@ -79,8 +79,6 @@ export function ViewEditor({
     toast.success(`Loaded view: ${view.name}`);
   };
 
-  const clearCurrentView = () => setCurrentViewId(null);
-
   const hasActiveFilters = activeFilters.length > 0 || methodFilters.length > 0 || dateRange.start || dateRange.end;
 
   return (
@@ -91,7 +89,6 @@ export function ViewEditor({
           rows={rows}
           methodFilters={methodFilters}
           onMethodFiltersChange={onMethodFiltersChange}
-          onViewChanged={clearCurrentView}
         />
 
         <EntityTagFilters
@@ -100,7 +97,6 @@ export function ViewEditor({
           transactionAddresses={transactionAddresses}
           activeFilters={activeFilters}
           onActiveFiltersChange={onActiveFiltersChange}
-          onViewChanged={clearCurrentView}
         />
       </div>
 
@@ -118,7 +114,6 @@ export function ViewEditor({
           activeFilters={activeFilters}
           tagFilterMode={tagFilterMode}
           onTagFilterModeChange={onTagFilterModeChange}
-          onViewChanged={clearCurrentView}
         />
 
         <DateRangeFilter
@@ -130,7 +125,6 @@ export function ViewEditor({
           columns={columns}
           hiddenColumns={hiddenColumns}
           onHiddenColumnsChange={onHiddenColumnsChange}
-          onViewChanged={clearCurrentView}
         />
 
         <ViewsDropdown

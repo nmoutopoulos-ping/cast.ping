@@ -8,14 +8,12 @@ interface MethodFiltersProps {
   rows: TransactionRow[];
   methodFilters: MethodType[];
   onMethodFiltersChange: (methods: MethodType[]) => void;
-  onViewChanged?: () => void;
 }
 
 export function MethodFilters({
   rows,
   methodFilters,
   onMethodFiltersChange,
-  onViewChanged,
 }: MethodFiltersProps) {
   const methodCounts = useMemo(() => {
     const counts = { native: 0, transfer: 0, mint: 0, burn: 0 };
@@ -37,7 +35,6 @@ export function MethodFilters({
     } else {
       onMethodFiltersChange([...methodFilters, method]);
     }
-    onViewChanged?.();
   };
 
   const hasAnyMethodTransactions = methodCounts.native > 0 || methodCounts.transfer > 0 || methodCounts.mint > 0 || methodCounts.burn > 0;
