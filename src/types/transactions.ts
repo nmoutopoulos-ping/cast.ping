@@ -104,7 +104,7 @@ export interface SavedView {
 /**
  * Known method types for quick filter tabs
  */
-export type MethodType = "transfer" | "mint" | "burn";
+export type MethodType = "native" | "transfer" | "mint" | "burn";
 
 // Constants
 export const DEFAULT_QUERY_ID = "6459204";

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Flame, Sparkles, X } from "lucide-react";
+import { ArrowLeftRight, Flame, Sparkles, Wallet, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { MethodType, TransactionRow } from "@/types/transactions";
@@ -18,10 +18,11 @@ export function MethodFilters({
   onViewChanged,
 }: MethodFiltersProps) {
   const methodCounts = useMemo(() => {
-    const counts = { transfer: 0, mint: 0, burn: 0 };
+    const counts = { native: 0, transfer: 0, mint: 0, burn: 0 };
     rows.forEach((row) => {
       const method = row.method?.toLowerCase() || "";
-      if (method.includes("transfer")) counts.transfer++;
+      if (method.includes("native")) counts.native++;
+      else if (method.includes("transfer")) counts.transfer++;
       else if (method.includes("mint")) counts.mint++;
       else if (method.includes("burn")) counts.burn++;
     });
@@ -39,12 +40,33 @@ export function MethodFilters({
     onViewChanged?.();
   };
 
-  const hasAnyMethodTransactions = methodCounts.transfer > 0 || methodCounts.mint > 0 || methodCounts.burn > 0;
+  const hasAnyMethodTransactions = methodCounts.native > 0 || methodCounts.transfer > 0 || methodCounts.mint > 0 || methodCounts.burn > 0;
 
   if (!hasAnyMethodTransactions) return null;
 
   return (
     <div className="flex items-center gap-1.5">
+      {methodCounts.native > 0 && (
+        <button
+          onClick={() => toggleMethodFilter("native")}
+          className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border",
+            isMethodActive("native")
+              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          Native
+          <Badge 
+            variant={isMethodActive("native") ? "secondary" : "outline"} 
+            className="text-[10px] px-1.5 py-0 h-4"
+          >
+            {methodCounts.native}
+          </Badge>
+          {isMethodActive("native") && <X className="w-3 h-3" />}
+        </button>
+      )}
       {methodCounts.transfer > 0 && (
         <button
           onClick={() => toggleMethodFilter("transfer")}
