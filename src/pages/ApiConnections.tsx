@@ -76,8 +76,16 @@ const mockConnections: ApiConnection[] = [
     name: "Ethereum Mainnet",
     chain: "ethereum",
     queryId: "6470740",
-    status: "pending",
-    lastChecked: "Never",
+    status: "connected",
+    lastChecked: "Just now",
+  },
+  {
+    id: "3",
+    name: "PAXG Token (Ethereum)",
+    chain: "ethereum",
+    queryId: "6470837",
+    status: "connected",
+    lastChecked: "Just now",
   },
 ];
 
