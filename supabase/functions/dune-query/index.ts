@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to poll for execution results
-async function pollForResults(executionId: string, apiKey: string, maxAttempts = 30): Promise<any> {
+// Helper to poll for execution results - polls every 2 seconds for up to 2 minutes
+async function pollForResults(executionId: string, apiKey: string, maxAttempts = 60): Promise<any> {
   const pollUrl = `https://api.dune.com/api/v1/execution/${executionId}/results`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -32,11 +32,11 @@ async function pollForResults(executionId: string, apiKey: string, maxAttempts =
       throw new Error(`Query execution failed: ${data.error || 'Unknown error'}`);
     }
     
-    // Wait 1 second before next poll
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait 2 seconds before next poll (60 attempts * 2 seconds = 2 minutes max)
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
   
-  throw new Error('Query execution timed out');
+  throw new Error('Query execution timed out after 2 minutes');
 }
 
 serve(async (req) => {
