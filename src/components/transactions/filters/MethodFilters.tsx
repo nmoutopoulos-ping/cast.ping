@@ -1,5 +1,4 @@
-import { ArrowLeftRight, Flame, Sparkles, Wallet, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeftRight, Flame, Sparkles, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MethodType, TransactionRow } from "@/types/transactions";
 import { useMemo } from "react";
@@ -9,6 +8,13 @@ interface MethodFiltersProps {
   methodFilters: MethodType[];
   onMethodFiltersChange: (methods: MethodType[]) => void;
 }
+
+const METHOD_CONFIG = {
+  native: { icon: Wallet, label: "Native" },
+  transfer: { icon: ArrowLeftRight, label: "Transfers" },
+  mint: { icon: Sparkles, label: "Mints" },
+  burn: { icon: Flame, label: "Burns" },
+} as const;
 
 export function MethodFilters({
   rows,
@@ -37,96 +43,42 @@ export function MethodFilters({
     }
   };
 
-  const hasAnyMethodTransactions = methodCounts.native > 0 || methodCounts.transfer > 0 || methodCounts.mint > 0 || methodCounts.burn > 0;
-
+  const hasAnyMethodTransactions = Object.values(methodCounts).some(c => c > 0);
   if (!hasAnyMethodTransactions) return null;
 
+  const methods: MethodType[] = ["native", "transfer", "mint", "burn"];
+
   return (
-    <div className="flex items-center gap-1.5">
-      {methodCounts.native > 0 && (
-        <button
-          onClick={() => toggleMethodFilter("native")}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border",
-            isMethodActive("native")
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <Wallet className="w-3.5 h-3.5" />
-          Native
-          <Badge 
-            variant={isMethodActive("native") ? "secondary" : "outline"} 
-            className="text-[10px] px-1.5 py-0 h-4"
+    <div className="inline-flex items-center rounded-lg border border-border bg-background p-0.5">
+      {methods.map((method) => {
+        if (methodCounts[method] === 0) return null;
+        
+        const config = METHOD_CONFIG[method];
+        const Icon = config.icon;
+        const isActive = isMethodActive(method);
+
+        return (
+          <button
+            key={method}
+            onClick={() => toggleMethodFilter(method)}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all rounded-md",
+              isActive
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            )}
           >
-            {methodCounts.native}
-          </Badge>
-          {isMethodActive("native") && <X className="w-3 h-3" />}
-        </button>
-      )}
-      {methodCounts.transfer > 0 && (
-        <button
-          onClick={() => toggleMethodFilter("transfer")}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border",
-            isMethodActive("transfer")
-              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5" />
-          Transfers
-          <Badge 
-            variant={isMethodActive("transfer") ? "secondary" : "outline"} 
-            className="text-[10px] px-1.5 py-0 h-4"
-          >
-            {methodCounts.transfer}
-          </Badge>
-          {isMethodActive("transfer") && <X className="w-3 h-3" />}
-        </button>
-      )}
-      {methodCounts.mint > 0 && (
-        <button
-          onClick={() => toggleMethodFilter("mint")}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border",
-            isMethodActive("mint")
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Mints
-          <Badge 
-            variant={isMethodActive("mint") ? "secondary" : "outline"} 
-            className="text-[10px] px-1.5 py-0 h-4"
-          >
-            {methodCounts.mint}
-          </Badge>
-          {isMethodActive("mint") && <X className="w-3 h-3" />}
-        </button>
-      )}
-      {methodCounts.burn > 0 && (
-        <button
-          onClick={() => toggleMethodFilter("burn")}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all border",
-            isMethodActive("burn")
-              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
-          )}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          Burns
-          <Badge 
-            variant={isMethodActive("burn") ? "secondary" : "outline"} 
-            className="text-[10px] px-1.5 py-0 h-4"
-          >
-            {methodCounts.burn}
-          </Badge>
-          {isMethodActive("burn") && <X className="w-3 h-3" />}
-        </button>
-      )}
+            <Icon className="w-3.5 h-3.5" />
+            <span>{config.label}</span>
+            <span className={cn(
+              "tabular-nums ml-0.5",
+              isActive ? "text-background/70" : "text-muted-foreground/60"
+            )}>
+              {methodCounts[method]}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
