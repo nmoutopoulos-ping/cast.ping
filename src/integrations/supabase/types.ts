@@ -125,6 +125,7 @@ export type Database = {
           dune_query_id: string
           id: string
           name: string
+          search_type: string
           updated_at: string
           user_id: string | null
           wallet_address: string | null
@@ -135,6 +136,7 @@ export type Database = {
           dune_query_id: string
           id?: string
           name: string
+          search_type?: string
           updated_at?: string
           user_id?: string | null
           wallet_address?: string | null
@@ -145,6 +147,7 @@ export type Database = {
           dune_query_id?: string
           id?: string
           name?: string
+          search_type?: string
           updated_at?: string
           user_id?: string | null
           wallet_address?: string | null

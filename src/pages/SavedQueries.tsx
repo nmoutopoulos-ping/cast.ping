@@ -69,11 +69,9 @@ const SANDBOX_DATASETS: SandboxDataset[] = [
   },
 ];
 
-// Helper to determine search type based on query characteristics
+// Helper to get search type from query
 const getSearchType = (query: SavedQuery): "wallet" | "token" => {
-  // For now, all user queries are wallet searches
-  // This can be extended with a database column in the future
-  return "wallet";
+  return (query as SavedQuery & { search_type?: string }).search_type === "token" ? "token" : "wallet";
 };
 
 export default function SavedQueries() {
