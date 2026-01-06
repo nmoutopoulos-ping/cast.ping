@@ -21,13 +21,20 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useElapsedTimer, formatElapsedTime } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
-import type { TransactionRow, DbTag } from "@/types/transactions";
-import { DEFAULT_QUERY_ID } from "@/types/transactions";
+import type { TransactionRow, DbTag, ChainConfig } from "@/types/transactions";
+import { CHAIN_CONFIGS, DEFAULT_CHAIN } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
   saveTransactionsToDb,
   fetchFromDune,
 } from "@/lib/transactionUtils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
 
@@ -45,6 +52,7 @@ export default function QueryResults() {
   
   const [walletAddress, setWalletAddress] = useState(walletParam || "");
   const [searchedWallet, setSearchedWallet] = useState(walletParam || "");
+  const [selectedChain, setSelectedChain] = useState<string>(DEFAULT_CHAIN);
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,6 +62,8 @@ export default function QueryResults() {
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
   const [apiStatus, setApiStatus] = useState<ApiStatusInfo>({ status: "idle", message: "" });
+  
+  const currentChainConfig = CHAIN_CONFIGS[selectedChain];
 
   const isTimerActive = ["connecting", "fetching", "processing"].includes(apiStatus.status);
   const elapsedSeconds = useElapsedTimer(apiStatus.startTime, isTimerActive);
@@ -194,8 +204,8 @@ export default function QueryResults() {
     }
 
     setSearchedWallet(trimmed);
-    setSearchParams({ wallet: trimmed });
-    await handleFetchFromDune(DEFAULT_QUERY_ID, trimmed);
+    setSearchParams({ wallet: trimmed, chain: selectedChain });
+    await handleFetchFromDune(currentChainConfig.queryId, trimmed);
   };
 
   const handleSaveToDatabase = async () => {
@@ -216,7 +226,7 @@ export default function QueryResults() {
 
   const handleRefresh = () => {
     if (searchedWallet) {
-      handleFetchFromDune(duneQueryId || DEFAULT_QUERY_ID, searchedWallet);
+      handleFetchFromDune(duneQueryId || currentChainConfig.queryId, searchedWallet);
     }
   };
 
@@ -243,7 +253,7 @@ export default function QueryResults() {
     const { error } = await supabase.from("saved_queries").insert({
       name: saveName.trim(),
       description: saveDescription.trim() || null,
-      dune_query_id: DEFAULT_QUERY_ID,
+      dune_query_id: currentChainConfig.queryId,
       wallet_address: searchedWallet,
       user_id: user.id,
     });
@@ -268,12 +278,31 @@ export default function QueryResults() {
           Enter a wallet address to search for all transactions involving that address
         </p>
         <div className="flex gap-3 max-w-2xl">
+          <Select value={selectedChain} onValueChange={setSelectedChain}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(CHAIN_CONFIGS).map((chain) => (
+                <SelectItem key={chain.id} value={chain.id}>
+                  <div className="flex items-center gap-2">
+                    <span>{chain.name}</span>
+                    {chain.isTestnet && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                        Testnet
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input
             placeholder="0x... (wallet or contract address)"
             value={walletAddress}
             onChange={(e) => setWalletAddress(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="font-mono"
+            className="font-mono flex-1"
           />
           <Button onClick={handleSearch} disabled={loading} className="gap-2">
             <Search className="w-4 h-4" />

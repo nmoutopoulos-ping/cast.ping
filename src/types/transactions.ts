@@ -106,8 +106,37 @@ export interface SavedView {
  */
 export type MethodType = "native" | "transfer" | "mint" | "burn";
 
+/**
+ * Supported chains with their Dune query configurations
+ */
+export interface ChainConfig {
+  id: string;
+  name: string;
+  queryId: string;
+  explorerBaseUrl: string;
+  isTestnet: boolean;
+}
+
+export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
+  sepolia: {
+    id: "sepolia",
+    name: "Sepolia",
+    queryId: "6459204",
+    explorerBaseUrl: "https://sepolia.etherscan.io",
+    isTestnet: true,
+  },
+  ethereum: {
+    id: "ethereum",
+    name: "Ethereum",
+    queryId: "6470740",
+    explorerBaseUrl: "https://etherscan.io",
+    isTestnet: false,
+  },
+};
+
 // Constants
-export const DEFAULT_QUERY_ID = "6459204";
-export const ETHERSCAN_BASE = "https://sepolia.etherscan.io";
+export const DEFAULT_CHAIN = "sepolia";
+export const DEFAULT_QUERY_ID = CHAIN_CONFIGS.sepolia.queryId;
+export const ETHERSCAN_BASE = CHAIN_CONFIGS.sepolia.explorerBaseUrl;
 export const PAGE_SIZE_OPTIONS = [25, 50] as const;
 export const DEFAULT_PAGE_SIZE = 25;
