@@ -11,6 +11,7 @@ import Entities from "@/pages/Entities";
 import Settings from "@/pages/Settings";
 import QueryResults from "@/pages/QueryResults";
 import ApiConnections from "@/pages/ApiConnections";
+import SandboxViewer from "@/pages/SandboxViewer";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/entities" element={<Entities />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/api-connections" element={<ApiConnections />} />
+            <Route path="/sandbox" element={<SandboxViewer />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
