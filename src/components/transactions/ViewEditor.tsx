@@ -11,7 +11,7 @@ import {
   ViewsDropdown,
 } from "./filters";
 import type { Entity, DbTag, ActiveFilter, SavedView, FilterMode, TransactionRow, MethodType } from "@/types/transactions";
-import type { DateRange } from "@/lib/transactionUtils";
+import { extractViewState, type DateRange } from "@/lib/transactionUtils";
 
 interface ColumnDef {
   key: string;
@@ -68,11 +68,12 @@ export function ViewEditor({
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
 
   const handleViewLoad = (view: SavedView) => {
-    onHiddenColumnsChange(new Set(view.hidden_columns));
-    onActiveFiltersChange(view.active_filters);
-    onFilterModeChange(view.filter_mode);
-    onTagFilterModeChange(view.tag_filter_mode);
-    onMethodFiltersChange((view.method_filters || []) as MethodType[]);
+    const state = extractViewState(view);
+    onHiddenColumnsChange(state.hiddenColumns);
+    onActiveFiltersChange(state.activeFilters);
+    onFilterModeChange(state.filterMode);
+    onTagFilterModeChange(state.tagFilterMode);
+    onMethodFiltersChange(state.methodFilters);
     setCurrentViewId(view.id);
     toast.success(`Loaded view: ${view.name}`);
   };
