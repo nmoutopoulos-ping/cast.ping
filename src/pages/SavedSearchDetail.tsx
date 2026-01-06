@@ -82,6 +82,7 @@ export default function SavedSearchDetail() {
       result = result.filter((row) => {
         const method = row.method?.toLowerCase() || "";
         return methodFilters.some((filter) => {
+          if (filter === "native") return method.includes("native");
           if (filter === "transfer") return method.includes("transfer");
           if (filter === "mint") return method.includes("mint");
           if (filter === "burn") return method.includes("burn");
