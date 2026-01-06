@@ -84,6 +84,7 @@ export function ViewsDropdown({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!savedQueryId || !userId) return;
     fetchSavedViews();
   }, [savedQueryId, userId]);
 
@@ -224,6 +225,7 @@ export function ViewsDropdown({
             <Button 
               variant={currentView ? "default" : "outline"} 
               size="sm" 
+              disabled={!savedQueryId || !userId}
               className={cn(
                 "gap-2",
                 currentView && "bg-primary text-primary-foreground"
