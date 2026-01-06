@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { TransactionDataTable } from "@/components/transactions/TransactionDataTable";
-import { Download, RefreshCw, Search, CheckCircle, Wallet, Coins } from "lucide-react";
+import { Download, RefreshCw, Search, CheckCircle, Wallet, Coins, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useElapsedTimer } from "@/hooks/useElapsedTimer";
@@ -23,6 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ApiStatusIndicator } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
 
@@ -47,6 +57,15 @@ export default function QueryResults() {
   const [currentSavedQueryId, setCurrentSavedQueryId] = useState<string | null>(savedQueryId);
   const [apiStatus, setApiStatus] = useState<ApiStatusInfo>({ status: "idle", message: "" });
   
+  // Save dialog state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saveDescription, setSaveDescription] = useState("");
+  const [pendingSaveData, setPendingSaveData] = useState<{ rows: TransactionRow[]; address: string; queryId: string } | null>(null);
+  
+  // Track if we've already processed a walletParam to prevent duplicate fetches
+  const hasProcessedWalletParam = useRef(false);
+  
   const currentChainConfig = CHAIN_CONFIGS[selectedChain];
 
   const isTimerActive = ["connecting", "fetching", "processing"].includes(apiStatus.status);
@@ -70,10 +89,13 @@ export default function QueryResults() {
   };
 
   useEffect(() => {
-    if (walletParam && !savedQueryId) {
-      handleSearch();
+    if (walletParam && !savedQueryId && !hasProcessedWalletParam.current) {
+      hasProcessedWalletParam.current = true;
+      // Just fetch, don't auto-save
+      handleFetchFromDune(currentChainConfig.queryId, walletParam);
+      setSearchedWallet(walletParam);
     }
-  }, [walletParam]);
+  }, [walletParam, savedQueryId]);
 
   const loadSavedQuery = async () => {
     if (!savedQueryId || !user) return;
@@ -145,7 +167,7 @@ export default function QueryResults() {
         setApiStatus({ status: "error", message: errorMsg });
         setError(errorMsg);
         setLoading(false);
-        return;
+        return { rows: [], error: duneError };
       }
 
       setApiStatus({ status: "processing", message: "Processing transaction data...", startTime });
@@ -158,14 +180,17 @@ export default function QueryResults() {
           status: "complete", 
           message: `Found ${duneRows.length} transactions in ${elapsed}s` 
         });
+        return { rows: duneRows, error: null };
       } else {
         setRows([]);
         setApiStatus({ status: "complete", message: "No transactions found" });
+        return { rows: [], error: null };
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
       setApiStatus({ status: "error", message: errorMsg });
       setError(errorMsg);
+      return { rows: [], error: errorMsg };
     } finally {
       setLoading(false);
     }
@@ -190,75 +215,82 @@ export default function QueryResults() {
 
     setSearchedWallet(trimmed);
     setSearchParams({ wallet: trimmed, chain: selectedChain, type: searchType });
-    setCurrentSavedQueryId(null); // Reset until we save after successful fetch
+    setCurrentSavedQueryId(null);
+    setIsSavedToDb(false);
 
-    // Fetch from Dune first - only save to DB if we get transactions
-    await handleFetchFromDuneAndSave(currentChainConfig.queryId, trimmed);
+    // Just fetch - don't auto-save
+    await handleFetchFromDune(currentChainConfig.queryId, trimmed);
   };
 
-  const handleFetchFromDuneAndSave = async (queryId: string, address: string) => {
-    setLoading(true);
-    setError(null);
-    const startTime = Date.now();
-
-    setApiStatus({ status: "connecting", message: "Connecting to Dune API...", startTime });
-
-    try {
-      setApiStatus({ status: "fetching", message: `Fetching data for ${address.slice(0, 8)}...`, startTime });
-
-      const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
-
-      if (duneError) {
-        const errorMsg = `Dune API Error: ${duneError}`;
-        setApiStatus({ status: "error", message: errorMsg });
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      setApiStatus({ status: "processing", message: "Processing transaction data...", startTime });
-
-      if (duneRows.length > 0) {
-        setRows(duneRows);
-
-        // Only save to database if we have transactions
-        if (user) {
-          const { data: savedQuery, error: saveError } = await supabase
-            .from("saved_queries")
-            .insert({
-              name: `${searchType === "wallet" ? "Wallet" : "Token"}: ${address.slice(0, 8)}...${address.slice(-6)}`,
-              dune_query_id: queryId,
-              wallet_address: address,
-              search_type: searchType,
-              user_id: user.id,
-            })
-            .select("id")
-            .single();
-
-          if (saveError) {
-            console.error("Failed to save search:", saveError);
-          } else {
-            setCurrentSavedQueryId(savedQuery.id);
-            toast.success("Search saved!");
-          }
-        }
-        
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        setApiStatus({ 
-          status: "complete", 
-          message: `Found ${duneRows.length} transactions in ${elapsed}s` 
-        });
-      } else {
-        setRows([]);
-        setApiStatus({ status: "complete", message: "No transactions found for this address" });
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
-      setApiStatus({ status: "error", message: errorMsg });
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
+  const handleOpenSaveDialog = () => {
+    if (rows.length === 0) {
+      toast.error("No transactions to save");
+      return;
     }
+    
+    // Pre-fill with default name
+    const defaultName = `${searchType === "wallet" ? "Wallet" : "Token"}: ${searchedWallet.slice(0, 8)}...${searchedWallet.slice(-6)}`;
+    setSaveName(defaultName);
+    setSaveDescription("");
+    setPendingSaveData({
+      rows,
+      address: searchedWallet,
+      queryId: currentChainConfig.queryId,
+    });
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!user || !pendingSaveData) return;
+
+    const trimmedName = saveName.trim();
+    if (!trimmedName) {
+      toast.error("Please enter a name");
+      return;
+    }
+
+    setSaving(true);
+
+    // Save the query entry
+    const { data: savedQuery, error: saveError } = await supabase
+      .from("saved_queries")
+      .insert({
+        name: trimmedName,
+        description: saveDescription.trim() || null,
+        dune_query_id: pendingSaveData.queryId,
+        wallet_address: pendingSaveData.address,
+        search_type: searchType,
+        user_id: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (saveError) {
+      console.error("Failed to save search:", saveError);
+      toast.error("Failed to save search");
+      setSaving(false);
+      return;
+    }
+
+    // Save transactions to the query
+    const { count, error: txError } = await saveTransactionsToDb(
+      pendingSaveData.rows, 
+      savedQuery.id, 
+      user.id
+    );
+
+    if (txError) {
+      toast.error("Failed to save transactions: " + txError);
+    } else {
+      setCurrentSavedQueryId(savedQuery.id);
+      setQueryName(trimmedName);
+      setIsSavedToDb(true);
+      toast.success(`Saved "${trimmedName}" with ${count} transactions!`);
+    }
+
+    setSaving(false);
+    setShowSaveDialog(false);
+    setPendingSaveData(null);
   };
 
   const handleSaveToDatabase = async () => {
@@ -388,7 +420,7 @@ export default function QueryResults() {
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </Button>
-              {(currentSavedQueryId || savedQueryId) && (
+              {currentSavedQueryId || savedQueryId ? (
                 isSavedToDb ? (
                   <Button variant="outline" disabled className="gap-2 text-green-600 border-green-600/50">
                     <CheckCircle className="w-4 h-4" />
@@ -400,6 +432,11 @@ export default function QueryResults() {
                     {saving ? "Saving..." : "Save Transactions"}
                   </Button>
                 )
+              ) : (
+                <Button onClick={handleOpenSaveDialog} className="gap-2">
+                  <Save className="w-4 h-4" />
+                  Save Search
+                </Button>
               )}
             </div>
           </div>
@@ -423,6 +460,50 @@ export default function QueryResults() {
           <p className="empty-state-description">No transactions found for this address</p>
         </div>
       )}
+
+      {/* Save Search Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Save Search</DialogTitle>
+            <DialogDescription>
+              Give your search a name and optional description for easy reference.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-name">Name</Label>
+              <Input
+                id="save-name"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="My Wallet Search"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="save-description">Description (optional)</Label>
+              <Textarea
+                id="save-description"
+                value={saveDescription}
+                onChange={(e) => setSaveDescription(e.target.value)}
+                placeholder="Notes about this search..."
+                rows={3}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">{rows.length}</span> transactions will be saved
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmSave} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
