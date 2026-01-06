@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
-import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check } from "lucide-react";
+import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check, Loader2, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -32,6 +32,26 @@ import {
   fetchEntitiesAndTags,
 } from "@/lib/transactionUtils";
 
+// Timer hook for live elapsed time display
+function useElapsedTimer(startTime: number | undefined, isActive: boolean) {
+  const [elapsed, setElapsed] = useState(0);
+  
+  useEffect(() => {
+    if (!isActive || !startTime) {
+      setElapsed(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [startTime, isActive]);
+  
+  return elapsed;
+}
+
 export default function SavedSearchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,6 +60,8 @@ export default function SavedSearchDetail() {
   const [savedQuery, setSavedQuery] = useState<SavedQueryInfo | null>(null);
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchingFromDune, setFetchingFromDune] = useState(false);
+  const [fetchStartTime, setFetchStartTime] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +75,14 @@ export default function SavedSearchDetail() {
   const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
   const [methodFilters, setMethodFilters] = useState<MethodType[]>([]);
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+
+  const elapsedSeconds = useElapsedTimer(fetchStartTime, fetchingFromDune);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+  };
 
   const handleCopyAddress = async () => {
     if (savedQuery?.wallet_address) {
@@ -169,9 +199,14 @@ export default function SavedSearchDetail() {
 
   const handleFetchFromDune = async (queryId: string, address: string) => {
     setLoading(true);
+    setFetchingFromDune(true);
+    setFetchStartTime(Date.now());
     setError(null);
 
     const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
+
+    setFetchingFromDune(false);
+    setFetchStartTime(undefined);
 
     if (duneError) {
       setError(duneError);
@@ -285,12 +320,30 @@ export default function SavedSearchDetail() {
         )}
       </div>
 
-      {/* Loading State */}
+      {/* Loading State with Timer */}
       {loading && (
-        <div className="space-y-2">
-          {[...Array(10)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
+        <div className="space-y-4">
+          {fetchingFromDune && (
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="flex-1">
+                <span className="font-medium">Fetching from Dune API...</span>
+                <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes</p>
+              </div>
+              <span className="font-mono text-lg tabular-nums font-semibold">{formatTime(elapsedSeconds)}</span>
+            </div>
+          )}
+          {!fetchingFromDune && (
+            <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border">
+              <Wifi className="w-5 h-5 animate-pulse text-muted-foreground" />
+              <span className="font-medium text-muted-foreground">Loading saved data...</span>
+            </div>
+          )}
+          <div className="space-y-2">
+            {[...Array(10)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         </div>
       )}
 
