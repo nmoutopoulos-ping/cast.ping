@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { AuthGuard } from "@/components/layout/AuthGuard";
-import Dashboard from "@/pages/Dashboard";
 import SavedQueries from "@/pages/SavedQueries";
 import SavedSearchDetail from "@/pages/SavedSearchDetail";
 import Entities from "@/pages/Entities";
@@ -32,12 +31,11 @@ const App = () => (
               </AuthGuard>
             }
           >
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<QueryResults />} />
             <Route path="/queries" element={<SavedQueries />} />
             <Route path="/queries/:id" element={<SavedSearchDetail />} />
             <Route path="/entities" element={<Entities />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/results" element={<QueryResults />} />
             <Route path="/api-connections" element={<ApiConnections />} />
           </Route>
           <Route path="*" element={<NotFound />} />

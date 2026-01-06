@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { 
-  LayoutDashboard, 
   Database, 
   Tags, 
   Settings,
@@ -10,14 +9,14 @@ import {
   TableProperties,
   ChevronLeft,
   ChevronRight,
-  Plug
+  Plug,
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Search Data", href: "/results", icon: TableProperties },
-  { name: "Saved Data", href: "/queries", icon: Database },
+  { name: "Search", href: "/", icon: Search },
+  { name: "Data", href: "/queries", icon: Database },
   { name: "Entities & Tags", href: "/entities", icon: Tags },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
