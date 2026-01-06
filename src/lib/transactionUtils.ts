@@ -217,6 +217,36 @@ export function filterRowsByActiveFilters(
 }
 
 /**
+ * Maps a raw Dune row to TransactionRow format
+ * Dune returns columns like 'to', 'to_address' etc. - we normalize to our schema
+ */
+function mapDuneRowToTransactionRow(row: Record<string, unknown>): TransactionRow {
+  return {
+    transaction_hash: String(row.tx_hash || row.hash || row.transaction_hash || ''),
+    method: String(row.method || ''),
+    block: Number(row.block_number || row.block || 0),
+    timestamp: String(row.block_time || row.timestamp || ''),
+    from_address: String(row.from || row.from_address || ''),
+    interacted_with: String(row.to || row.to_address || row.interacted_with || ''),
+    eth_direction: String(row.eth_direction || row.direction || ''),
+    token_direction: String(row.token_direction || ''),
+    token_from: String(row.token_from || ''),
+    token_to: String(row.token_to || ''),
+    token_amount_raw: String(row.token_amount_raw || ''),
+    token_amount: Number(row.token_amount) || 0,
+    token_symbol: String(row.token_symbol || ''),
+    token_name: String(row.token_name || ''),
+    token_contract: String(row.token_contract || ''),
+    value_eth: Number(row.value_eth || row.value || 0),
+    txn_fee_eth: Number(row.txn_fee_eth || row.tx_fee_eth || 0),
+    gas_price_gwei: Number(row.gas_price_gwei || (Number(row.gas_price) / 1e9) || 0),
+    gas_price_wei: Number(row.gas_price_wei || row.gas_price || 0),
+    gas_used: Number(row.gas_used || 0),
+    status: String(row.status || (row.success ? 'success' : 'failed') || 'success'),
+  };
+}
+
+/**
  * Fetches data from Dune via edge function
  */
 export async function fetchFromDune(
@@ -232,7 +262,9 @@ export async function fetchFromDune(
   }
 
   if (data?.result?.rows) {
-    return { rows: data.result.rows as TransactionRow[], error: null };
+    // Map raw Dune rows to our TransactionRow format
+    const mappedRows = (data.result.rows as Record<string, unknown>[]).map(mapDuneRowToTransactionRow);
+    return { rows: mappedRows, error: null };
   }
   
   if (data?.error) {
