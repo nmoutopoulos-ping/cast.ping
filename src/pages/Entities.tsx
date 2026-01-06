@@ -35,11 +35,17 @@ interface DbEntity {
   color: string;
 }
 
+interface TransactionCounts {
+  entities: Record<string, number>;
+  tags: Record<string, number>;
+}
+
 export default function Entities() {
   const { user } = useAuth();
   const [tags, setTags] = useState<DbTag[]>([]);
   const [entities, setEntities] = useState<DbEntity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [txnCounts, setTxnCounts] = useState<TransactionCounts>({ entities: {}, tags: {} });
 
   // Tag dialog state
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
@@ -69,13 +75,58 @@ export default function Entities() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [tagsRes, entitiesRes] = await Promise.all([
+    const [tagsRes, entitiesRes, transactionsRes] = await Promise.all([
       supabase.from("tags").select("*").order("name"),
       supabase.from("entities").select("*").order("name"),
+      supabase.from("transactions").select("from_address, to_address, token_from, token_to, token_contract"),
     ]);
 
     if (tagsRes.data) setTags(tagsRes.data);
     if (entitiesRes.data) setEntities(entitiesRes.data);
+
+    // Calculate transaction counts for entities and tags
+    if (transactionsRes.data && entitiesRes.data && tagsRes.data) {
+      const entityCounts: Record<string, number> = {};
+      const tagCounts: Record<string, number> = {};
+
+      // Build lookup maps
+      const entityAddressMap = new Map<string, string>();
+      entitiesRes.data.forEach((e) => {
+        if (e.wallet_address) {
+          entityAddressMap.set(e.wallet_address.toLowerCase(), e.id);
+        }
+      });
+
+      const tagAddressMap = new Map<string, string>();
+      tagsRes.data.forEach((t) => {
+        if (t.contract_address) {
+          tagAddressMap.set(t.contract_address.toLowerCase(), t.id);
+        }
+      });
+
+      // Count transactions per entity/tag
+      transactionsRes.data.forEach((tx) => {
+        const addresses = [tx.from_address, tx.to_address, tx.token_from, tx.token_to].filter(Boolean);
+        const contracts = [tx.token_contract].filter(Boolean);
+
+        addresses.forEach((addr) => {
+          const entityId = entityAddressMap.get(addr!.toLowerCase());
+          if (entityId) {
+            entityCounts[entityId] = (entityCounts[entityId] || 0) + 1;
+          }
+        });
+
+        contracts.forEach((contract) => {
+          const tagId = tagAddressMap.get(contract!.toLowerCase());
+          if (tagId) {
+            tagCounts[tagId] = (tagCounts[tagId] || 0) + 1;
+          }
+        });
+      });
+
+      setTxnCounts({ entities: entityCounts, tags: tagCounts });
+    }
+
     setLoading(false);
   };
 
@@ -286,6 +337,7 @@ export default function Entities() {
                 <th>Entity Name</th>
                 <th>Color</th>
                 <th>Wallet Address</th>
+                <th className="text-right">Txns</th>
                 <th>Notes</th>
                 <th className="w-24">Actions</th>
               </tr>
@@ -293,13 +345,13 @@ export default function Entities() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     Loading...
                   </td>
                 </tr>
               ) : entities.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     No entities yet. Create one to get started.
                   </td>
                 </tr>
@@ -334,6 +386,13 @@ export default function Entities() {
                         <CopyableAddress address={entity.wallet_address} />
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {txnCounts.entities[entity.id] ? (
+                        <span className="font-medium">{txnCounts.entities[entity.id].toLocaleString()}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </td>
                     <td className="text-muted-foreground max-w-xs truncate">
@@ -384,6 +443,7 @@ export default function Entities() {
                 <th>Tag</th>
                 <th>Color</th>
                 <th>Contract Address</th>
+                <th className="text-right">Txns</th>
                 <th>Decimals</th>
                 <th className="w-24">Actions</th>
               </tr>
@@ -391,13 +451,13 @@ export default function Entities() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     Loading...
                   </td>
                 </tr>
               ) : tags.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
                     No tags yet. Create one to get started.
                   </td>
                 </tr>
@@ -423,6 +483,13 @@ export default function Entities() {
                         <CopyableAddress address={tag.contract_address} />
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {txnCounts.tags[tag.id] ? (
+                        <span className="font-medium">{txnCounts.tags[tag.id].toLocaleString()}</span>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </td>
                     <td>
