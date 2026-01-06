@@ -5,6 +5,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper to poll for execution results
+async function pollForResults(executionId: string, apiKey: string, maxAttempts = 30): Promise<any> {
+  const pollUrl = `https://api.dune.com/api/v1/execution/${executionId}/results`;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    console.log(`Polling attempt ${attempt + 1}/${maxAttempts} for execution ${executionId}`);
+    
+    const response = await fetch(pollUrl, {
+      headers: { 'x-dune-api-key': apiKey },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Poll failed: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.state === 'QUERY_STATE_COMPLETED') {
+      console.log(`Query completed with ${data.result?.rows?.length || 0} rows`);
+      return data;
+    }
+    
+    if (data.state === 'QUERY_STATE_FAILED') {
+      throw new Error(`Query execution failed: ${data.error || 'Unknown error'}`);
+    }
+    
+    // Wait 1 second before next poll
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  throw new Error('Query execution timed out');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -31,33 +65,61 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Fetching Dune query ${queryId} results`);
+    console.log(`Executing Dune query ${queryId} with parameters:`, parameters);
 
-    // Build URL - just limit, no extra params
-    const url = `https://api.dune.com/api/v1/query/${queryId}/results?limit=1000`;
+    // Execute the query with parameters
+    const executeUrl = `https://api.dune.com/api/v1/query/${queryId}/execute`;
+    
+    const executeBody: any = {};
+    
+    // Map our parameters to Dune's expected format
+    // Dune expects query_parameters with the exact parameter names used in the query
+    if (parameters && Object.keys(parameters).length > 0) {
+      executeBody.query_parameters = {
+        // The query uses {{Wallet}} parameter
+        Wallet: parameters.address || parameters.wallet || parameters.Wallet || '',
+      };
+    }
+    
+    console.log('Execute request body:', JSON.stringify(executeBody));
 
-    const response = await fetch(url, {
+    const executeResponse = await fetch(executeUrl, {
+      method: 'POST',
       headers: {
         'x-dune-api-key': DUNE_API_KEY,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(executeBody),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Dune API error:', errorText);
+    if (!executeResponse.ok) {
+      const errorText = await executeResponse.text();
+      console.error('Dune execute error:', errorText);
       return new Response(
         JSON.stringify({ error: `Dune API error: ${errorText}` }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: executeResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const data = await response.json();
-    console.log(`Query completed, ${data.result?.rows?.length || 0} rows returned`);
+    const executeData = await executeResponse.json();
+    console.log('Execute response:', executeData);
+    
+    if (!executeData.execution_id) {
+      return new Response(
+        JSON.stringify({ error: 'No execution ID returned from Dune' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Poll for results
+    console.log(`Polling for execution ${executeData.execution_id}`);
+    const resultData = await pollForResults(executeData.execution_id, DUNE_API_KEY);
 
     return new Response(
       JSON.stringify({
         success: true,
-        result: data.result,
+        execution_id: executeData.execution_id,
+        result: resultData.result,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
