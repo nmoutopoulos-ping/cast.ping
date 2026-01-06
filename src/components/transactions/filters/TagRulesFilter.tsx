@@ -8,14 +8,12 @@ interface TagRulesFilterProps {
   activeFilters: ActiveFilter[];
   tagFilterMode: FilterMode;
   onTagFilterModeChange: (mode: FilterMode) => void;
-  onViewChanged?: () => void;
 }
 
 export function TagRulesFilter({
   activeFilters,
   tagFilterMode,
   onTagFilterModeChange,
-  onViewChanged,
 }: TagRulesFilterProps) {
   const activeEntityFilters = activeFilters.filter((f) => f.type === "entity");
   const activeTagFilters = activeFilters.filter((f) => f.type === "tag");
@@ -50,10 +48,7 @@ export function TagRulesFilter({
                 type="radio"
                 name="tagFilterMode"
                 checked={tagFilterMode === "any"}
-                onChange={() => {
-                  onTagFilterModeChange("any");
-                  onViewChanged?.();
-                }}
+                onChange={() => onTagFilterModeChange("any")}
                 className="mt-0.5"
               />
               <div>
@@ -66,10 +61,7 @@ export function TagRulesFilter({
                 type="radio"
                 name="tagFilterMode"
                 checked={tagFilterMode === "all"}
-                onChange={() => {
-                  onTagFilterModeChange("all");
-                  onViewChanged?.();
-                }}
+                onChange={() => onTagFilterModeChange("all")}
                 className="mt-0.5"
               />
               <div>

@@ -8,7 +8,6 @@ interface EntityTagFiltersProps {
   transactionAddresses: Set<string>;
   activeFilters: ActiveFilter[];
   onActiveFiltersChange: (filters: ActiveFilter[]) => void;
-  onViewChanged?: () => void;
 }
 
 export function EntityTagFilters({
@@ -17,7 +16,6 @@ export function EntityTagFilters({
   transactionAddresses,
   activeFilters,
   onActiveFiltersChange,
-  onViewChanged,
 }: EntityTagFiltersProps) {
   const matchedEntities = entities.filter(
     (e) => e.wallet_address && transactionAddresses.has(e.wallet_address.toLowerCase())
@@ -48,7 +46,6 @@ export function EntityTagFilters({
         },
       ]);
     }
-    onViewChanged?.();
   };
 
   const handleTagClick = (tag: DbTag) => {
@@ -67,7 +64,6 @@ export function EntityTagFilters({
         },
       ]);
     }
-    onViewChanged?.();
   };
 
   const hasMatchedActors = matchedEntities.length > 0 || matchedTags.length > 0;

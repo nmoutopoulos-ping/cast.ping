@@ -13,14 +13,12 @@ interface ColumnVisibilityProps {
   columns: ColumnDef[];
   hiddenColumns: Set<string>;
   onHiddenColumnsChange: (columns: Set<string>) => void;
-  onViewChanged?: () => void;
 }
 
 export function ColumnVisibility({
   columns,
   hiddenColumns,
   onHiddenColumnsChange,
-  onViewChanged,
 }: ColumnVisibilityProps) {
   const toggleColumn = (key: string) => {
     const next = new Set(hiddenColumns);
@@ -30,7 +28,6 @@ export function ColumnVisibility({
       next.add(key);
     }
     onHiddenColumnsChange(next);
-    onViewChanged?.();
   };
 
   return (
