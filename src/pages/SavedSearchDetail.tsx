@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
+import { FullscreenTableDialog, FullscreenTableTrigger } from "@/components/transactions/FullscreenTableDialog";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check, Loader2, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +49,7 @@ export default function SavedSearchDetail() {
   const [isSavedToDb, setIsSavedToDb] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addressCopied, setAddressCopied] = useState(false);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
   
   const [entities, setEntities] = useState<Entity[]>([]);
   const [tags, setTags] = useState<DbTag[]>([]);
@@ -307,6 +309,7 @@ export default function SavedSearchDetail() {
       {!loading && !error && rows.length > 0 && (
         <>
           <div className="flex items-center justify-end gap-3">
+            <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
             <Button variant="outline" onClick={handleRefresh} className="gap-2">
               <RefreshCw className="w-4 h-4" />
               Refresh from Dune
@@ -323,6 +326,33 @@ export default function SavedSearchDetail() {
               </Button>
             )}
           </div>
+
+          <FullscreenTableDialog
+            open={fullscreenOpen}
+            onOpenChange={setFullscreenOpen}
+            savedQueryId={id}
+            userId={user.id}
+            queryName={savedQuery?.name || "Transactions"}
+            rows={rows}
+            filteredRows={filteredRows}
+            entities={entities}
+            tags={tags}
+            transactionAddresses={transactionAddresses}
+            highlightMap={highlightMap}
+            addressLabels={addressLabels}
+            hiddenColumns={hiddenColumns}
+            activeFilters={activeFilters}
+            filterMode={filterMode}
+            tagFilterMode={tagFilterMode}
+            methodFilters={methodFilters}
+            dateRange={dateRange}
+            onHiddenColumnsChange={setHiddenColumns}
+            onActiveFiltersChange={setActiveFilters}
+            onFilterModeChange={setFilterMode}
+            onTagFilterModeChange={setTagFilterMode}
+            onMethodFiltersChange={setMethodFilters}
+            onDateRangeChange={setDateRange}
+          />
 
           {user && id && (
             <ViewEditor
