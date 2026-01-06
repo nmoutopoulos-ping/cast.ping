@@ -75,9 +75,14 @@ serve(async (req) => {
     // Map our parameters to Dune's expected format
     // Dune expects query_parameters with the exact parameter names used in the query
     if (parameters && Object.keys(parameters).length > 0) {
+      let walletAddress = parameters.address || parameters.wallet || parameters.Wallet || '';
+      // Remove '0x' prefix as the Dune query handles this with replace('{{Wallet}}', '0x', '')
+      if (walletAddress.toLowerCase().startsWith('0x')) {
+        walletAddress = walletAddress.slice(2);
+      }
       executeBody.query_parameters = {
         // The query uses {{Wallet}} parameter
-        Wallet: parameters.address || parameters.wallet || parameters.Wallet || '',
+        Wallet: walletAddress,
       };
     }
     
