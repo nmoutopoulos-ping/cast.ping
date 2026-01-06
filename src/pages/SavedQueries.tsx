@@ -180,8 +180,8 @@ export default function SavedQueries() {
   };
 
   const handleOpenSandbox = (dataset: SandboxDataset) => {
-    // Navigate to search with pre-filled parameters
-    navigate(`/wallets?address=${dataset.address}&queryId=${dataset.duneQueryId}`);
+    // Navigate to sandbox viewer with pre-filled parameters
+    navigate(`/sandbox?address=${dataset.address}&queryId=${dataset.duneQueryId}&name=${encodeURIComponent(dataset.name)}`);
   };
 
   const TypeBadge = ({ type }: { type: "wallet" | "token" }) => (
