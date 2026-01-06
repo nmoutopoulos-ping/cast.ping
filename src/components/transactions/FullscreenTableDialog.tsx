@@ -44,6 +44,7 @@ interface FullscreenTableDialogProps {
   onTagFilterModeChange: (mode: FilterMode) => void;
   onMethodFiltersChange: (methods: MethodType[]) => void;
   onDateRangeChange: (range: DateRange) => void;
+  explorerBaseUrl?: string;
 }
 
 export function FullscreenTableDialog({
@@ -71,6 +72,7 @@ export function FullscreenTableDialog({
   onTagFilterModeChange,
   onMethodFiltersChange,
   onDateRangeChange,
+  explorerBaseUrl,
 }: FullscreenTableDialogProps) {
   const [currentViewId, setCurrentViewId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(true);
@@ -314,6 +316,7 @@ export function FullscreenTableDialog({
             addressLabels={addressLabels}
             hiddenColumns={hiddenColumns}
             tags={tags}
+            explorerBaseUrl={explorerBaseUrl}
           />
         </div>
       </DialogContent>

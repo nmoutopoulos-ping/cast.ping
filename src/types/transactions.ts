@@ -135,6 +135,25 @@ export const CHAIN_CONFIGS: Record<string, ChainConfig> = {
   },
 };
 
+// Map query IDs to chains for automatic detection
+export const QUERY_ID_TO_CHAIN: Record<string, string> = {
+  "6459204": "sepolia",
+  "6470740": "ethereum",
+  "6470837": "ethereum", // PAXG Token dataset
+};
+
+// Helper to get explorer URL from chain or query ID
+export function getExplorerBaseUrl(chainId?: string, queryId?: string): string {
+  if (chainId && CHAIN_CONFIGS[chainId]) {
+    return CHAIN_CONFIGS[chainId].explorerBaseUrl;
+  }
+  if (queryId && QUERY_ID_TO_CHAIN[queryId]) {
+    const chain = QUERY_ID_TO_CHAIN[queryId];
+    return CHAIN_CONFIGS[chain].explorerBaseUrl;
+  }
+  return CHAIN_CONFIGS.sepolia.explorerBaseUrl; // fallback
+}
+
 // Constants
 export const DEFAULT_CHAIN = "sepolia";
 export const DEFAULT_QUERY_ID = CHAIN_CONFIGS.sepolia.queryId;

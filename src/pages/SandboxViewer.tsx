@@ -21,6 +21,7 @@ import type {
   FilterMode,
   MethodType,
 } from "@/types/transactions";
+import { getExplorerBaseUrl } from "@/types/transactions";
 import {
   applyAllFilters,
   fetchEntitiesAndTags,
@@ -129,6 +130,9 @@ export default function SandboxViewer() {
   const address = searchParams.get("address") || "";
   const queryId = searchParams.get("queryId") || "";
   const name = searchParams.get("name") || "Sandbox Dataset";
+  
+  // Determine explorer URL based on query ID
+  const explorerBaseUrl = getExplorerBaseUrl(undefined, queryId);
 
   // Data state
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -376,6 +380,7 @@ export default function SandboxViewer() {
             tags={tags}
             hiddenColumns={hiddenColumns}
             addressLabels={addressLabels}
+            explorerBaseUrl={explorerBaseUrl}
           />
 
           {/* Fullscreen Dialog */}
@@ -404,6 +409,7 @@ export default function SandboxViewer() {
             onTagFilterModeChange={setTagFilterMode}
             onMethodFiltersChange={setMethodFilters}
             onDateRangeChange={setDateRange}
+            explorerBaseUrl={explorerBaseUrl}
           />
         </>
       )}
