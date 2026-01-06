@@ -76,8 +76,8 @@ export function EntityTagFilters({
   return (
     <div className="flex items-start gap-8 w-full">
       {/* Entities Section */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide shrink-0">
           Entities
         </span>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -89,14 +89,15 @@ export function EntityTagFilters({
                   key={entity.id}
                   onClick={() => handleEntityClick(entity)}
                   className={cn(
-                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all",
                     isActive 
                       ? "shadow-sm ring-1 ring-black/10" 
-                      : "opacity-50 hover:opacity-90"
+                      : "hover:opacity-100"
                   )}
                   style={{
-                    backgroundColor: isActive ? entity.color : `${entity.color}20`,
+                    backgroundColor: isActive ? entity.color : `${entity.color}25`,
                     color: isActive ? "#fff" : entity.color,
+                    filter: isActive ? "none" : "saturate(1.2)",
                   }}
                 >
                   <span className="max-w-[100px] truncate">{entity.name}</span>
@@ -105,17 +106,17 @@ export function EntityTagFilters({
               );
             })
           ) : (
-            <span className="text-xs text-muted-foreground/60 italic">None</span>
+            <span className="text-xs text-muted-foreground italic">None</span>
           )}
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-px h-6 bg-border/40 self-center shrink-0" />
+      <div className="w-px h-6 bg-border self-center shrink-0" />
 
       {/* Tags Section */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wide shrink-0">
           Tags
         </span>
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -127,14 +128,15 @@ export function EntityTagFilters({
                   key={tag.id}
                   onClick={() => handleTagClick(tag)}
                   className={cn(
-                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all",
                     isActive 
                       ? "shadow-sm ring-1 ring-black/10" 
-                      : "opacity-50 hover:opacity-90"
+                      : "hover:opacity-100"
                   )}
                   style={{
-                    backgroundColor: isActive ? tag.color : `${tag.color}20`,
+                    backgroundColor: isActive ? tag.color : `${tag.color}25`,
                     color: isActive ? "#fff" : tag.color,
+                    filter: isActive ? "none" : "saturate(1.2)",
                   }}
                 >
                   <span className="max-w-[100px] truncate">{tag.name}</span>
@@ -143,7 +145,7 @@ export function EntityTagFilters({
               );
             })
           ) : (
-            <span className="text-xs text-muted-foreground/60 italic">None</span>
+            <span className="text-xs text-muted-foreground italic">None</span>
           )}
         </div>
       </div>
