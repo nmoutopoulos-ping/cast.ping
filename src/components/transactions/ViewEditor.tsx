@@ -9,15 +9,11 @@ import {
   ViewsDropdown,
 } from "./filters";
 import type { Entity, DbTag, ActiveFilter, SavedView, FilterMode, TransactionRow, MethodType } from "@/types/transactions";
+import type { DateRange } from "@/lib/transactionUtils";
 
 interface ColumnDef {
   key: string;
   label: string;
-}
-
-interface DateRange {
-  start: Date | null;
-  end: Date | null;
 }
 
 interface ViewEditorProps {

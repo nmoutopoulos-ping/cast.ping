@@ -19,12 +19,14 @@ import {
 import { Download, RefreshCw, Search, Bookmark, CheckCircle, Loader2, AlertCircle, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useElapsedTimer, formatElapsedTime } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
 import type { TransactionRow, DbTag } from "@/types/transactions";
 import { DEFAULT_QUERY_ID } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
   saveTransactionsToDb,
+  fetchFromDune,
 } from "@/lib/transactionUtils";
 
 type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
@@ -33,26 +35,6 @@ interface ApiStatusInfo {
   status: ApiStatus;
   message: string;
   startTime?: number;
-}
-
-// Timer hook for live elapsed time display
-function useElapsedTimer(startTime: number | undefined, isActive: boolean) {
-  const [elapsed, setElapsed] = useState(0);
-  
-  useEffect(() => {
-    if (!isActive || !startTime) {
-      setElapsed(0);
-      return;
-    }
-    
-    const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [startTime, isActive]);
-  
-  return elapsed;
 }
 
 export default function QueryResults() {
@@ -76,11 +58,6 @@ export default function QueryResults() {
   const isTimerActive = ["connecting", "fetching", "processing"].includes(apiStatus.status);
   const elapsedSeconds = useElapsedTimer(apiStatus.startTime, isTimerActive);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
-  };
 
   useEffect(() => {
     if (user) {
@@ -170,23 +147,12 @@ export default function QueryResults() {
       // Status: Fetching
       setApiStatus({ status: "fetching", message: `Fetching data for ${address.slice(0, 8)}...`, startTime });
 
-      const { data, error: invokeError } = await supabase.functions.invoke("dune-query", {
-        body: { queryId, parameters: { address: address.toLowerCase() } },
-      });
+      const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
 
-      if (invokeError) {
-        const errorMsg = `Edge Function Error: ${invokeError.message}`;
+      if (duneError) {
+        const errorMsg = `Dune API Error: ${duneError}`;
         setApiStatus({ status: "error", message: errorMsg });
         setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      // Check for Dune-specific errors
-      if (data?.error) {
-        const duneError = `Dune API Error: ${data.error}`;
-        setApiStatus({ status: "error", message: duneError });
-        setError(duneError);
         setLoading(false);
         return;
       }
@@ -194,8 +160,7 @@ export default function QueryResults() {
       // Status: Processing
       setApiStatus({ status: "processing", message: "Processing transaction data...", startTime });
 
-      if (data?.result?.rows) {
-        const duneRows = data.result.rows as TransactionRow[];
+      if (duneRows.length > 0) {
         setRows(duneRows);
         
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -330,7 +295,7 @@ export default function QueryResults() {
             <>
               <Wifi className="w-5 h-5 animate-pulse" />
               <span className="font-medium flex-1">Connecting to Dune API...</span>
-              <span className="font-mono text-sm tabular-nums">{formatTime(elapsedSeconds)}</span>
+              <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "fetching" && (
@@ -340,14 +305,14 @@ export default function QueryResults() {
                 <span className="font-medium">{apiStatus.message}</span>
                 <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes...</p>
               </div>
-              <span className="font-mono text-lg tabular-nums font-semibold">{formatTime(elapsedSeconds)}</span>
+              <span className="font-mono text-lg tabular-nums font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "processing" && (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
               <span className="font-medium flex-1">Processing transaction data...</span>
-              <span className="font-mono text-sm tabular-nums">{formatTime(elapsedSeconds)}</span>
+              <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "complete" && (

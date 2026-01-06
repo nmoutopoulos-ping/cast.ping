@@ -9,6 +9,7 @@ import { ViewEditor } from "@/components/transactions/ViewEditor";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check, Loader2, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useElapsedTimer, formatElapsedTime } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
 import type { 
   TransactionRow, 
@@ -26,31 +27,12 @@ import {
   extractAddressesFromRows,
   buildHighlightMap,
   buildAddressLabels,
-  filterRowsByActiveFilters,
+  applyAllFilters,
   fetchFromDune,
   saveTransactionsToDb,
   fetchEntitiesAndTags,
+  type DateRange,
 } from "@/lib/transactionUtils";
-
-// Timer hook for live elapsed time display
-function useElapsedTimer(startTime: number | undefined, isActive: boolean) {
-  const [elapsed, setElapsed] = useState(0);
-  
-  useEffect(() => {
-    if (!isActive || !startTime) {
-      setElapsed(0);
-      return;
-    }
-    
-    const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [startTime, isActive]);
-  
-  return elapsed;
-}
 
 export default function SavedSearchDetail() {
   const { id } = useParams<{ id: string }>();
@@ -74,15 +56,9 @@ export default function SavedSearchDetail() {
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
   const [tagFilterMode, setTagFilterMode] = useState<FilterMode>("any");
   const [methodFilters, setMethodFilters] = useState<MethodType[]>([]);
-  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null });
 
   const elapsedSeconds = useElapsedTimer(fetchStartTime, fetchingFromDune);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
-  };
 
   const handleCopyAddress = async () => {
     if (savedQuery?.wallet_address) {
@@ -104,40 +80,13 @@ export default function SavedSearchDetail() {
 
   const transactionAddresses = useMemo(() => extractAddressesFromRows(rows), [rows]);
   const highlightMap = useMemo(() => buildHighlightMap(activeFilters), [activeFilters]);
-  const filteredRows = useMemo(() => {
-    let result = filterRowsByActiveFilters(rows, activeFilters, filterMode, tagFilterMode);
-    
-    // Apply method filters
-    if (methodFilters.length > 0) {
-      result = result.filter((row) => {
-        const method = row.method?.toLowerCase() || "";
-        return methodFilters.some((filter) => {
-          if (filter === "native") return method.includes("native");
-          if (filter === "transfer") return method.includes("transfer");
-          if (filter === "mint") return method.includes("mint");
-          if (filter === "burn") return method.includes("burn");
-          return false;
-        });
-      });
-    }
-    
-    // Apply date range filters
-    if (dateRange.start || dateRange.end) {
-      result = result.filter((row) => {
-        if (!row.timestamp) return false;
-        const rowDate = new Date(row.timestamp);
-        if (dateRange.start && rowDate < dateRange.start) return false;
-        if (dateRange.end) {
-          const endOfDay = new Date(dateRange.end);
-          endOfDay.setHours(23, 59, 59, 999);
-          if (rowDate > endOfDay) return false;
-        }
-        return true;
-      });
-    }
-    
-    return result;
-  }, [rows, activeFilters, filterMode, tagFilterMode, methodFilters, dateRange]);
+  const filteredRows = useMemo(() => applyAllFilters(rows, {
+    activeFilters,
+    filterMode,
+    tagFilterMode,
+    methodFilters,
+    dateRange,
+  }), [rows, activeFilters, filterMode, tagFilterMode, methodFilters, dateRange]);
   const addressLabels = useMemo(
     () => buildAddressLabels(entities, tags),
     [entities, tags]
@@ -330,7 +279,7 @@ export default function SavedSearchDetail() {
                 <span className="font-medium">Fetching from Dune API...</span>
                 <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes</p>
               </div>
-              <span className="font-mono text-lg tabular-nums font-semibold">{formatTime(elapsedSeconds)}</span>
+              <span className="font-mono text-lg tabular-nums font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
             </div>
           )}
           {!fetchingFromDune && (
