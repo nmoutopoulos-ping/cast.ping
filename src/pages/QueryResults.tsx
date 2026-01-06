@@ -35,6 +35,26 @@ interface ApiStatusInfo {
   startTime?: number;
 }
 
+// Timer hook for live elapsed time display
+function useElapsedTimer(startTime: number | undefined, isActive: boolean) {
+  const [elapsed, setElapsed] = useState(0);
+  
+  useEffect(() => {
+    if (!isActive || !startTime) {
+      setElapsed(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [startTime, isActive]);
+  
+  return elapsed;
+}
+
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();
   const savedQueryId = searchParams.get("id");
@@ -52,6 +72,15 @@ export default function QueryResults() {
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
   const [apiStatus, setApiStatus] = useState<ApiStatusInfo>({ status: "idle", message: "" });
+
+  const isTimerActive = ["connecting", "fetching", "processing"].includes(apiStatus.status);
+  const elapsedSeconds = useElapsedTimer(apiStatus.startTime, isTimerActive);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`;
+  };
 
   useEffect(() => {
     if (user) {
@@ -300,19 +329,25 @@ export default function QueryResults() {
           {apiStatus.status === "connecting" && (
             <>
               <Wifi className="w-5 h-5 animate-pulse" />
-              <span className="font-medium">Connecting to Dune API...</span>
+              <span className="font-medium flex-1">Connecting to Dune API...</span>
+              <span className="font-mono text-sm tabular-nums">{formatTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "fetching" && (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="font-medium">{apiStatus.message}</span>
+              <div className="flex-1">
+                <span className="font-medium">{apiStatus.message}</span>
+                <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes...</p>
+              </div>
+              <span className="font-mono text-lg tabular-nums font-semibold">{formatTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "processing" && (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span className="font-medium">Processing transaction data...</span>
+              <span className="font-medium flex-1">Processing transaction data...</span>
+              <span className="font-mono text-sm tabular-nums">{formatTime(elapsedSeconds)}</span>
             </>
           )}
           {apiStatus.status === "complete" && (
