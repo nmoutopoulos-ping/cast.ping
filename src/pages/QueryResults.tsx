@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react";
+import { Download, RefreshCw, Search, Bookmark, CheckCircle, Loader2, AlertCircle, Wifi } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -24,9 +24,16 @@ import type { TransactionRow, DbTag } from "@/types/transactions";
 import { DEFAULT_QUERY_ID } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
-  fetchFromDune,
   saveTransactionsToDb,
 } from "@/lib/transactionUtils";
+
+type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
+
+interface ApiStatusInfo {
+  status: ApiStatus;
+  message: string;
+  startTime?: number;
+}
 
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +51,7 @@ export default function QueryResults() {
   const [error, setError] = useState<string | null>(null);
   const [queryName, setQueryName] = useState<string>("");
   const [duneQueryId, setDuneQueryId] = useState<string>("");
+  const [apiStatus, setApiStatus] = useState<ApiStatusInfo>({ status: "idle", message: "" });
 
   useEffect(() => {
     if (user) {
@@ -124,17 +132,59 @@ export default function QueryResults() {
   const handleFetchFromDune = async (queryId: string, address: string) => {
     setLoading(true);
     setError(null);
+    const startTime = Date.now();
 
-    const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
+    // Status: Connecting
+    setApiStatus({ status: "connecting", message: "Connecting to Dune API...", startTime });
 
-    if (duneError) {
-      setError(duneError);
+    try {
+      // Status: Fetching
+      setApiStatus({ status: "fetching", message: `Fetching data for ${address.slice(0, 8)}...`, startTime });
+
+      const { data, error: invokeError } = await supabase.functions.invoke("dune-query", {
+        body: { queryId, parameters: { address: address.toLowerCase() } },
+      });
+
+      if (invokeError) {
+        const errorMsg = `Edge Function Error: ${invokeError.message}`;
+        setApiStatus({ status: "error", message: errorMsg });
+        setError(errorMsg);
+        setLoading(false);
+        return;
+      }
+
+      // Check for Dune-specific errors
+      if (data?.error) {
+        const duneError = `Dune API Error: ${data.error}`;
+        setApiStatus({ status: "error", message: duneError });
+        setError(duneError);
+        setLoading(false);
+        return;
+      }
+
+      // Status: Processing
+      setApiStatus({ status: "processing", message: "Processing transaction data...", startTime });
+
+      if (data?.result?.rows) {
+        const duneRows = data.result.rows as TransactionRow[];
+        setRows(duneRows);
+        
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        setApiStatus({ 
+          status: "complete", 
+          message: `Found ${duneRows.length} transactions in ${elapsed}s` 
+        });
+      } else {
+        setRows([]);
+        setApiStatus({ status: "complete", message: "No transactions found" });
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
+      setApiStatus({ status: "error", message: errorMsg });
+      setError(errorMsg);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setRows(duneRows);
-    setLoading(false);
   };
 
   const handleSearch = async () => {
@@ -238,6 +288,51 @@ export default function QueryResults() {
         </div>
       </div>
 
+      {/* API Status Indicator */}
+      {apiStatus.status !== "idle" && (
+        <div className={`flex items-center gap-3 p-4 rounded-lg border ${
+          apiStatus.status === "error" 
+            ? "bg-destructive/10 border-destructive/50 text-destructive"
+            : apiStatus.status === "complete"
+            ? "bg-green-500/10 border-green-500/50 text-green-600"
+            : "bg-primary/10 border-primary/50 text-primary"
+        }`}>
+          {apiStatus.status === "connecting" && (
+            <>
+              <Wifi className="w-5 h-5 animate-pulse" />
+              <span className="font-medium">Connecting to Dune API...</span>
+            </>
+          )}
+          {apiStatus.status === "fetching" && (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="font-medium">{apiStatus.message}</span>
+            </>
+          )}
+          {apiStatus.status === "processing" && (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="font-medium">Processing transaction data...</span>
+            </>
+          )}
+          {apiStatus.status === "complete" && (
+            <>
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">{apiStatus.message}</span>
+            </>
+          )}
+          {apiStatus.status === "error" && (
+            <>
+              <AlertCircle className="w-5 h-5" />
+              <div className="flex-1">
+                <span className="font-medium">API Error</span>
+                <p className="text-sm mt-1 opacity-90">{apiStatus.message}</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Query Info */}
       {queryName && (
         <div className="text-sm text-muted-foreground">
@@ -255,7 +350,7 @@ export default function QueryResults() {
       )}
 
       {/* Error State */}
-      {error && (
+      {error && apiStatus.status !== "error" && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
           Error: {error}
         </div>
