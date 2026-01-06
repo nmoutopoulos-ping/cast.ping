@@ -190,30 +190,75 @@ export default function QueryResults() {
 
     setSearchedWallet(trimmed);
     setSearchParams({ wallet: trimmed, chain: selectedChain, type: searchType });
+    setCurrentSavedQueryId(null); // Reset until we save after successful fetch
 
-    // Auto-save search to database
-    const { data: savedQuery, error: saveError } = await supabase
-      .from("saved_queries")
-      .insert({
-        name: `${searchType === "wallet" ? "Wallet" : "Token"}: ${trimmed.slice(0, 8)}...${trimmed.slice(-6)}`,
-        dune_query_id: currentChainConfig.queryId,
-        wallet_address: trimmed,
-        search_type: searchType,
-        user_id: user.id,
-      })
-      .select("id")
-      .single();
+    // Fetch from Dune first - only save to DB if we get transactions
+    await handleFetchFromDuneAndSave(currentChainConfig.queryId, trimmed);
+  };
 
-    if (saveError) {
-      console.error("Failed to save search:", saveError);
-      toast.error("Failed to save search");
-      return;
+  const handleFetchFromDuneAndSave = async (queryId: string, address: string) => {
+    setLoading(true);
+    setError(null);
+    const startTime = Date.now();
+
+    setApiStatus({ status: "connecting", message: "Connecting to Dune API...", startTime });
+
+    try {
+      setApiStatus({ status: "fetching", message: `Fetching data for ${address.slice(0, 8)}...`, startTime });
+
+      const { rows: duneRows, error: duneError } = await fetchFromDune(queryId, address);
+
+      if (duneError) {
+        const errorMsg = `Dune API Error: ${duneError}`;
+        setApiStatus({ status: "error", message: errorMsg });
+        setError(errorMsg);
+        setLoading(false);
+        return;
+      }
+
+      setApiStatus({ status: "processing", message: "Processing transaction data...", startTime });
+
+      if (duneRows.length > 0) {
+        setRows(duneRows);
+
+        // Only save to database if we have transactions
+        if (user) {
+          const { data: savedQuery, error: saveError } = await supabase
+            .from("saved_queries")
+            .insert({
+              name: `${searchType === "wallet" ? "Wallet" : "Token"}: ${address.slice(0, 8)}...${address.slice(-6)}`,
+              dune_query_id: queryId,
+              wallet_address: address,
+              search_type: searchType,
+              user_id: user.id,
+            })
+            .select("id")
+            .single();
+
+          if (saveError) {
+            console.error("Failed to save search:", saveError);
+          } else {
+            setCurrentSavedQueryId(savedQuery.id);
+            toast.success("Search saved!");
+          }
+        }
+        
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        setApiStatus({ 
+          status: "complete", 
+          message: `Found ${duneRows.length} transactions in ${elapsed}s` 
+        });
+      } else {
+        setRows([]);
+        setApiStatus({ status: "complete", message: "No transactions found for this address" });
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error occurred";
+      setApiStatus({ status: "error", message: errorMsg });
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
     }
-
-    setCurrentSavedQueryId(savedQuery.id);
-    toast.success("Search saved!");
-    
-    await handleFetchFromDune(currentChainConfig.queryId, trimmed);
   };
 
   const handleSaveToDatabase = async () => {
