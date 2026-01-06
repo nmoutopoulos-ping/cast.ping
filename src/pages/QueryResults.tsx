@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Download, RefreshCw, Search, Bookmark, CheckCircle } from "lucide-react";
+import { Download, RefreshCw, Search, Bookmark, CheckCircle, Wallet, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useElapsedTimer } from "@/hooks/useElapsedTimer";
@@ -227,6 +227,7 @@ export default function QueryResults() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveDescription, setSaveDescription] = useState("");
+  const [saveSearchType, setSaveSearchType] = useState<"wallet" | "token">("wallet");
   const [saveDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [savingSearch, setSavingSearch] = useState(false);
 
@@ -248,6 +249,7 @@ export default function QueryResults() {
       description: saveDescription.trim() || null,
       dune_query_id: currentChainConfig.queryId,
       wallet_address: searchedWallet,
+      search_type: saveSearchType,
       user_id: user.id,
     });
 
@@ -258,6 +260,7 @@ export default function QueryResults() {
       setSaveDialogOpen(false);
       setSaveName("");
       setSaveDescription("");
+      setSaveSearchType("wallet");
     }
     setSavingSearch(false);
   };
@@ -418,7 +421,29 @@ export default function QueryResults() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Wallet Address</Label>
+              <Label>Search Type</Label>
+              <Select value={saveSearchType} onValueChange={(v) => setSaveSearchType(v as "wallet" | "token")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wallet">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      Wallet Address
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="token">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-4 h-4" />
+                      Token Contract
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
               <Input value={searchedWallet} disabled className="font-mono text-muted-foreground" />
             </div>
             <div className="space-y-2">
