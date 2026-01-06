@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
+import { TransactionBreakdownChart } from "@/components/transactions/TransactionBreakdownChart";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
 import { FullscreenTableDialog, FullscreenTableTrigger } from "@/components/transactions/FullscreenTableDialog";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check } from "lucide-react";
@@ -206,65 +207,65 @@ export default function SavedSearchDetail() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         <Button 
           variant="ghost" 
           onClick={() => navigate("/queries")}
-          className="gap-2 -ml-2 text-muted-foreground hover:text-foreground"
+          className="gap-2 -ml-2 text-muted-foreground hover:text-foreground h-9"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Saved Data
         </Button>
 
         {savedQuery && (
-          <div className="space-y-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold">{savedQuery.name}</h1>
-                {savedQuery.description && (
-                  <p className="text-muted-foreground mt-1">{savedQuery.description}</p>
-                )}
-              </div>
-            </div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight">{savedQuery.name}</h1>
+            {savedQuery.description && (
+              <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
+                {savedQuery.description}
+              </p>
+            )}
 
-            <div className="flex flex-wrap items-center gap-3">
+            {/* Metadata badges */}
+            <div className="flex flex-wrap items-center gap-2.5">
               {savedQuery.wallet_address && (
-                <div className="group flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Wallet:</span>
+                <div className="group inline-flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border/40">
+                  <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Wallet</span>
                   <a
                     href={`${ETHERSCAN_BASE}/address/${savedQuery.wallet_address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 font-mono text-sm text-foreground/80 hover:text-primary transition-colors"
+                    className="inline-flex items-center gap-1.5 font-mono text-xs text-foreground/80 hover:text-primary transition-colors"
                   >
                     {savedQuery.wallet_address}
-                    <ExternalLink className="w-3.5 h-3.5 opacity-50" />
+                    <ExternalLink className="w-3 h-3 opacity-40" />
                   </a>
                   <button
                     onClick={handleCopyAddress}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
                   >
                     {addressCopied ? (
-                      <Check className="w-3.5 h-3.5 text-green-500" />
+                      <Check className="w-3 h-3 text-green-500" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Copy className="w-3 h-3 text-muted-foreground" />
                     )}
                   </button>
                 </div>
               )}
-              <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border/40">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs">
                   Created {format(new Date(savedQuery.created_at), "MMMM do, yyyy")}
                 </span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
-                <Database className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{rows.length} transactions</span>
+              <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border/40">
+                <Database className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium tabular-nums">{rows.length}</span>
+                <span className="text-xs text-muted-foreground">transactions</span>
               </div>
-              <Badge variant="outline" className="font-mono text-xs h-9 px-3">
+              <Badge variant="outline" className="font-mono text-xs h-8 px-3 border-border/50">
                 Ethereum
               </Badge>
             </div>
@@ -286,7 +287,7 @@ export default function SavedSearchDetail() {
 
       {/* Error State */}
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
           Error: {error}
         </div>
       )}
@@ -294,24 +295,32 @@ export default function SavedSearchDetail() {
       {/* Results */}
       {!loading && !error && rows.length > 0 && (
         <>
-          <div className="flex items-center justify-end gap-3">
+          {/* Action buttons */}
+          <div className="flex items-center justify-end gap-2.5">
             <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
-            <Button variant="outline" onClick={handleRefresh} className="gap-2">
+            <Button variant="outline" onClick={handleRefresh} className="gap-2 h-9">
               <RefreshCw className="w-4 h-4" />
               Refresh from Dune
             </Button>
             {isSavedToDb ? (
-              <Button variant="outline" disabled className="gap-2 text-green-600 border-green-600/50">
+              <Button variant="outline" disabled className="gap-2 h-9 text-green-600 border-green-600/50">
                 <CheckCircle className="w-4 h-4" />
                 Saved to Database
               </Button>
             ) : (
-              <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2">
+              <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2 h-9">
                 <Download className="w-4 h-4" />
                 {saving ? "Saving..." : "Save to Database"}
               </Button>
             )}
           </div>
+
+          {/* Pie Chart */}
+          <TransactionBreakdownChart
+            rows={rows}
+            entities={entities}
+            tags={tags}
+          />
 
           <FullscreenTableDialog
             open={fullscreenOpen}
@@ -378,10 +387,10 @@ export default function SavedSearchDetail() {
 
       {/* Empty State */}
       {!loading && !error && rows.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No transactions found for this search</p>
-          <Button variant="outline" onClick={handleRefresh} className="mt-4 gap-2">
+        <div className="text-center py-16 text-muted-foreground">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
+          <p className="text-sm mb-4">No transactions found for this search</p>
+          <Button variant="outline" onClick={handleRefresh} className="gap-2 h-9">
             <RefreshCw className="w-4 h-4" />
             Fetch from Dune
           </Button>
