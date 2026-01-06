@@ -9,7 +9,8 @@ import {
   CheckCircle,
   TableProperties,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Plug
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,18 +67,31 @@ export function AppSidebar() {
 
       {/* Bottom status */}
       <div className="p-2 border-t border-sidebar-border space-y-2">
-        {!collapsed && (
-          <div className="bg-sidebar-accent rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-2 h-2 rounded-full bg-success" />
-              <span className="text-muted-foreground">Dune Connected</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <CheckCircle className="w-3.5 h-3.5 text-success" />
-              <span>API Key configured</span>
-            </div>
-          </div>
-        )}
+        <NavLink
+          to="/api-connections"
+          className={({ isActive }) => cn(
+            "flex items-center gap-3 rounded-lg p-3 transition-colors",
+            isActive 
+              ? "bg-primary text-primary-foreground" 
+              : "bg-sidebar-accent hover:bg-sidebar-accent/80",
+            collapsed && "justify-center p-2"
+          )}
+          title={collapsed ? "API Connections" : undefined}
+        >
+          {collapsed ? (
+            <Plug className="w-5 h-5" />
+          ) : (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 rounded-full bg-success" />
+                <span>Dune Connected</span>
+              </div>
+              <div className="ml-auto">
+                <CheckCircle className="w-3.5 h-3.5 text-success" />
+              </div>
+            </>
+          )}
+        </NavLink>
         
         {/* Collapse button */}
         <button
