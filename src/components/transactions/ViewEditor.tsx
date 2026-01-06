@@ -86,11 +86,22 @@ export function ViewEditor({
   };
 
   return (
-    <div className="space-y-3">
-      {/* Primary toolbar row */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-4">
+      {/* Row 1: Entities and Tags side by side */}
+      <div className="flex items-start gap-6 py-3 px-4 bg-muted/20 rounded-lg border border-border/30">
+        <EntityTagFilters
+          entities={entities}
+          tags={tags}
+          transactionAddresses={transactionAddresses}
+          activeFilters={activeFilters}
+          onActiveFiltersChange={onActiveFiltersChange}
+        />
+      </div>
+
+      {/* Row 2: Method filters + Controls */}
+      <div className="flex items-center justify-between gap-4 py-2.5 px-4 bg-muted/10 rounded-lg border border-border/20">
         {/* Left: Method filters */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <MethodFilters
             rows={rows}
             methodFilters={methodFilters}
@@ -98,15 +109,36 @@ export function ViewEditor({
           />
         </div>
 
-        {/* Right: Controls */}
-        <div className="flex items-center gap-2">
+        {/* Right: Controls + Status */}
+        <div className="flex items-center gap-3">
+          {/* Filter status */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground tabular-nums">
+                  {filteredRowCount.toLocaleString()}
+                </span>
+                <span className="mx-1">of</span>
+                <span className="tabular-nums">{totalRowCount.toLocaleString()}</span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+
+          <div className="w-px h-5 bg-border/50" />
+
           <TagRulesFilter
             activeFilters={activeFilters}
             tagFilterMode={tagFilterMode}
             onTagFilterModeChange={onTagFilterModeChange}
           />
-
-          <div className="w-px h-6 bg-border" />
 
           <DateRangeFilter
             dateRange={dateRange}
@@ -119,7 +151,7 @@ export function ViewEditor({
             onHiddenColumnsChange={onHiddenColumnsChange}
           />
 
-          <div className="w-px h-6 bg-border" />
+          <div className="w-px h-5 bg-border/50" />
 
           <ViewsDropdown
             savedQueryId={savedQueryId}
@@ -133,52 +165,6 @@ export function ViewEditor({
             onViewLoad={handleViewLoad}
             onCurrentViewIdChange={setCurrentViewId}
           />
-        </div>
-      </div>
-
-      {/* Secondary row: Entity/Tag filters + filter status */}
-      <div className="flex items-center justify-between gap-4 py-2 px-3 bg-muted/30 rounded-lg border border-border/40">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
-            <Filter className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium uppercase tracking-wide">Filters</span>
-          </div>
-          
-          <div className="w-px h-5 bg-border/60" />
-          
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            <EntityTagFilters
-              entities={entities}
-              tags={tags}
-              transactionAddresses={transactionAddresses}
-              activeFilters={activeFilters}
-              onActiveFiltersChange={onActiveFiltersChange}
-            />
-          </div>
-        </div>
-
-        {/* Filter status */}
-        <div className="flex items-center gap-3 shrink-0">
-          {hasActiveFilters && (
-            <>
-              <div className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground tabular-nums">
-                  {filteredRowCount.toLocaleString()}
-                </span>
-                <span className="mx-1">of</span>
-                <span className="tabular-nums">{totalRowCount.toLocaleString()}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3 h-3 mr-1" />
-                Clear
-              </Button>
-            </>
-          )}
         </div>
       </div>
     </div>

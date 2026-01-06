@@ -66,59 +66,87 @@ export function EntityTagFilters({
     }
   };
 
-  const hasMatchedActors = matchedEntities.length > 0 || matchedTags.length > 0;
+  const hasMatchedEntities = matchedEntities.length > 0;
+  const hasMatchedTags = matchedTags.length > 0;
 
-  if (!hasMatchedActors) {
-    return <span className="text-xs text-muted-foreground italic">No matching entities or tags</span>;
+  if (!hasMatchedEntities && !hasMatchedTags) {
+    return <span className="text-xs text-muted-foreground italic">No matching entities or tags found in transactions</span>;
   }
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {matchedEntities.map((entity) => {
-        const isActive = isEntityActive(entity.id);
-        return (
-          <button
-            key={entity.id}
-            onClick={() => handleEntityClick(entity)}
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all",
-              isActive 
-                ? "shadow-sm" 
-                : "opacity-60 hover:opacity-100"
-            )}
-            style={{
-              backgroundColor: isActive ? entity.color : `${entity.color}15`,
-              color: isActive ? "#fff" : entity.color,
-            }}
-          >
-            <span className="max-w-[120px] truncate">{entity.name}</span>
-            {isActive && <X className="w-3 h-3 shrink-0" />}
-          </button>
-        );
-      })}
+    <div className="flex items-start gap-8 w-full">
+      {/* Entities Section */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+          Entities
+        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {hasMatchedEntities ? (
+            matchedEntities.map((entity) => {
+              const isActive = isEntityActive(entity.id);
+              return (
+                <button
+                  key={entity.id}
+                  onClick={() => handleEntityClick(entity)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    isActive 
+                      ? "shadow-sm ring-1 ring-black/10" 
+                      : "opacity-50 hover:opacity-90"
+                  )}
+                  style={{
+                    backgroundColor: isActive ? entity.color : `${entity.color}20`,
+                    color: isActive ? "#fff" : entity.color,
+                  }}
+                >
+                  <span className="max-w-[100px] truncate">{entity.name}</span>
+                  {isActive && <X className="w-3 h-3 shrink-0" />}
+                </button>
+              );
+            })
+          ) : (
+            <span className="text-xs text-muted-foreground/60 italic">None</span>
+          )}
+        </div>
+      </div>
 
-      {matchedTags.map((tag) => {
-        const isActive = isTagActive(tag.id);
-        return (
-          <button
-            key={tag.id}
-            onClick={() => handleTagClick(tag)}
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-all",
-              isActive 
-                ? "shadow-sm" 
-                : "opacity-60 hover:opacity-100"
-            )}
-            style={{
-              backgroundColor: isActive ? tag.color : `${tag.color}15`,
-              color: isActive ? "#fff" : tag.color,
-            }}
-          >
-            <span className="max-w-[120px] truncate">{tag.name}</span>
-            {isActive && <X className="w-3 h-3 shrink-0" />}
-          </button>
-        );
-      })}
+      {/* Divider */}
+      <div className="w-px h-6 bg-border/40 self-center shrink-0" />
+
+      {/* Tags Section */}
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
+          Tags
+        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {hasMatchedTags ? (
+            matchedTags.map((tag) => {
+              const isActive = isTagActive(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => handleTagClick(tag)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    isActive 
+                      ? "shadow-sm ring-1 ring-black/10" 
+                      : "opacity-50 hover:opacity-90"
+                  )}
+                  style={{
+                    backgroundColor: isActive ? tag.color : `${tag.color}20`,
+                    color: isActive ? "#fff" : tag.color,
+                  }}
+                >
+                  <span className="max-w-[100px] truncate">{tag.name}</span>
+                  {isActive && <X className="w-3 h-3 shrink-0" />}
+                </button>
+              );
+            })
+          ) : (
+            <span className="text-xs text-muted-foreground/60 italic">None</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
