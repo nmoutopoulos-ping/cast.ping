@@ -1,12 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { 
-  TransactionRow, 
-  Entity, 
-  DbTag, 
-  ActiveFilter, 
+import type {
+  TransactionRow,
+  Entity,
+  DbTag,
+  ActiveFilter,
   AddressLabelInfo,
   FilterMode,
-  MethodType
+  MethodType,
+  DateRange,
 } from "@/types/transactions";
 
 /**
@@ -173,13 +174,9 @@ export function buildAddressLabels(
   return labels;
 }
 
-/**
- * Date range for filtering transactions
- */
-export interface DateRange {
-  start: Date | null;
-  end: Date | null;
-}
+// Re-export DateRange from types for backwards compatibility
+export type { DateRange } from "@/types/transactions";
+
 
 
 /**
@@ -315,32 +312,74 @@ export function applyAllFilters(
 }
 
 /**
- * Maps a raw Dune row to TransactionRow format
- * Dune returns columns like 'to', 'to_address' etc. - we normalize to our schema
+ * Maps a raw Dune row to TransactionRow format.
+ * Handles both snake_case keys and Title Case keys (e.g., "Tx Hash", "Interacted With").
+ * Dune result keys sometimes come back as Title Case with spaces, so we normalize and check multiple candidates.
  */
-function mapDuneRowToTransactionRow(row: Record<string, unknown>): TransactionRow {
+export function mapDuneRowToTransactionRow(row: Record<string, unknown>): TransactionRow {
+  // Build a normalized key index for flexible matching
+  const keyIndex = Object.keys(row).reduce<Record<string, string>>((acc, key) => {
+    const normalized = key.toLowerCase().replace(/[\s_]+/g, " ").trim();
+    acc[normalized] = key;
+    return acc;
+  }, {});
+
+  const pick = (candidates: string[]): unknown => {
+    for (const candidate of candidates) {
+      const direct = row[candidate];
+      if (direct !== undefined && direct !== null && direct !== "") return direct;
+
+      const normalized = candidate.toLowerCase().replace(/[\s_]+/g, " ").trim();
+      const mappedKey = keyIndex[normalized];
+      if (!mappedKey) continue;
+
+      const mappedVal = row[mappedKey];
+      if (mappedVal !== undefined && mappedVal !== null && mappedVal !== "") return mappedVal;
+    }
+    return undefined;
+  };
+
+  const asString = (v: unknown) => (v == null ? "" : String(v));
+  const asNumber = (v: unknown) => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const gasPriceWeiRaw = pick(["gas_price_wei", "gas_price", "Gas Price (Wei)"]);
+  const gasPriceWei = asNumber(gasPriceWeiRaw);
+  const gasPriceGweiRaw = pick(["gas_price_gwei", "Gas Price (Gwei)"]);
+  const gasPriceGwei = gasPriceGweiRaw != null ? asNumber(gasPriceGweiRaw) : gasPriceWei ? gasPriceWei / 1e9 : 0;
+
+  const rawStatus = pick(["status", "Status", "success", "Success"]);
+  const status =
+    typeof rawStatus === "boolean"
+      ? rawStatus
+        ? "success"
+        : "failed"
+      : asString(rawStatus) || "success";
+
   return {
-    transaction_hash: String(row.tx_hash || row.hash || row.transaction_hash || ''),
-    method: String(row.method || ''),
-    block: Number(row.block_number || row.block || 0),
-    timestamp: String(row.block_time || row.timestamp || ''),
-    from_address: String(row.from || row.from_address || ''),
-    interacted_with: String(row.to || row.to_address || row.interacted_with || ''),
-    eth_direction: String(row.eth_direction || row.direction || ''),
-    token_direction: String(row.token_direction || ''),
-    token_from: String(row.token_from || ''),
-    token_to: String(row.token_to || ''),
-    token_amount_raw: String(row.token_amount_raw || ''),
-    token_amount: Number(row.token_amount) || 0,
-    token_symbol: String(row.token_symbol || ''),
-    token_name: String(row.token_name || ''),
-    token_contract: String(row.token_contract || ''),
-    value_eth: Number(row.value_eth || row.value || 0),
-    txn_fee_eth: Number(row.txn_fee_eth || row.tx_fee_eth || 0),
-    gas_price_gwei: Number(row.gas_price_gwei || (Number(row.gas_price) / 1e9) || 0),
-    gas_price_wei: Number(row.gas_price_wei || row.gas_price || 0),
-    gas_used: Number(row.gas_used || 0),
-    status: String(row.status || (row.success ? 'success' : 'failed') || 'success'),
+    transaction_hash: asString(pick(["tx_hash", "transaction_hash", "hash", "Tx Hash", "TX HASH"])),
+    method: asString(pick(["method", "Method"])),
+    block: asNumber(pick(["block_number", "block", "Block"])),
+    timestamp: asString(pick(["block_time", "timestamp", "time", "Timestamp"])),
+    from_address: asString(pick(["from_address", "from", "From"])),
+    interacted_with: asString(pick(["to_address", "to", "interacted_with", "Interacted With", "To"])),
+    eth_direction: asString(pick(["eth_direction", "direction", "ETH Dir", "Eth Dir"])),
+    token_direction: asString(pick(["token_direction", "Token Dir"])),
+    token_from: asString(pick(["token_from", "Token From"])),
+    token_to: asString(pick(["token_to", "Token To"])),
+    token_amount_raw: asString(pick(["token_amount_raw", "token_amt_raw", "Token Amt Raw", "Token Amount Raw"]) ?? ""),
+    token_amount: asNumber(pick(["token_amount", "token_amount_decimal", "Token Amount"])),
+    token_symbol: asString(pick(["token_symbol", "symbol", "Token"])),
+    token_name: asString(pick(["token_name", "Token Name"])),
+    token_contract: asString(pick(["token_contract", "contract_address", "Token Contract"])),
+    value_eth: asNumber(pick(["value_eth", "value", "Value ETH"])),
+    txn_fee_eth: asNumber(pick(["txn_fee_eth", "tx_fee_eth", "Tx Fee ETH", "Txn Fee ETH"])),
+    gas_price_gwei: gasPriceGwei,
+    gas_price_wei: gasPriceWei,
+    gas_used: asNumber(pick(["gas_used", "Gas Used"])),
+    status,
   };
 }
 
@@ -427,4 +466,23 @@ export function formatEthValue(value: number | string | null | undefined): strin
   if (value === 0) return "0";
   const fixed = value.toFixed(18);
   return fixed.replace(/\.?0+$/, "");
+}
+
+/**
+ * Extracts view state from a SavedView for loading into UI state
+ */
+export function extractViewState(view: {
+  hidden_columns: string[];
+  active_filters: ActiveFilter[];
+  filter_mode: FilterMode;
+  tag_filter_mode: FilterMode;
+  method_filters: string[];
+}) {
+  return {
+    hiddenColumns: new Set(view.hidden_columns),
+    activeFilters: view.active_filters,
+    filterMode: view.filter_mode,
+    tagFilterMode: view.tag_filter_mode,
+    methodFilters: (view.method_filters || []) as MethodType[],
+  };
 }

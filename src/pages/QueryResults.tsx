@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useElapsedTimer } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
-import type { TransactionRow, DbTag } from "@/types/transactions";
+import type { TransactionRow, DbTag, ApiStatusInfo } from "@/types/transactions";
 import { CHAIN_CONFIGS, DEFAULT_CHAIN } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
@@ -34,14 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApiStatusIndicator, type ApiStatus } from "@/components/shared/ApiStatusIndicator";
+import { ApiStatusIndicator } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
-
-interface ApiStatusInfo {
-  status: ApiStatus;
-  message: string;
-  startTime?: number;
-}
 
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();

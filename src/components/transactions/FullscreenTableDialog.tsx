@@ -15,7 +15,7 @@ import type {
   MethodType, 
   SavedView 
 } from "@/types/transactions";
-import type { DateRange } from "@/lib/transactionUtils";
+import { extractViewState, type DateRange } from "@/lib/transactionUtils";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -112,11 +112,12 @@ export function FullscreenTableDialog({
   };
 
   const handleViewLoad = (view: SavedView) => {
-    onHiddenColumnsChange(new Set(view.hidden_columns));
-    onActiveFiltersChange(view.active_filters);
-    onFilterModeChange(view.filter_mode);
-    onTagFilterModeChange(view.tag_filter_mode);
-    onMethodFiltersChange((view.method_filters || []) as MethodType[]);
+    const state = extractViewState(view);
+    onHiddenColumnsChange(state.hiddenColumns);
+    onActiveFiltersChange(state.activeFilters);
+    onFilterModeChange(state.filterMode);
+    onTagFilterModeChange(state.tagFilterMode);
+    onMethodFiltersChange(state.methodFilters);
     setCurrentViewId(view.id);
     toast.success(`Loaded view: ${view.name}`);
   };

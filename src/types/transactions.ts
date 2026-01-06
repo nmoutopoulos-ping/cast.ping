@@ -100,6 +100,26 @@ export interface SavedView {
   filter_mode: FilterMode;
   tag_filter_mode: FilterMode;
   method_filters: string[];
+  date_range?: DateRange;
+}
+
+/**
+ * Date range for filtering transactions
+ */
+export interface DateRange {
+  start: Date | null;
+  end: Date | null;
+}
+
+/**
+ * API status for tracking Dune query progress
+ */
+export type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
+
+export interface ApiStatusInfo {
+  status: ApiStatus;
+  message: string;
+  startTime?: number;
 }
 
 /**

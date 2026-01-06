@@ -4,7 +4,7 @@ import { ArrowLeft, RefreshCw, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TransactionDataTable } from "@/components/transactions/TransactionDataTable";
+import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { TransactionBreakdownChart } from "@/components/transactions/TransactionBreakdownChart";
 import { FullscreenTableDialog } from "@/components/transactions/FullscreenTableDialog";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
@@ -20,6 +20,7 @@ import type {
   ActiveFilter,
   FilterMode,
   MethodType,
+  ApiStatusInfo,
 } from "@/types/transactions";
 import { getExplorerBaseUrl } from "@/types/transactions";
 import {
@@ -27,100 +28,14 @@ import {
   fetchEntitiesAndTags,
   buildAddressLabels,
   extractAddressesFromRows,
+  mapDuneRowToTransactionRow,
   type DateRange,
 } from "@/lib/transactionUtils";
 
-// Column definitions for the table
-const ALL_COLUMNS = [
-  { key: "timestamp", label: "Timestamp" },
-  { key: "method", label: "Method" },
-  { key: "from_address", label: "From" },
-  { key: "interacted_with", label: "To" },
-  { key: "token_amount", label: "Token Amount" },
-  { key: "token_symbol", label: "Token" },
-  { key: "value_eth", label: "ETH Value" },
-  { key: "txn_fee_eth", label: "Fee" },
-  { key: "block", label: "Block" },
-  { key: "transaction_hash", label: "TX Hash" },
-];
-
-interface ApiStatusInfo {
-  status: ApiStatus;
-  message: string;
-  startTime?: number;
-}
-
-// Maps raw Dune row to TransactionRow
-function mapDuneRowToTransactionRow(row: Record<string, unknown>): TransactionRow {
-  // Dune result keys sometimes come back as Title Case with spaces (e.g. "Tx Hash").
-  // Normalize keys once per row and then pick from a list of likely candidates.
-  const keyIndex = Object.keys(row).reduce<Record<string, string>>((acc, key) => {
-    const normalized = key.toLowerCase().replace(/[\s_]+/g, " ").trim();
-    acc[normalized] = key;
-    return acc;
-  }, {});
-
-  const pick = (candidates: string[]): unknown => {
-    for (const candidate of candidates) {
-      const direct = (row as Record<string, unknown>)[candidate];
-      if (direct !== undefined && direct !== null && direct !== "") return direct;
-
-      const normalized = candidate.toLowerCase().replace(/[\s_]+/g, " ").trim();
-      const mappedKey = keyIndex[normalized];
-      if (!mappedKey) continue;
-
-      const mappedVal = (row as Record<string, unknown>)[mappedKey];
-      if (mappedVal !== undefined && mappedVal !== null && mappedVal !== "") return mappedVal;
-    }
-
-    return undefined;
-  };
-
-  const asString = (v: unknown) => (v == null ? "" : String(v));
-  const asNumber = (v: unknown) => {
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  const gasPriceWeiRaw = pick(["gas_price_wei", "gas_price", "Gas Price (Wei)"]);
-  const gasPriceWei = asNumber(gasPriceWeiRaw);
-  const gasPriceGweiRaw = pick(["gas_price_gwei", "Gas Price (Gwei)"]);
-  const gasPriceGwei = gasPriceGweiRaw != null ? asNumber(gasPriceGweiRaw) : gasPriceWei ? gasPriceWei / 1e9 : 0;
-
-  const rawStatus = pick(["status", "Status", "success", "Success"]);
-  const status =
-    typeof rawStatus === "boolean"
-      ? rawStatus
-        ? "success"
-        : "failed"
-      : asString(rawStatus) || "success";
-
-  return {
-    transaction_hash: asString(pick(["tx_hash", "transaction_hash", "hash", "Tx Hash", "TX HASH"])),
-    method: asString(pick(["method", "Method"])),
-    block: asNumber(pick(["block_number", "block", "Block"])),
-    timestamp: asString(pick(["block_time", "timestamp", "time", "Timestamp"])),
-    from_address: asString(pick(["from_address", "from", "From"])),
-    interacted_with: asString(pick(["to_address", "to", "interacted_with", "Interacted With", "To"])),
-    eth_direction: asString(pick(["eth_direction", "direction", "ETH Dir", "Eth Dir"])),
-    token_direction: asString(pick(["token_direction", "Token Dir"])),
-    token_from: asString(pick(["token_from", "Token From"])),
-    token_to: asString(pick(["token_to", "Token To"])),
-    token_amount_raw: asString(
-      pick(["token_amount_raw", "token_amt_raw", "Token Amt Raw", "Token Amount Raw"]) ?? ""
-    ),
-    token_amount: asNumber(pick(["token_amount", "token_amount_decimal", "Token Amount"])),
-    token_symbol: asString(pick(["token_symbol", "symbol", "Token"])),
-    token_name: asString(pick(["token_name", "Token Name"])),
-    token_contract: asString(pick(["token_contract", "contract_address", "Token Contract"])),
-    value_eth: asNumber(pick(["value_eth", "value", "Value ETH"])),
-    txn_fee_eth: asNumber(pick(["txn_fee_eth", "tx_fee_eth", "Tx Fee ETH", "Txn Fee ETH"])),
-    gas_price_gwei: gasPriceGwei,
-    gas_price_wei: gasPriceWei,
-    gas_used: asNumber(pick(["gas_used", "Gas Used"])),
-    status,
-  };
-}
+// Use a subset of columns relevant for sandbox datasets
+const SANDBOX_COLUMNS = ALL_COLUMNS
+  .filter(col => ["timestamp", "method", "from_address", "interacted_with", "token_amount", "token_symbol", "value_eth", "txn_fee_eth", "block", "transaction_hash"].includes(col.key))
+  .map(col => ({ key: col.key, label: col.label }));
 
 export default function SandboxViewer() {
   const navigate = useNavigate();
@@ -357,7 +272,7 @@ export default function SandboxViewer() {
             tags={tags}
             rows={rows}
             transactionAddresses={transactionAddresses}
-            columns={ALL_COLUMNS}
+            columns={SANDBOX_COLUMNS}
             hiddenColumns={hiddenColumns}
             activeFilters={activeFilters}
             filterMode={filterMode}

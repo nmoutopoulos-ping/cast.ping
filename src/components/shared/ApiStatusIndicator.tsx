@@ -1,8 +1,10 @@
 import { Wifi, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { formatElapsedTime } from "@/hooks/useElapsedTimer";
 import { cn } from "@/lib/utils";
+import type { ApiStatus } from "@/types/transactions";
 
-export type ApiStatus = "idle" | "connecting" | "fetching" | "processing" | "complete" | "error";
+// Re-export for backwards compatibility
+export type { ApiStatus } from "@/types/transactions";
 
 interface ApiStatusIndicatorProps {
   status: ApiStatus;
