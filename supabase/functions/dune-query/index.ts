@@ -39,6 +39,26 @@ async function pollForResults(executionId: string, apiKey: string, maxAttempts =
   throw new Error('Query execution timed out after 2 minutes');
 }
 
+// Fetch cached results directly without execution (for pre-computed queries)
+async function fetchCachedResults(queryId: string, apiKey: string, limit = 1000): Promise<any> {
+  const resultsUrl = `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`;
+  
+  console.log(`Fetching cached results for query ${queryId}`);
+  
+  const response = await fetch(resultsUrl, {
+    headers: { 'x-dune-api-key': apiKey },
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Results fetch failed: ${errorText}`);
+  }
+  
+  const data = await response.json();
+  console.log(`Fetched ${data.result?.rows?.length || 0} cached rows`);
+  return data;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -56,12 +76,26 @@ serve(async (req) => {
       );
     }
 
-    const { queryId, parameters } = await req.json();
+    const { queryId, parameters, mode = 'execute' } = await req.json();
     
     if (!queryId) {
       return new Response(
         JSON.stringify({ error: 'Query ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Mode: 'results' = fetch cached results, 'execute' = run query with parameters
+    if (mode === 'results') {
+      console.log(`Fetching cached results for query ${queryId}`);
+      const resultData = await fetchCachedResults(queryId, DUNE_API_KEY, parameters?.limit || 1000);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          result: resultData.result,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

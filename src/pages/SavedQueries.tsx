@@ -65,7 +65,7 @@ const SANDBOX_DATASETS: SandboxDataset[] = [
     type: "token",
     address: "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
     network: "Ethereum",
-    duneQueryId: "6470740",
+    duneQueryId: "6470837",
   },
 ];
 
