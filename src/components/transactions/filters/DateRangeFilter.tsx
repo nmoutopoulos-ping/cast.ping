@@ -4,11 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-
-interface DateRange {
-  start: Date | null;
-  end: Date | null;
-}
+import type { DateRange } from "@/lib/transactionUtils";
 
 interface DateRangeFilterProps {
   dateRange: DateRange;

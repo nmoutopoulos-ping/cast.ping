@@ -5,7 +5,8 @@ import type {
   DbTag, 
   ActiveFilter, 
   AddressLabelInfo,
-  FilterMode 
+  FilterMode,
+  MethodType
 } from "@/types/transactions";
 
 /**
@@ -173,6 +174,42 @@ export function buildAddressLabels(
 }
 
 /**
+ * Date range for filtering transactions
+ */
+export interface DateRange {
+  start: Date | null;
+  end: Date | null;
+}
+
+
+/**
+ * Extracts all addresses from a single transaction row (normalized lowercase)
+ */
+function getRowAddresses(row: TransactionRow): Set<string> {
+  const addresses = new Set<string>();
+  if (row.from_address) addresses.add(row.from_address.toLowerCase());
+  if (row.interacted_with) addresses.add(row.interacted_with.toLowerCase());
+  if (row.token_contract) addresses.add(row.token_contract.toLowerCase());
+  if (row.token_from) addresses.add(row.token_from.toLowerCase());
+  if (row.token_to) addresses.add(row.token_to.toLowerCase());
+  return addresses;
+}
+
+/**
+ * Checks if a method string matches a given method type
+ */
+function methodMatches(method: string, filterType: MethodType): boolean {
+  const lowerMethod = method.toLowerCase();
+  switch (filterType) {
+    case "native": return lowerMethod.includes("native");
+    case "transfer": return lowerMethod.includes("transfer");
+    case "mint": return lowerMethod.includes("mint");
+    case "burn": return lowerMethod.includes("burn");
+    default: return false;
+  }
+}
+
+/**
  * Filters rows based on active filters with separate entity/tag logic.
  * - Entities are always matched with AND (all selected entities must be present)
  * - Tags use the tagFilterMode (any/all) to combine
@@ -190,12 +227,7 @@ export function filterRowsByActiveFilters(
   const tagFilters = activeFilters.filter((f) => f.type === "tag");
 
   return rows.filter((row) => {
-    const rowAddresses = new Set<string>();
-    if (row.from_address) rowAddresses.add(row.from_address.toLowerCase());
-    if (row.interacted_with) rowAddresses.add(row.interacted_with.toLowerCase());
-    if (row.token_contract) rowAddresses.add(row.token_contract.toLowerCase());
-    if (row.token_from) rowAddresses.add(row.token_from.toLowerCase());
-    if (row.token_to) rowAddresses.add(row.token_to.toLowerCase());
+    const rowAddresses = getRowAddresses(row);
 
     // Check entities: ALL selected entities must match
     const entityMatch = entityFilters.length === 0 || 
@@ -214,6 +246,72 @@ export function filterRowsByActiveFilters(
     // Both must match when both are selected
     return entityMatch && tagMatch;
   });
+}
+
+/**
+ * Filters rows by method types
+ */
+export function filterRowsByMethod(
+  rows: TransactionRow[],
+  methodFilters: MethodType[]
+): TransactionRow[] {
+  if (methodFilters.length === 0) return rows;
+  
+  return rows.filter((row) => {
+    const method = row.method || "";
+    return methodFilters.some((filter) => methodMatches(method, filter));
+  });
+}
+
+/**
+ * Filters rows by date range (inclusive, end date includes full day)
+ */
+export function filterRowsByDateRange(
+  rows: TransactionRow[],
+  dateRange: DateRange
+): TransactionRow[] {
+  if (!dateRange.start && !dateRange.end) return rows;
+  
+  return rows.filter((row) => {
+    if (!row.timestamp) return false;
+    const rowDate = new Date(row.timestamp);
+    
+    if (dateRange.start && rowDate < dateRange.start) return false;
+    
+    if (dateRange.end) {
+      const endOfDay = new Date(dateRange.end);
+      endOfDay.setHours(23, 59, 59, 999);
+      if (rowDate > endOfDay) return false;
+    }
+    
+    return true;
+  });
+}
+
+/**
+ * Applies all filters in sequence: entity/tag filters, method filters, and date range
+ */
+export function applyAllFilters(
+  rows: TransactionRow[],
+  options: {
+    activeFilters: ActiveFilter[];
+    filterMode: FilterMode;
+    tagFilterMode: FilterMode;
+    methodFilters: MethodType[];
+    dateRange: DateRange;
+  }
+): TransactionRow[] {
+  let result = filterRowsByActiveFilters(
+    rows,
+    options.activeFilters,
+    options.filterMode,
+    options.tagFilterMode
+  );
+  
+  result = filterRowsByMethod(result, options.methodFilters);
+  result = filterRowsByDateRange(result, options.dateRange);
+  
+  return result;
 }
 
 /**
