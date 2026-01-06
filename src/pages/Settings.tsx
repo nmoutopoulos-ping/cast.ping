@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,16 +11,6 @@ import {
 import { mockSavedQueries } from "@/lib/mockData";
 
 export default function Settings() {
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
-
-  const testConnection = () => {
-    setConnectionStatus("testing");
-    setTimeout(() => {
-      setConnectionStatus("success");
-    }, 1500);
-  };
-
   return (
     <div className="p-8 max-w-2xl animate-fade-in">
       <div className="space-y-1 mb-8">
@@ -31,50 +19,6 @@ export default function Settings() {
       </div>
 
       <div className="space-y-8">
-        {/* Dune API Section */}
-        <section className="bg-card rounded-lg border border-border p-6 space-y-4">
-          <div>
-            <h2 className="text-lg font-medium">Dune API Configuration</h2>
-            <p className="text-sm text-muted-foreground">Connect to Dune Analytics for blockchain data</p>
-          </div>
-
-          <div>
-            <Label>API Key</Label>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="relative flex-1">
-                <Input 
-                  type={showApiKey ? "text" : "password"}
-                  defaultValue="dune_xxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className="font-mono pr-10"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </div>
-              <Button variant="outline" onClick={testConnection} disabled={connectionStatus === "testing"}>
-                {connectionStatus === "testing" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Test Connection
-              </Button>
-            </div>
-            {connectionStatus === "success" && (
-              <p className="flex items-center gap-2 text-sm text-success mt-2">
-                <CheckCircle className="w-4 h-4" />
-                Connection successful
-              </p>
-            )}
-            {connectionStatus === "error" && (
-              <p className="flex items-center gap-2 text-sm text-destructive mt-2">
-                <XCircle className="w-4 h-4" />
-                Connection failed. Please check your API key.
-              </p>
-            )}
-          </div>
-        </section>
 
         {/* Defaults Section */}
         <section className="bg-card rounded-lg border border-border p-6 space-y-4">
