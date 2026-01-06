@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, ExternalLink, Trash2, Database } from "lucide-react";
+import { Plus, Trash2, Database, Wallet, Coins, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,36 @@ interface TransactionCount {
   saved_query_id: string;
   count: number;
 }
+
+// Sandbox datasets for exploration
+interface SandboxDataset {
+  id: string;
+  name: string;
+  description: string;
+  type: "token" | "wallet";
+  address: string;
+  network: string;
+  duneQueryId: string;
+}
+
+const SANDBOX_DATASETS: SandboxDataset[] = [
+  {
+    id: "paxg-ethereum",
+    name: "PAXG Token",
+    description: "Paxos Gold - Physical gold backed token",
+    type: "token",
+    address: "0x45804880De22913dAFE09f4980848ECE6EcbAf78",
+    network: "Ethereum",
+    duneQueryId: "6470740",
+  },
+];
+
+// Helper to determine search type based on query characteristics
+const getSearchType = (query: SavedQuery): "wallet" | "token" => {
+  // For now, all user queries are wallet searches
+  // This can be extended with a database column in the future
+  return "wallet";
+};
 
 export default function SavedQueries() {
   const navigate = useNavigate();
@@ -149,8 +179,31 @@ export default function SavedQueries() {
     navigate(`/queries/${query.id}`);
   };
 
+  const handleOpenSandbox = (dataset: SandboxDataset) => {
+    // Navigate to search with pre-filled parameters
+    navigate(`/wallets?address=${dataset.address}&queryId=${dataset.duneQueryId}`);
+  };
+
+  const TypeBadge = ({ type }: { type: "wallet" | "token" }) => (
+    <Badge 
+      variant="outline" 
+      className={`gap-1 text-xs ${
+        type === "wallet" 
+          ? "border-blue-500/30 text-blue-600 bg-blue-500/5" 
+          : "border-amber-500/30 text-amber-600 bg-amber-500/5"
+      }`}
+    >
+      {type === "wallet" ? (
+        <Wallet className="w-3 h-3" />
+      ) : (
+        <Coins className="w-3 h-3" />
+      )}
+      {type === "wallet" ? "Wallet" : "Token"}
+    </Badge>
+  );
+
   return (
-    <div className="p-8 space-y-6 animate-fade-in">
+    <div className="p-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -163,7 +216,7 @@ export default function SavedQueries() {
         </Button>
       </div>
 
-      {/* Content */}
+      {/* Saved Data Content */}
       {loading ? (
         <div className="bg-card rounded-lg border border-border p-8 text-center text-muted-foreground">
           Loading...
@@ -183,8 +236,9 @@ export default function SavedQueries() {
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Type</th>
                 <th>Description</th>
-                <th>Wallet Address</th>
+                <th>Address</th>
                 <th>Network</th>
                 <th>Total Txns</th>
                 <th>Created</th>
@@ -199,6 +253,9 @@ export default function SavedQueries() {
                   onClick={() => handleOpenQuery(query)}
                 >
                   <td className="font-medium">{query.name}</td>
+                  <td>
+                    <TypeBadge type={getSearchType(query)} />
+                  </td>
                   <td className="text-muted-foreground max-w-xs truncate">
                     {query.description || "-"}
                   </td>
@@ -244,6 +301,58 @@ export default function SavedQueries() {
           </table>
         </div>
       )}
+
+      {/* Sandbox Data Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <FlaskConical className="w-5 h-5 text-muted-foreground" />
+          <div>
+            <h2 className="text-lg font-semibold">Sandbox Data</h2>
+            <p className="text-sm text-muted-foreground">Explore pre-configured datasets to test features</p>
+          </div>
+        </div>
+        
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Contract Address</th>
+                <th>Network</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SANDBOX_DATASETS.map((dataset) => (
+                <tr
+                  key={dataset.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleOpenSandbox(dataset)}
+                >
+                  <td className="font-medium">{dataset.name}</td>
+                  <td>
+                    <TypeBadge type={dataset.type} />
+                  </td>
+                  <td className="text-muted-foreground max-w-xs truncate">
+                    {dataset.description}
+                  </td>
+                  <td>
+                    <span className="font-mono text-sm">
+                      {dataset.address.slice(0, 8)}...{dataset.address.slice(-6)}
+                    </span>
+                  </td>
+                  <td>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {dataset.network}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
