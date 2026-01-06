@@ -269,16 +269,18 @@ export default function QueryResults() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 lg:p-8 space-y-6">
       {/* Search Bar */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Search Data</h1>
-        <p className="text-sm text-muted-foreground">
-          Enter a wallet address to search for all transactions involving that address
-        </p>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h1>Search</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter a wallet address to search for transactions
+          </p>
+        </div>
         <div className="flex gap-3 max-w-2xl">
           <Select value={selectedChain} onValueChange={setSelectedChain}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[150px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -287,7 +289,7 @@ export default function QueryResults() {
                   <div className="flex items-center gap-2">
                     <span>{chain.name}</span>
                     {chain.isTestnet && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground">
                         Testnet
                       </span>
                     )}
@@ -297,13 +299,13 @@ export default function QueryResults() {
             </SelectContent>
           </Select>
           <Input
-            placeholder="0x... (wallet or contract address)"
+            placeholder="0x... wallet or contract address"
             value={walletAddress}
             onChange={(e) => setWalletAddress(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             className="font-mono flex-1"
           />
-          <Button onClick={handleSearch} disabled={loading} className="gap-2">
+          <Button onClick={handleSearch} disabled={loading} className="gap-2 px-5">
             <Search className="w-4 h-4" />
             Search
           </Button>
@@ -379,14 +381,17 @@ export default function QueryResults() {
 
       {/* Empty State */}
       {!loading && !error && rows.length === 0 && !searchedWallet && (
-        <div className="text-center py-12 text-muted-foreground">
-          Enter a wallet address above to search for transactions
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <Search className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="empty-state-description">Enter a wallet address above to search for transactions</p>
         </div>
       )}
 
       {!loading && !error && rows.length === 0 && searchedWallet && (
-        <div className="text-center py-12 text-muted-foreground">
-          No transactions found for this address
+        <div className="empty-state">
+          <p className="empty-state-description">No transactions found for this address</p>
         </div>
       )}
 
