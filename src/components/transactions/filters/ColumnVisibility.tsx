@@ -43,7 +43,25 @@ export function ColumnVisibility({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-2 max-h-80 overflow-y-auto">
+      <PopoverContent align="end" className="w-56 p-2 max-h-80 overflow-y-auto bg-popover">
+        <div className="flex gap-2 mb-2 pb-2 border-b border-border">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 h-7 text-xs"
+            onClick={() => onHiddenColumnsChange(new Set())}
+          >
+            Select All
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 h-7 text-xs"
+            onClick={() => onHiddenColumnsChange(new Set(columns.map(c => c.key)))}
+          >
+            Deselect All
+          </Button>
+        </div>
         <div className="space-y-1">
           {columns.map((col) => (
             <label
