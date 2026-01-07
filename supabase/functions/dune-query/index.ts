@@ -139,21 +139,36 @@ serve(async (req) => {
       console.log(`Fetching cached results for query ${queryId}`);
       const requestedLimit = parameters?.limit || 10000;
       const cappedLimit = Math.min(requestedLimit, MAX_TOTAL_ROWS);
-      
-      const { rows, total_row_count } = await fetchAllCachedResults(queryId, DUNE_API_KEY, cappedLimit);
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          result: { rows },
-          metadata: {
-            total_row_count,
-            fetched_row_count: rows.length,
-            limit_applied: cappedLimit,
-          },
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+
+      try {
+        const { rows, total_row_count } = await fetchAllCachedResults(queryId, DUNE_API_KEY, cappedLimit);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            result: { rows },
+            metadata: {
+              total_row_count,
+              fetched_row_count: rows.length,
+              limit_applied: cappedLimit,
+            },
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Dune results error:', errorMessage);
+
+        // Return 200 so the client can display the precise Dune error message
+        // (supabase-js treats non-2xx as a generic invoke error)
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: errorMessage,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     console.log(`Executing Dune query ${queryId} with parameters:`, parameters);
