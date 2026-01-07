@@ -5,6 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Maximum rows per Dune API request (Dune's limit)
+const DUNE_PAGE_SIZE = 50000;
+// Maximum total rows we support
+const MAX_TOTAL_ROWS = 10000000;
+
 // Helper to poll for execution results - polls every 2 seconds for up to 2 minutes
 async function pollForResults(executionId: string, apiKey: string, maxAttempts = 60): Promise<any> {
   const pollUrl = `https://api.dune.com/api/v1/execution/${executionId}/results`;
@@ -39,11 +44,16 @@ async function pollForResults(executionId: string, apiKey: string, maxAttempts =
   throw new Error('Query execution timed out after 2 minutes');
 }
 
-// Fetch cached results directly without execution (for pre-computed queries)
-async function fetchCachedResults(queryId: string, apiKey: string, limit = 10000): Promise<any> {
-  const resultsUrl = `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`;
+// Fetch cached results with pagination support
+async function fetchCachedResultsPage(
+  queryId: string, 
+  apiKey: string, 
+  limit: number,
+  offset: number
+): Promise<{ rows: any[]; total_row_count: number }> {
+  const resultsUrl = `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}&offset=${offset}`;
   
-  console.log(`Fetching cached results for query ${queryId}`);
+  console.log(`Fetching cached results for query ${queryId}, offset=${offset}, limit=${limit}`);
   
   const response = await fetch(resultsUrl, {
     headers: { 'x-dune-api-key': apiKey },
@@ -55,8 +65,47 @@ async function fetchCachedResults(queryId: string, apiKey: string, limit = 10000
   }
   
   const data = await response.json();
-  console.log(`Fetched ${data.result?.rows?.length || 0} cached rows`);
-  return data;
+  const rows = data.result?.rows || [];
+  const totalRowCount = data.result?.metadata?.total_row_count || rows.length;
+  
+  console.log(`Fetched ${rows.length} rows (offset=${offset}, total=${totalRowCount})`);
+  
+  return { rows, total_row_count: totalRowCount };
+}
+
+// Fetch all cached results with pagination
+async function fetchAllCachedResults(
+  queryId: string, 
+  apiKey: string, 
+  maxRows: number = MAX_TOTAL_ROWS
+): Promise<{ rows: any[]; total_row_count: number }> {
+  const allRows: any[] = [];
+  let offset = 0;
+  let totalRowCount = 0;
+  
+  while (true) {
+    const remainingToFetch = maxRows - allRows.length;
+    if (remainingToFetch <= 0) break;
+    
+    const pageLimit = Math.min(DUNE_PAGE_SIZE, remainingToFetch);
+    const { rows, total_row_count } = await fetchCachedResultsPage(queryId, apiKey, pageLimit, offset);
+    
+    totalRowCount = total_row_count;
+    allRows.push(...rows);
+    
+    console.log(`Progress: ${allRows.length}/${Math.min(totalRowCount, maxRows)} rows fetched`);
+    
+    // Stop if we got fewer rows than requested (no more data)
+    if (rows.length < pageLimit) break;
+    
+    // Stop if we've reached the total
+    if (allRows.length >= Math.min(totalRowCount, maxRows)) break;
+    
+    offset += rows.length;
+  }
+  
+  console.log(`Completed fetching ${allRows.length} total rows`);
+  return { rows: allRows, total_row_count: totalRowCount };
 }
 
 serve(async (req) => {
@@ -88,12 +137,20 @@ serve(async (req) => {
     // Mode: 'results' = fetch cached results, 'execute' = run query with parameters
     if (mode === 'results') {
       console.log(`Fetching cached results for query ${queryId}`);
-      const resultData = await fetchCachedResults(queryId, DUNE_API_KEY, parameters?.limit || 1000);
+      const requestedLimit = parameters?.limit || 10000;
+      const cappedLimit = Math.min(requestedLimit, MAX_TOTAL_ROWS);
+      
+      const { rows, total_row_count } = await fetchAllCachedResults(queryId, DUNE_API_KEY, cappedLimit);
       
       return new Response(
         JSON.stringify({
           success: true,
-          result: resultData.result,
+          result: { rows },
+          metadata: {
+            total_row_count,
+            fetched_row_count: rows.length,
+            limit_applied: cappedLimit,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
