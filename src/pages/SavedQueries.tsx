@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Database, Wallet, Coins, FlaskConical, Pencil } from "lucide-react";
+import { Plus, Trash2, Database, Wallet, Coins, FlaskConical, Pencil, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,9 +246,9 @@ export default function SavedQueries() {
           <h1>Saved Data</h1>
           <p className="text-sm text-muted-foreground">Manage your saved wallet and token data</p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/wallets")}>
-          <Plus className="w-4 h-4" />
-          New Search
+        <Button className="gap-2" onClick={() => setCreateDialogOpen(true)}>
+          <Upload className="w-4 h-4" />
+          Upload CSV
         </Button>
       </div>
 
