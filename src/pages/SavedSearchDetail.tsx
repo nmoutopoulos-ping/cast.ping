@@ -208,7 +208,7 @@ export default function SavedSearchDetail() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="space-y-5">
         <Button 

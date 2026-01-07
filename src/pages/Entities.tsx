@@ -261,12 +261,12 @@ export default function Entities() {
 
 
   return (
-    <div className="p-8 space-y-6 animate-fade-in">
+    <div className="p-6 lg:p-8 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Entities & Tags</h1>
-          <p className="text-muted-foreground">Group wallets and manage classification tags</p>
+        <div className="space-y-1">
+          <h1>Entities & Tags</h1>
+          <p className="text-sm text-muted-foreground">Group wallets and manage classification tags</p>
         </div>
         
         <div className="flex gap-6 text-sm">
@@ -284,7 +284,7 @@ export default function Entities() {
       {/* Entities Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Entities</h2>
+          <h2>Entities</h2>
           <Button className="gap-2" onClick={openNewEntityDialog}>
             <Plus className="w-4 h-4" />
             New Entity
@@ -390,7 +390,7 @@ export default function Entities() {
       {/* Tags Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Tags</h2>
+          <h2>Tags</h2>
           <Button className="gap-2" onClick={openNewTagDialog}>
             <Plus className="w-4 h-4" />
             New Tag

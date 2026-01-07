@@ -223,10 +223,10 @@ export default function SavedQueries() {
   const TypeBadge = ({ type }: { type: "wallet" | "token" }) => (
     <Badge 
       variant="outline" 
-      className={`gap-1 text-xs ${
+      className={`gap-1.5 text-xs font-medium ${
         type === "wallet" 
-          ? "border-blue-500/30 text-blue-600 bg-blue-500/5" 
-          : "border-amber-500/30 text-amber-600 bg-amber-500/5"
+          ? "border-blue-500/25 text-blue-600 bg-blue-500/5" 
+          : "border-amber-500/25 text-amber-600 bg-amber-500/5"
       }`}
     >
       {type === "wallet" ? (
@@ -239,12 +239,12 @@ export default function SavedQueries() {
   );
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in">
+    <div className="p-6 lg:p-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Saved Data</h1>
-          <p className="text-muted-foreground">Manage your saved wallet data from Dune</p>
+        <div className="space-y-1">
+          <h1>Saved Data</h1>
+          <p className="text-sm text-muted-foreground">Manage your saved wallet and token data</p>
         </div>
         <Button className="gap-2" onClick={() => navigate("/wallets")}>
           <Plus className="w-4 h-4" />
@@ -346,12 +346,14 @@ export default function SavedQueries() {
       )}
 
       {/* Sandbox Data Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <FlaskConical className="w-5 h-5 text-muted-foreground" />
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <FlaskConical className="w-4 h-4 text-amber-600" />
+          </div>
           <div>
-            <h2 className="text-lg font-semibold">Sandbox Data</h2>
-            <p className="text-sm text-muted-foreground">Explore pre-configured datasets to test features</p>
+            <h2>Sandbox Data</h2>
+            <p className="text-sm text-muted-foreground">Explore pre-configured datasets</p>
           </div>
         </div>
         

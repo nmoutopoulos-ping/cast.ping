@@ -20,12 +20,12 @@ export function EmptyState({
   return (
     <div className="empty-state">
       <div className="empty-state-icon">
-        <Icon className="w-6 h-6 text-muted-foreground" />
+        <Icon className="w-6 h-6 text-muted-foreground/70" />
       </div>
       <h3 className="empty-state-title">{title}</h3>
-      <p className="empty-state-description mb-6">{description}</p>
+      <p className="empty-state-description">{description}</p>
       {action && (
-        <Button onClick={action.onClick} size="sm">
+        <Button onClick={action.onClick} size="sm" className="mt-6">
           {action.label}
         </Button>
       )}
