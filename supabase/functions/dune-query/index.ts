@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Maximum rows per Dune API request (Dune's limit)
-const DUNE_PAGE_SIZE = 50000;
+// Maximum rows per Dune API request (stay within Dune's datapoint limits)
+const DUNE_PAGE_SIZE = 1000;
 // Maximum total rows we support
 const MAX_TOTAL_ROWS = 10000000;
 
