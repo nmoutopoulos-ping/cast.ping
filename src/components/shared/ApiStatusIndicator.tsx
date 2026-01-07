@@ -21,58 +21,62 @@ export function ApiStatusIndicator({
 }: ApiStatusIndicatorProps) {
   if (status === "idle") return null;
 
-  const statusStyles = {
-    connecting: "bg-primary/10 border-primary/50 text-primary",
-    fetching: "bg-primary/10 border-primary/50 text-primary",
-    processing: "bg-primary/10 border-primary/50 text-primary",
-    complete: "bg-green-500/10 border-green-500/50 text-green-600",
-    error: "bg-destructive/10 border-destructive/50 text-destructive",
+  const statusConfig = {
+    connecting: {
+      styles: "bg-primary/8 border-primary/30 text-primary",
+      icon: <Wifi className="w-4 h-4 animate-pulse" />,
+    },
+    fetching: {
+      styles: "bg-primary/8 border-primary/30 text-primary",
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    },
+    processing: {
+      styles: "bg-primary/8 border-primary/30 text-primary",
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    },
+    complete: {
+      styles: "bg-success/8 border-success/30 text-success",
+      icon: <CheckCircle className="w-4 h-4" />,
+    },
+    error: {
+      styles: "bg-destructive/8 border-destructive/30 text-destructive",
+      icon: <AlertCircle className="w-4 h-4" />,
+    },
   };
+
+  const config = statusConfig[status] || statusConfig.connecting;
 
   return (
     <div className={cn(
-      "flex items-center gap-3 p-4 rounded-lg border",
-      statusStyles[status] || statusStyles.connecting,
+      "flex items-center gap-3 px-4 py-3.5 rounded-lg border",
+      config.styles,
       className
     )}>
-      {status === "connecting" && (
-        <>
-          <Wifi className="w-5 h-5 animate-pulse" />
-          <span className="font-medium flex-1">Connecting to Dune API...</span>
-          <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
-        </>
-      )}
-      {status === "fetching" && (
-        <>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <div className="flex-1">
-            <span className="font-medium">{message}</span>
-            <p className="text-xs opacity-75 mt-0.5">This may take up to 2 minutes...</p>
-          </div>
-          <span className="font-mono text-lg tabular-nums font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
-        </>
-      )}
-      {status === "processing" && (
-        <>
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="font-medium flex-1">Processing transaction data...</span>
-          <span className="font-mono text-sm tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
-        </>
-      )}
-      {status === "complete" && (
-        <>
-          <CheckCircle className="w-5 h-5" />
-          <span className="font-medium">{message}</span>
-        </>
-      )}
-      {status === "error" && (
-        <>
-          <AlertCircle className="w-5 h-5" />
-          <div className="flex-1">
-            <span className="font-medium">API Error</span>
-            <p className="text-sm mt-1 opacity-90">{message}</p>
-          </div>
-        </>
+      {config.icon}
+      
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium">
+          {status === "connecting" && "Connecting to Dune API..."}
+          {status === "fetching" && message}
+          {status === "processing" && "Processing transaction data..."}
+          {status === "complete" && message}
+          {status === "error" && "API Error"}
+        </span>
+        {status === "fetching" && (
+          <p className="text-xs opacity-70 mt-0.5">This may take up to 2 minutes...</p>
+        )}
+        {status === "error" && message && (
+          <p className="text-xs opacity-80 mt-0.5 truncate">{message}</p>
+        )}
+      </div>
+
+      {["connecting", "fetching", "processing"].includes(status) && (
+        <span className={cn(
+          "font-mono tabular-nums shrink-0",
+          status === "fetching" ? "text-base font-semibold" : "text-sm"
+        )}>
+          {formatElapsedTime(elapsedSeconds)}
+        </span>
       )}
     </div>
   );

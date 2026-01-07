@@ -337,12 +337,12 @@ export default function ApiConnections() {
   // ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-8 max-w-4xl animate-fade-in">
+    <div className="p-6 lg:p-8 max-w-4xl animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">API Connections</h1>
-          <p className="text-muted-foreground">Manage Dune API connections for different chains</p>
+          <h1>API Connections</h1>
+          <p className="text-sm text-muted-foreground">Manage Dune API connections for different chains</p>
         </div>
 
         {/* Add Connection Dialog */}

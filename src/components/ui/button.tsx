@@ -5,15 +5,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/80",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/85",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/85",
-        outline: "border border-border bg-background hover:bg-muted/50 hover:border-border active:bg-muted/70",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/70 active:bg-secondary/60",
-        ghost: "hover:bg-muted/50 active:bg-muted/70",
+        outline: "border border-border bg-background hover:bg-muted/40 hover:border-border/80 active:bg-muted/60",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
+        ghost: "hover:bg-muted/40 active:bg-muted/60",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
