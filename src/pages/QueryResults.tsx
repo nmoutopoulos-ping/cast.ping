@@ -18,6 +18,7 @@ import {
   saveTransactionsToDb,
   fetchFromDune,
 } from "@/lib/transactionUtils";
+import { formatNumber } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -178,7 +179,7 @@ export default function QueryResults() {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         setApiStatus({ 
           status: "complete", 
-          message: `Found ${duneRows.length} transactions in ${elapsed}s` 
+          message: `Found ${formatNumber(duneRows.length)} transactions in ${elapsed}s` 
         });
         return { rows: duneRows, error: null };
       } else {
@@ -408,7 +409,7 @@ export default function QueryResults() {
         <>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">{rows.length} transactions found</span>
+              <span className="text-sm text-muted-foreground">{formatNumber(rows.length)} transactions found</span>
               {searchedWallet && (
                 <Badge variant="outline" className="font-mono text-xs">
                   {searchedWallet.slice(0, 10)}...{searchedWallet.slice(-8)}

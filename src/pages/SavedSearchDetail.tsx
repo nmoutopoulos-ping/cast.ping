@@ -34,6 +34,7 @@ import {
   fetchEntitiesAndTags,
   type DateRange,
 } from "@/lib/transactionUtils";
+import { formatNumber } from "@/lib/utils";
 import { ApiStatusIndicator, type ApiStatus } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
 
@@ -262,7 +263,7 @@ export default function SavedSearchDetail() {
               </div>
               <div className="inline-flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-md border border-border/40">
                 <Database className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs font-medium tabular-nums">{rows.length}</span>
+                <span className="text-xs font-medium tabular-nums">{formatNumber(rows.length)}</span>
                 <span className="text-xs text-muted-foreground">transactions</span>
               </div>
               <Badge variant="outline" className="font-mono text-xs h-8 px-3 border-border/50">
