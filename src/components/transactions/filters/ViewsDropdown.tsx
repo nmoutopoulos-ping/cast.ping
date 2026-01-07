@@ -1,14 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, Save, Trash2, Check, RefreshCw, Circle } from "lucide-react";
+import { Plus, Save, Trash2, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -181,7 +174,8 @@ export function ViewsDropdown({
     }
   };
 
-  const handleDeleteView = async (viewId: string) => {
+  const handleDeleteView = async (viewId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     const { error } = await (supabase
       .from("saved_views" as "tags")
       .delete()
@@ -205,107 +199,70 @@ export function ViewsDropdown({
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        {/* Update View button - visible when in a view with unsaved changes */}
-        {currentView && isModified && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleUpdateView(currentView.id)}
-            className="gap-1.5 text-amber-600 border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-700"
-            title="Save changes to current view"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Update View
-          </Button>
-        )}
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant={currentView ? "default" : "outline"} 
-              size="sm" 
-              disabled={!savedQueryId || !userId}
+      <div className="flex items-center gap-1">
+        {/* Saved View Tabs */}
+        {savedViews.map((view) => {
+          const isActive = currentViewId === view.id;
+          const viewIsModified = isActive && isModified;
+          
+          return (
+            <div
+              key={view.id}
               className={cn(
-                "gap-2",
-                currentView && "bg-primary text-primary-foreground"
+                "group relative flex items-center gap-1 px-3 py-1.5 rounded-t-md text-sm cursor-pointer transition-colors border border-b-0",
+                isActive
+                  ? "bg-background border-border text-foreground font-medium -mb-px z-10"
+                  : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
+              onClick={() => !isActive && onViewLoad(view)}
             >
-              {currentView ? (
-                <>
-                  {isModified ? (
-                    <Circle className="w-2 h-2 fill-amber-400 text-amber-400" />
-                  ) : (
-                    <Check className="w-3.5 h-3.5" />
-                  )}
-                  {currentView.name}
-                  {isModified && <span className="text-[10px] opacity-70">(modified)</span>}
-                </>
-              ) : (
-                "Views"
+              {/* Modified indicator dot */}
+              {viewIsModified && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
               )}
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
-            {currentView && (
-              <>
-                <DropdownMenuItem
-                  onClick={() => onCurrentViewIdChange(null)}
-                  className="text-muted-foreground"
+              
+              <span className="truncate max-w-[120px]">{view.name}</span>
+              
+              {/* Update button for modified active view */}
+              {viewIsModified && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUpdateView(view.id);
+                  }}
+                  className="p-0.5 hover:bg-amber-500/20 rounded text-amber-600"
+                  title="Save changes"
                 >
-                  Clear current view
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            {savedViews.length > 0 ? (
-              <>
-                {savedViews.map((view) => (
-                  <DropdownMenuItem
-                    key={view.id}
-                    className="flex items-center justify-between group"
-                  >
-                    <button
-                      className="flex-1 text-left flex items-center gap-2"
-                      onClick={() => onViewLoad(view)}
-                    >
-                      {currentViewId === view.id && <Check className="w-3 h-3 text-primary" />}
-                      <span className={cn(currentViewId !== view.id && "ml-5")}>{view.name}</span>
-                    </button>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpdateView(view.id);
-                        }}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Update view with current settings"
-                      >
-                        <Save className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteView(view.id);
-                        }}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Delete view"
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </button>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
-            <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
-              <Save className="w-4 h-4 mr-2" />
-              Save current as new view
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                  <RefreshCw className="w-3 h-3" />
+                </button>
+              )}
+              
+              {/* Close/delete button */}
+              <button
+                onClick={(e) => handleDeleteView(view.id, e)}
+                className={cn(
+                  "p-0.5 rounded hover:bg-destructive/20 hover:text-destructive",
+                  isActive ? "opacity-70 hover:opacity-100" : "opacity-0 group-hover:opacity-70"
+                )}
+                title="Delete view"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          );
+        })}
+        
+        {/* Add new view button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSaveDialogOpen(true)}
+          disabled={!savedQueryId || !userId}
+          className="h-7 w-7 p-0 rounded-full"
+          title="Save current as new view"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
       </div>
 
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
