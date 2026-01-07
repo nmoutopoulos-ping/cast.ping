@@ -146,8 +146,9 @@ export default function SandboxViewer() {
     try {
       setApiStatus({ status: "fetching", message: `Fetching cached results...`, startTime });
 
+      // Limit to 100k rows to stay within Dune API billing limits
       const { data, error: invokeError } = await supabase.functions.invoke("dune-query", {
-        body: { queryId, mode: "results", parameters: { limit: 10000000 } },
+        body: { queryId, mode: "results", parameters: { limit: 100000 } },
       });
 
       if (invokeError) {
