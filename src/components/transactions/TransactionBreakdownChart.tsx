@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatNumber } from "@/lib/utils";
 import type { TransactionRow, Entity, DbTag } from "@/types/transactions";
 
 interface TransactionBreakdownChartProps {
@@ -154,7 +155,7 @@ export function TransactionBreakdownChart({
           </div>
         )}
         <div className="text-xs text-muted-foreground pl-4">
-          {data.value.toLocaleString()} txns ({percentage}%)
+          {formatNumber(data.value)} txns ({percentage}%)
         </div>
       </div>
     );
@@ -196,7 +197,7 @@ export function TransactionBreakdownChart({
             <span className="text-xs text-muted-foreground">
               {entityName}
               <span className="ml-1 tabular-nums">
-                ({data.tags.reduce((sum, t) => sum + t.count, 0)})
+                ({formatNumber(data.tags.reduce((sum, t) => sum + t.count, 0))})
               </span>
             </span>
           </div>

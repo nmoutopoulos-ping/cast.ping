@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Maximize2, Filter, Columns, Calendar, ChevronDown, Tag, Building2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { TransactionDataTable, ALL_COLUMNS } from "./TransactionDataTable";
 import { MethodFilters, DateRangeFilter, ColumnVisibility, TagRulesFilter, ViewsDropdown } from "./filters";
 import type { 
@@ -145,7 +145,7 @@ export function FullscreenTableDialog({
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold">{queryName}</h2>
             <Badge variant="secondary" className="font-mono text-xs">
-              {filteredRows.length} of {rows.length} transactions
+              {formatNumber(filteredRows.length)} of {formatNumber(rows.length)} transactions
             </Badge>
           </div>
           <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { ArrowLeftRight, Flame, Sparkles, Wallet } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type { MethodType, TransactionRow } from "@/types/transactions";
 import { useMemo } from "react";
 
@@ -74,7 +74,7 @@ export function MethodFilters({
               "tabular-nums ml-0.5",
               isActive ? "text-background/70" : "text-muted-foreground/60"
             )}>
-              {methodCounts[method]}
+              {formatNumber(methodCounts[method])}
             </span>
           </button>
         );

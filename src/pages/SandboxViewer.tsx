@@ -31,6 +31,7 @@ import {
   mapDuneRowToTransactionRow,
   type DateRange,
 } from "@/lib/transactionUtils";
+import { formatNumber } from "@/lib/utils";
 
 // Use a subset of columns relevant for sandbox datasets
 const SANDBOX_COLUMNS = ALL_COLUMNS
@@ -167,7 +168,7 @@ export default function SandboxViewer() {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       setApiStatus({
         status: "complete",
-        message: `Loaded ${mappedRows.length} transactions in ${elapsed}s`,
+        message: `Loaded ${formatNumber(mappedRows.length)} transactions in ${elapsed}s`,
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to fetch data";
@@ -240,7 +241,7 @@ export default function SandboxViewer() {
         </Badge>
         {rows.length > 0 && (
           <Badge variant="secondary" className="gap-1">
-            {rows.length.toLocaleString()} transactions
+            {formatNumber(rows.length)} transactions
           </Badge>
         )}
       </div>

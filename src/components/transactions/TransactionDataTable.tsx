@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import type { TransactionRow, AddressLabelInfo, DbTag } from "@/types/transactions";
 import { ETHERSCAN_BASE, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE } from "@/types/transactions";
 import { formatEthValue } from "@/lib/transactionUtils";
@@ -554,7 +554,7 @@ export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = 
           <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/30">
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">
-                Showing {startIndex + 1}-{Math.min(startIndex + pageSize, rows.length)} of {rows.length}
+                Showing {formatNumber(startIndex + 1)}-{formatNumber(Math.min(startIndex + pageSize, rows.length))} of {formatNumber(rows.length)}
               </span>
               <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
                 <SelectTrigger className="h-7 w-[70px] text-xs">
