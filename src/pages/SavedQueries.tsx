@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Database, Wallet, Coins, FlaskConical } from "lucide-react";
+import { Plus, Trash2, Database, Wallet, Coins, FlaskConical, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,10 +82,14 @@ export default function SavedQueries() {
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [queryToDelete, setQueryToDelete] = useState<SavedQuery | null>(null);
+  const [queryToEdit, setQueryToEdit] = useState<SavedQuery | null>(null);
   const [newQueryName, setNewQueryName] = useState("");
   const [newQueryDescription, setNewQueryDescription] = useState("");
   const [newQueryDuneId, setNewQueryDuneId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchQueries = async () => {
@@ -171,6 +175,40 @@ export default function SavedQueries() {
       setQueryToDelete(null);
       fetchQueries();
     }
+  };
+
+  const handleEditQuery = async () => {
+    if (!queryToEdit || !editName.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from("saved_queries")
+      .update({
+        name: editName.trim(),
+        description: editDescription.trim() || null,
+      })
+      .eq("id", queryToEdit.id);
+
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+    } else {
+      toast.success("Updated successfully!");
+      setEditDialogOpen(false);
+      setQueryToEdit(null);
+      fetchQueries();
+    }
+    setSaving(false);
+  };
+
+  const openEditDialog = (query: SavedQuery, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQueryToEdit(query);
+    setEditName(query.name);
+    setEditDescription(query.description || "");
+    setEditDialogOpen(true);
   };
 
   const handleOpenQuery = (query: SavedQuery) => {
@@ -280,7 +318,14 @@ export default function SavedQueries() {
                   <td className="text-muted-foreground">
                     {formatDistanceToNow(new Date(query.created_at), { addSuffix: true })}
                   </td>
-                  <td>
+                  <td className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => openEditDialog(query, e)}
+                    >
+                      <Pencil className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -397,6 +442,45 @@ export default function SavedQueries() {
             </Button>
             <Button onClick={handleCreateQuery} disabled={saving}>
               {saving ? "Creating..." : "Create Search"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Saved Data</DialogTitle>
+            <DialogDescription>
+              Update the name and description for this saved search.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Name *</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Describe what this search is for..."
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditQuery} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
