@@ -146,7 +146,7 @@ export default function SandboxViewer() {
       setApiStatus({ status: "fetching", message: `Fetching cached results...`, startTime });
 
       const { data, error: invokeError } = await supabase.functions.invoke("dune-query", {
-        body: { queryId, mode: "results" },
+        body: { queryId, mode: "results", parameters: { limit: 10000 } },
       });
 
       if (invokeError) {

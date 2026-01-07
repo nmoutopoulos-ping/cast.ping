@@ -40,7 +40,7 @@ async function pollForResults(executionId: string, apiKey: string, maxAttempts =
 }
 
 // Fetch cached results directly without execution (for pre-computed queries)
-async function fetchCachedResults(queryId: string, apiKey: string, limit = 1000): Promise<any> {
+async function fetchCachedResults(queryId: string, apiKey: string, limit = 10000): Promise<any> {
   const resultsUrl = `https://api.dune.com/api/v1/query/${queryId}/results?limit=${limit}`;
   
   console.log(`Fetching cached results for query ${queryId}`);
