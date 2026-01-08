@@ -296,32 +296,37 @@ export default function SavedSearchDetail() {
       {/* Results */}
       {!loading && !error && rows.length > 0 && (
         <>
-          {/* Action buttons */}
-          <div className="flex items-center justify-end gap-2.5">
-            <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
-            <Button variant="outline" onClick={handleRefresh} className="gap-2 h-9">
-              <RefreshCw className="w-4 h-4" />
-              Refresh from Dune
-            </Button>
-            {isSavedToDb ? (
-              <Button variant="outline" disabled className="gap-2 h-9 text-green-600 border-green-600/50">
-                <CheckCircle className="w-4 h-4" />
-                Saved to Database
-              </Button>
-            ) : (
-              <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2 h-9">
-                <Download className="w-4 h-4" />
-                {saving ? "Saving..." : "Save to Database"}
-              </Button>
-            )}
-          </div>
+          {/* Action buttons + Chart row */}
+          <div className="flex items-start gap-6">
+            {/* Left: Chart */}
+            <div className="flex-1 min-w-0">
+              <TransactionBreakdownChart
+                rows={rows}
+                entities={entities}
+                tags={tags}
+              />
+            </div>
 
-          {/* Pie Chart */}
-          <TransactionBreakdownChart
-            rows={rows}
-            entities={entities}
-            tags={tags}
-          />
+            {/* Right: Action buttons stacked */}
+            <div className="flex flex-col gap-2 shrink-0 pt-1">
+              <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
+              <Button variant="outline" onClick={handleRefresh} className="gap-2 h-9">
+                <RefreshCw className="w-4 h-4" />
+                Update
+              </Button>
+              {isSavedToDb ? (
+                <Button variant="outline" disabled className="gap-2 h-9 text-green-600 border-green-600/50">
+                  <CheckCircle className="w-4 h-4" />
+                  Saved to Database
+                </Button>
+              ) : (
+                <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2 h-9">
+                  <Download className="w-4 h-4" />
+                  {saving ? "Saving..." : "Save to Database"}
+                </Button>
+              )}
+            </div>
+          </div>
 
           <FullscreenTableDialog
             open={fullscreenOpen}

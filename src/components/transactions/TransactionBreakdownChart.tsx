@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { formatNumber } from "@/lib/utils";
 import type { TransactionRow, Entity, DbTag } from "@/types/transactions";
 
@@ -161,70 +160,23 @@ export function TransactionBreakdownChart({
     );
   };
 
-  // Custom legend
-  const renderLegend = () => {
-    // Group by entity for cleaner legend
-    const entityGroups = new Map<string, { color: string; tags: Array<{ name: string; color: string; count: number }> }>();
-    
-    chartData.forEach((slice) => {
-      const existing = entityGroups.get(slice.entityName);
-      if (existing) {
-        existing.tags.push({ 
-          name: slice.tagName, 
-          color: slice.color, 
-          count: slice.value 
-        });
-      } else {
-        entityGroups.set(slice.entityName, {
-          color: slice.isUnassigned ? UNASSIGNED_ENTITY_COLOR : slice.color,
-          tags: [{ 
-            name: slice.tagName, 
-            color: slice.color, 
-            count: slice.value 
-          }],
-        });
-      }
-    });
-
-    return (
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 justify-center">
-        {Array.from(entityGroups.entries()).map(([entityName, data]) => (
-          <div key={entityName} className="flex items-center gap-1.5">
-            <div 
-              className="w-2 h-2 rounded-sm shrink-0" 
-              style={{ backgroundColor: data.color }}
-            />
-            <span className="text-xs text-muted-foreground">
-              {entityName}
-              <span className="ml-1 tabular-nums">
-                ({formatNumber(data.tags.reduce((sum, t) => sum + t.count, 0))})
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   if (chartData.length === 0) {
     return null;
   }
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Transaction Breakdown</CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <div className="h-[200px] w-full">
+    <div className="space-y-3">
+      <h3 className="text-base font-medium">Transaction Breakdown</h3>
+      <div className="flex items-start gap-6">
+        <div className="h-[220px] w-[280px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={45}
-                outerRadius={80}
+                innerRadius={55}
+                outerRadius={100}
                 paddingAngle={1}
                 dataKey="value"
                 stroke="hsl(var(--background))"
@@ -242,8 +194,36 @@ export function TransactionBreakdownChart({
             </PieChart>
           </ResponsiveContainer>
         </div>
-        {renderLegend()}
-      </CardContent>
-    </Card>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 items-start content-start">
+          {Array.from(
+            chartData.reduce((map, slice) => {
+              const existing = map.get(slice.entityName);
+              if (existing) {
+                existing.count += slice.value;
+              } else {
+                map.set(slice.entityName, { 
+                  color: slice.isUnassigned ? UNASSIGNED_ENTITY_COLOR : slice.color, 
+                  count: slice.value 
+                });
+              }
+              return map;
+            }, new Map<string, { color: string; count: number }>())
+          ).map(([entityName, data]) => (
+            <div key={entityName} className="flex items-center gap-1.5">
+              <div 
+                className="w-2 h-2 rounded-sm shrink-0" 
+                style={{ backgroundColor: data.color }}
+              />
+              <span className="text-xs text-muted-foreground">
+                {entityName}
+                <span className="ml-1 tabular-nums">
+                  ({formatNumber(data.count)})
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
