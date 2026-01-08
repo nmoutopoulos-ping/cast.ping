@@ -310,7 +310,7 @@ export default function SavedSearchDetail() {
             {/* Right: Action buttons stacked */}
             <div className="flex flex-col gap-2 shrink-0 pt-1">
               <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
-              <Button variant="outline" onClick={handleRefresh} className="gap-2 h-9">
+              <Button variant="outline" className="gap-2 h-9">
                 <RefreshCw className="w-4 h-4" />
                 Update
               </Button>
