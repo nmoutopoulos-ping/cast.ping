@@ -134,14 +134,14 @@ export function FullscreenTableDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col bg-background">
+      <DialogContent hideCloseButton className="max-w-[98vw] w-[98vw] h-[95vh] p-0 gap-0 flex flex-col bg-background">
         <VisuallyHidden>
           <DialogTitle>Transaction Data - {queryName}</DialogTitle>
           <DialogDescription>Full screen view of transaction data with filters</DialogDescription>
         </VisuallyHidden>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-card shrink-0">
+        <div className="flex items-center justify-between px-6 py-3 border-b bg-card shrink-0">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold">{queryName}</h2>
             <Badge variant="secondary" className="font-mono text-xs">
@@ -168,6 +168,22 @@ export function FullscreenTableDialog({
               <X className="w-4 h-4" />
             </Button>
           </div>
+        </div>
+
+        {/* Views Tabs Row */}
+        <div className="px-6 py-2 border-b bg-card/50 shrink-0">
+          <ViewsDropdown
+            savedQueryId={savedQueryId}
+            userId={userId}
+            hiddenColumns={hiddenColumns}
+            activeFilters={activeFilters}
+            filterMode={filterMode}
+            tagFilterMode={tagFilterMode}
+            methodFilters={methodFilters}
+            currentViewId={currentViewId}
+            onViewLoad={handleViewLoad}
+            onCurrentViewIdChange={setCurrentViewId}
+          />
         </div>
 
         {/* Dynamic Filter Panel */}
@@ -288,21 +304,6 @@ export function FullscreenTableDialog({
                   columns={columns}
                   hiddenColumns={hiddenColumns}
                   onHiddenColumnsChange={onHiddenColumnsChange}
-                />
-
-                <div className="w-px h-6 bg-border" />
-
-                <ViewsDropdown
-                  savedQueryId={savedQueryId}
-                  userId={userId}
-                  hiddenColumns={hiddenColumns}
-                  activeFilters={activeFilters}
-                  filterMode={filterMode}
-                  tagFilterMode={tagFilterMode}
-                  methodFilters={methodFilters}
-                  currentViewId={currentViewId}
-                  onViewLoad={handleViewLoad}
-                  onCurrentViewIdChange={setCurrentViewId}
                 />
               </div>
             </div>
