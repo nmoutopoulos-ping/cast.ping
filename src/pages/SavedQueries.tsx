@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Trash2, Database, Wallet, Coins, FlaskConical, Pencil, Upload } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Trash2, Database, Wallet, Coins, FlaskConical, Pencil, Upload, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -85,12 +92,17 @@ export default function SavedQueries() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [queryToDelete, setQueryToDelete] = useState<SavedQuery | null>(null);
   const [queryToEdit, setQueryToEdit] = useState<SavedQuery | null>(null);
-  const [newQueryName, setNewQueryName] = useState("");
-  const [newQueryDescription, setNewQueryDescription] = useState("");
-  const [newQueryDuneId, setNewQueryDuneId] = useState("");
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  
+  // CSV Upload form state
+  const [uploadName, setUploadName] = useState("");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadAddress, setUploadAddress] = useState("");
+  const [uploadType, setUploadType] = useState<"wallet" | "token">("wallet");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchQueries = async () => {
     if (!user) return;
@@ -131,33 +143,6 @@ export default function SavedQueries() {
       fetchQueries();
     }
   }, [user]);
-
-  const handleCreateQuery = async () => {
-    if (!newQueryName.trim() || !newQueryDuneId.trim() || !user) {
-      toast.error("Please fill in required fields");
-      return;
-    }
-
-    setSaving(true);
-    const { error } = await supabase.from("saved_queries").insert({
-      name: newQueryName.trim(),
-      description: newQueryDescription.trim() || null,
-      dune_query_id: newQueryDuneId.trim(),
-      user_id: user.id,
-    });
-
-    if (error) {
-      toast.error("Failed to create query: " + error.message);
-    } else {
-      toast.success("Query created successfully!");
-      setCreateDialogOpen(false);
-      setNewQueryName("");
-      setNewQueryDescription("");
-      setNewQueryDuneId("");
-      fetchQueries();
-    }
-    setSaving(false);
-  };
 
   const handleDeleteQuery = async () => {
     if (!queryToDelete) return;
@@ -399,51 +384,124 @@ export default function SavedQueries() {
         </div>
       </div>
 
-      {/* Create Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
+      {/* CSV Upload Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={(open) => {
+        setCreateDialogOpen(open);
+        if (!open) {
+          setUploadName("");
+          setUploadDescription("");
+          setUploadAddress("");
+          setUploadType("wallet");
+          setUploadFile(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>New Saved Search</DialogTitle>
+            <DialogTitle>Upload CSV Data</DialogTitle>
             <DialogDescription>
-              Save a search configuration to quickly access wallet data.
+              Import transaction data from a CSV file.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="create-name">Search Name *</Label>
+              <Label htmlFor="upload-name">Name *</Label>
               <Input
-                id="create-name"
-                placeholder="e.g., My Wallet History"
-                value={newQueryName}
-                onChange={(e) => setNewQueryName(e.target.value)}
+                id="upload-name"
+                placeholder="e.g., My Wallet Transactions"
+                value={uploadName}
+                onChange={(e) => setUploadName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-dune-id">Dune Query ID *</Label>
+              <Label htmlFor="upload-description">Description</Label>
+              <Textarea
+                id="upload-description"
+                placeholder="Describe this dataset..."
+                value={uploadDescription}
+                onChange={(e) => setUploadDescription(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="upload-address">Wallet / Token Address *</Label>
               <Input
-                id="create-dune-id"
-                placeholder="e.g., 6459204"
-                value={newQueryDuneId}
-                onChange={(e) => setNewQueryDuneId(e.target.value)}
+                id="upload-address"
+                placeholder="0x..."
+                value={uploadAddress}
+                onChange={(e) => setUploadAddress(e.target.value)}
                 className="font-mono"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-description">Description</Label>
-              <Textarea
-                id="create-description"
-                placeholder="Describe what this search is for..."
-                value={newQueryDescription}
-                onChange={(e) => setNewQueryDescription(e.target.value)}
+              <Label>Data Type *</Label>
+              <Select value={uploadType} onValueChange={(val) => setUploadType(val as "wallet" | "token")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wallet">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      Wallet
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="token">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-4 h-4" />
+                      Token
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>CSV File *</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+              >
+                {uploadFile ? (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <FileUp className="w-5 h-5 text-primary" />
+                    <span className="font-medium">{uploadFile.name}</span>
+                    <span className="text-muted-foreground">
+                      ({(uploadFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to select a CSV file
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateQuery} disabled={saving}>
-              {saving ? "Creating..." : "Create Search"}
+            <Button 
+              onClick={() => {
+                if (!uploadName.trim() || !uploadAddress.trim() || !uploadFile) {
+                  toast.error("Please fill in all required fields");
+                  return;
+                }
+                toast.success("CSV upload flow ready - next step: process file");
+                setCreateDialogOpen(false);
+              }} 
+              disabled={!uploadName.trim() || !uploadAddress.trim() || !uploadFile}
+            >
+              Upload
             </Button>
           </DialogFooter>
         </DialogContent>
