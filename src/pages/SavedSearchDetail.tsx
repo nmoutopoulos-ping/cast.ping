@@ -296,37 +296,51 @@ export default function SavedSearchDetail() {
       {/* Results */}
       {!loading && !error && rows.length > 0 && (
         <>
-          {/* Action buttons + Chart row */}
-          <div className="flex items-start gap-6">
-            {/* Left: Chart */}
-            <div className="flex-1 min-w-0">
-              <TransactionBreakdownChart
-                rows={rows}
-                entities={entities}
-                tags={tags}
-              />
-            </div>
-
-            {/* Right: Action buttons stacked */}
-            <div className="flex flex-col gap-2 shrink-0 pt-1">
-              <FullscreenTableTrigger onClick={() => setFullscreenOpen(true)} />
-              <Button variant="outline" className="gap-2 h-9">
-                <RefreshCw className="w-4 h-4" />
-                Update
+          {/* Toolbar */}
+          <div className="flex items-center gap-1.5 pb-2 border-b border-border/40">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-2.5 text-xs gap-1.5"
+              onClick={() => setFullscreenOpen(true)}
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Fullscreen
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2.5 text-xs gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Update
+            </Button>
+            {isSavedToDb ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                disabled 
+                className="h-7 px-2.5 text-xs gap-1.5 text-green-600"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                Saved
               </Button>
-              {isSavedToDb ? (
-                <Button variant="outline" disabled className="gap-2 h-9 text-green-600 border-green-600/50">
-                  <CheckCircle className="w-4 h-4" />
-                  Saved to Database
-                </Button>
-              ) : (
-                <Button onClick={handleSaveToDatabase} disabled={saving} className="gap-2 h-9">
-                  <Download className="w-4 h-4" />
-                  {saving ? "Saving..." : "Save to Database"}
-                </Button>
-              )}
-            </div>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSaveToDatabase} 
+                disabled={saving} 
+                className="h-7 px-2.5 text-xs gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            )}
           </div>
+
+          {/* Chart */}
+          <TransactionBreakdownChart
+            rows={rows}
+            entities={entities}
+            tags={tags}
+          />
 
           <FullscreenTableDialog
             open={fullscreenOpen}
