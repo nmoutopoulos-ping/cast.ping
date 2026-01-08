@@ -194,34 +194,78 @@ export function TransactionBreakdownChart({
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 pt-4 items-start content-start">
-          {Array.from(
-            chartData.reduce((map, slice) => {
-              const existing = map.get(slice.entityName);
-              if (existing) {
-                existing.count += slice.value;
-              } else {
-                map.set(slice.entityName, { 
-                  color: slice.isUnassigned ? UNASSIGNED_ENTITY_COLOR : slice.color, 
-                  count: slice.value 
-                });
-              }
-              return map;
-            }, new Map<string, { color: string; count: number }>())
-          ).map(([entityName, data]) => (
-            <div key={entityName} className="flex items-center gap-1.5">
-              <div 
-                className="w-2 h-2 rounded-sm shrink-0" 
-                style={{ backgroundColor: data.color }}
-              />
-              <span className="text-xs text-muted-foreground">
-                {entityName}
-                <span className="ml-1 tabular-nums">
-                  ({formatNumber(data.count)})
-                </span>
-              </span>
+        <div className="flex flex-col gap-4 pt-2">
+          {/* Entity Legend */}
+          <div>
+            <span className="text-xs font-medium text-foreground/70 uppercase tracking-wide">Entities</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
+              {Array.from(
+                chartData.reduce((map, slice) => {
+                  const existing = map.get(slice.entityName);
+                  if (existing) {
+                    existing.count += slice.value;
+                  } else {
+                    map.set(slice.entityName, { 
+                      color: slice.isUnassigned ? UNASSIGNED_ENTITY_COLOR : slice.color, 
+                      count: slice.value 
+                    });
+                  }
+                  return map;
+                }, new Map<string, { color: string; count: number }>())
+              ).map(([entityName, data]) => (
+                <div key={entityName} className="flex items-center gap-1.5">
+                  <div 
+                    className="w-2 h-2 rounded-sm shrink-0" 
+                    style={{ backgroundColor: data.color }}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {entityName}
+                    <span className="ml-1 tabular-nums">
+                      ({formatNumber(data.count)})
+                    </span>
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          
+          {/* Tag Legend */}
+          <div>
+            <span className="text-xs font-medium text-foreground/70 uppercase tracking-wide">Tags</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
+              {Array.from(
+                chartData.reduce((map, slice) => {
+                  if (slice.tagName === "No Tag") return map;
+                  const existing = map.get(slice.tagName);
+                  if (existing) {
+                    existing.count += slice.value;
+                  } else {
+                    map.set(slice.tagName, { 
+                      color: slice.color, 
+                      count: slice.value 
+                    });
+                  }
+                  return map;
+                }, new Map<string, { color: string; count: number }>())
+              ).map(([tagName, data]) => (
+                <div key={tagName} className="flex items-center gap-1.5">
+                  <div 
+                    className="w-2 h-2 rounded-sm shrink-0" 
+                    style={{ backgroundColor: data.color }}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {tagName}
+                    <span className="ml-1 tabular-nums">
+                      ({formatNumber(data.count)})
+                    </span>
+                  </span>
+                </div>
+              ))}
+              {!chartData.some(s => s.tagName !== "No Tag") && (
+                <span className="text-xs text-muted-foreground/60 italic">No tags assigned</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
