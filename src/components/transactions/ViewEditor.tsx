@@ -87,8 +87,46 @@ export function ViewEditor({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Row 1: Entities and Tags side by side */}
+    <div className="space-y-3">
+      {/* Row 1: Views tabs - prominent browser-tab style */}
+      <div className="flex items-end justify-between border-b border-border/40">
+        <ViewsDropdown
+          savedQueryId={savedQueryId}
+          userId={userId}
+          hiddenColumns={hiddenColumns}
+          activeFilters={activeFilters}
+          filterMode={filterMode}
+          tagFilterMode={tagFilterMode}
+          methodFilters={methodFilters}
+          currentViewId={currentViewId}
+          onViewLoad={handleViewLoad}
+          onCurrentViewIdChange={setCurrentViewId}
+        />
+        
+        {/* Filter status badge on right */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 pb-2">
+            <span className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground tabular-nums">
+                {filteredRowCount.toLocaleString()}
+              </span>
+              <span className="mx-1">of</span>
+              <span className="tabular-nums">{totalRowCount.toLocaleString()}</span>
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+            >
+              <X className="w-3 h-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Row 2: Entities and Tags side by side */}
       <div className="flex items-start gap-6 py-3 px-4 bg-muted/20 rounded-lg border border-border/30">
         <EntityTagFilters
           entities={entities}
@@ -99,7 +137,7 @@ export function ViewEditor({
         />
       </div>
 
-      {/* Row 2: Method filters + Controls */}
+      {/* Row 3: Method filters + Controls */}
       <div className="flex items-center justify-between gap-4 py-2.5 px-4 bg-muted/10 rounded-lg border border-border/20">
         {/* Left: Method filters */}
         <div className="flex items-center gap-3">
@@ -110,31 +148,8 @@ export function ViewEditor({
           />
         </div>
 
-        {/* Right: Controls + Status */}
+        {/* Right: Controls */}
         <div className="flex items-center gap-3">
-          {/* Filter status */}
-          {hasActiveFilters && (
-            <div className="flex items-center gap-2 mr-2">
-              <span className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground tabular-nums">
-                  {filteredRowCount.toLocaleString()}
-                </span>
-                <span className="mx-1">of</span>
-                <span className="tabular-nums">{totalRowCount.toLocaleString()}</span>
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFilters}
-                className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-
-          <div className="w-px h-5 bg-border/50" />
-
           <TagRulesFilter
             activeFilters={activeFilters}
             tagFilterMode={tagFilterMode}
@@ -150,21 +165,6 @@ export function ViewEditor({
             columns={columns}
             hiddenColumns={hiddenColumns}
             onHiddenColumnsChange={onHiddenColumnsChange}
-          />
-
-          <div className="w-px h-5 bg-border/50" />
-
-          <ViewsDropdown
-            savedQueryId={savedQueryId}
-            userId={userId}
-            hiddenColumns={hiddenColumns}
-            activeFilters={activeFilters}
-            filterMode={filterMode}
-            tagFilterMode={tagFilterMode}
-            methodFilters={methodFilters}
-            currentViewId={currentViewId}
-            onViewLoad={handleViewLoad}
-            onCurrentViewIdChange={setCurrentViewId}
           />
         </div>
       </div>

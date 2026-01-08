@@ -199,7 +199,7 @@ export function ViewsDropdown({
 
   return (
     <>
-      <div className="flex items-center gap-1">
+      <div className="flex items-end gap-0.5 overflow-x-auto pb-px">
         {/* Saved View Tabs */}
         {savedViews.map((view) => {
           const isActive = currentViewId === view.id;
@@ -209,19 +209,19 @@ export function ViewsDropdown({
             <div
               key={view.id}
               className={cn(
-                "group relative flex items-center gap-1 px-3 py-1.5 rounded-t-md text-sm cursor-pointer transition-colors border border-b-0",
+                "group relative flex items-center gap-1.5 px-4 py-2 text-sm cursor-pointer transition-all border-x border-t rounded-t-lg whitespace-nowrap",
                 isActive
-                  ? "bg-background border-border text-foreground font-medium -mb-px z-10"
-                  : "bg-muted/50 border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-background border-border text-foreground font-medium mb-[-1px] shadow-sm"
+                  : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
               onClick={() => !isActive && onViewLoad(view)}
             >
               {/* Modified indicator dot */}
               {viewIsModified && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0 animate-pulse" />
               )}
               
-              <span className="truncate max-w-[120px]">{view.name}</span>
+              <span className="truncate max-w-[160px]">{view.name}</span>
               
               {/* Update button for modified active view */}
               {viewIsModified && (
@@ -230,10 +230,10 @@ export function ViewsDropdown({
                     e.stopPropagation();
                     handleUpdateView(view.id);
                   }}
-                  className="p-0.5 hover:bg-amber-500/20 rounded text-amber-600"
+                  className="ml-1 p-1 hover:bg-amber-500/20 rounded text-amber-600 transition-colors"
                   title="Save changes"
                 >
-                  <RefreshCw className="w-3 h-3" />
+                  <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               )}
               
@@ -241,12 +241,12 @@ export function ViewsDropdown({
               <button
                 onClick={(e) => handleDeleteView(view.id, e)}
                 className={cn(
-                  "p-0.5 rounded hover:bg-destructive/20 hover:text-destructive",
-                  isActive ? "opacity-70 hover:opacity-100" : "opacity-0 group-hover:opacity-70"
+                  "p-1 rounded hover:bg-destructive/20 hover:text-destructive transition-opacity",
+                  isActive ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-60"
                 )}
                 title="Delete view"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           );
@@ -258,10 +258,11 @@ export function ViewsDropdown({
           size="sm"
           onClick={() => setSaveDialogOpen(true)}
           disabled={!savedQueryId || !userId}
-          className="h-7 w-7 p-0 rounded-full"
+          className="h-9 px-3 gap-1.5 ml-1 text-muted-foreground hover:text-foreground"
           title="Save current as new view"
         >
           <Plus className="w-4 h-4" />
+          <span className="text-xs">New View</span>
         </Button>
       </div>
 
