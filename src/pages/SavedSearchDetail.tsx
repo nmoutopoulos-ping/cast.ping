@@ -6,16 +6,15 @@ import { Button } from "@/components/ui/button";
 import { TransactionDataTable, ALL_COLUMNS } from "@/components/transactions/TransactionDataTable";
 import { TransactionBreakdownChart } from "@/components/transactions/TransactionBreakdownChart";
 import { ViewEditor } from "@/components/transactions/ViewEditor";
-import { FullscreenTableDialog, FullscreenTableTrigger } from "@/components/transactions/FullscreenTableDialog";
+import { FullscreenTableDialog } from "@/components/transactions/FullscreenTableDialog";
 import { ArrowLeft, RefreshCw, Download, CheckCircle, Database, Calendar, FileText, ExternalLink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useEntitiesAndTags } from "@/hooks/useEntitiesAndTags";
 import { useElapsedTimer } from "@/hooks/useElapsedTimer";
 import { format } from "date-fns";
 import type { 
   TransactionRow, 
-  Entity, 
-  DbTag, 
   ActiveFilter, 
   SavedQueryInfo,
   FilterMode,
@@ -31,17 +30,19 @@ import {
   applyAllFilters,
   fetchFromDune,
   saveTransactionsToDb,
-  fetchEntitiesAndTags,
   type DateRange,
 } from "@/lib/transactionUtils";
 import { formatNumber } from "@/lib/utils";
-import { ApiStatusIndicator, type ApiStatus } from "@/components/shared/ApiStatusIndicator";
+import { ApiStatusIndicator } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
 
 export default function SavedSearchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Use the shared hook for entities and tags
+  const { entities, tags } = useEntitiesAndTags(user?.id);
   
   const [savedQuery, setSavedQuery] = useState<SavedQueryInfo | null>(null);
   const [rows, setRows] = useState<TransactionRow[]>([]);
@@ -54,8 +55,6 @@ export default function SavedSearchDetail() {
   const [addressCopied, setAddressCopied] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [tags, setTags] = useState<DbTag[]>([]);
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [filterMode, setFilterMode] = useState<FilterMode>("any");
@@ -73,15 +72,6 @@ export default function SavedSearchDetail() {
       setTimeout(() => setAddressCopied(false), 1500);
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchEntitiesAndTags().then(({ entities, tags }) => {
-        setEntities(entities);
-        setTags(tags);
-      });
-    }
-  }, [user]);
 
   const transactionAddresses = useMemo(() => extractAddressesFromRows(rows), [rows]);
   const highlightMap = useMemo(() => buildHighlightMap(activeFilters), [activeFilters]);
