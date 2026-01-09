@@ -14,3 +14,11 @@ export function formatNumber(value: number | string | null | undefined): string 
   if (isNaN(num)) return "0";
   return num.toLocaleString("en-US");
 }
+
+/**
+ * Normalize an Ethereum address to lowercase and trimmed
+ * Used consistently across the app for address comparison and mapping
+ */
+export function normalizeAddress(address?: string | null): string {
+  return (address ?? "").trim().toLowerCase();
+}

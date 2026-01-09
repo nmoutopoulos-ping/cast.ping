@@ -2,13 +2,13 @@ import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
-import { cn, formatNumber } from "@/lib/utils";
+import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
+import { cn, formatNumber, normalizeAddress } from "@/lib/utils";
 import type { TransactionRow, AddressLabelInfo, DbTag } from "@/types/transactions";
 import { ETHERSCAN_BASE, PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE } from "@/types/transactions";
 import { formatEthValue } from "@/lib/transactionUtils";
+import { AddressCell } from "@/components/shared/AddressCell";
 
 interface TransactionDataTableProps {
   rows: TransactionRow[];
@@ -44,73 +44,6 @@ export const ALL_COLUMNS = [
 ] as const;
 
 type ColumnKey = typeof ALL_COLUMNS[number]["key"];
-
-const normalizeAddress = (addr?: string | null) => (addr ?? "").trim().toLowerCase();
-
-function AddressCell({ 
-  address, 
-  isHighlighted, 
-  highlightColor,
-  onHover, 
-  onLeave,
-  explorerBaseUrl,
-}: { 
-  address: string; 
-  isHighlighted: boolean;
-  highlightColor?: string;
-  onHover: () => void;
-  onLeave: () => void;
-  explorerBaseUrl: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  if (!address) return <span className="text-muted-foreground">-</span>;
-
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    await navigator.clipboard.writeText(address);
-    setCopied(true);
-    toast.success("Address copied");
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <div 
-      className={cn(
-        "group inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors duration-75 cursor-pointer",
-        isHighlighted && !highlightColor && "bg-amber-500/20 ring-1 ring-amber-500/40",
-        !isHighlighted && !highlightColor && "hover:bg-muted"
-      )}
-      style={highlightColor ? {
-        backgroundColor: `${highlightColor}30`,
-        boxShadow: `inset 0 0 0 1px ${highlightColor}60`,
-      } : undefined}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-    >
-      <a
-        href={`${explorerBaseUrl}/address/${address}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="font-mono text-xs transition-colors whitespace-nowrap text-foreground/80 hover:text-primary"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {address}
-      </a>
-      <button
-        onClick={handleCopy}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-muted rounded"
-      >
-        {copied ? (
-          <Check className="w-3 h-3 text-success" />
-        ) : (
-          <Copy className="w-3 h-3 text-muted-foreground" />
-        )}
-      </button>
-    </div>
-  );
-}
 
 export function TransactionDataTable({ rows, highlightMap = {}, addressLabels = [], hiddenColumns: externalHiddenColumns, tags = [], explorerBaseUrl = ETHERSCAN_BASE }: TransactionDataTableProps) {
   const [hoveredAddress, setHoveredAddress] = useState<string | null>(null);

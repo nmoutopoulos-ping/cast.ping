@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeAddress } from "@/lib/utils";
 import type {
   TransactionRow,
   Entity,
@@ -120,11 +121,11 @@ export function needsBackfill(transactions: DbTransaction[]): boolean {
 export function extractAddressesFromRows(rows: TransactionRow[]): Set<string> {
   const addresses = new Set<string>();
   rows.forEach((row) => {
-    if (row.from_address) addresses.add(row.from_address.toLowerCase());
-    if (row.interacted_with) addresses.add(row.interacted_with.toLowerCase());
-    if (row.token_contract) addresses.add(row.token_contract.toLowerCase());
-    if (row.token_from) addresses.add(row.token_from.toLowerCase());
-    if (row.token_to) addresses.add(row.token_to.toLowerCase());
+    if (row.from_address) addresses.add(normalizeAddress(row.from_address));
+    if (row.interacted_with) addresses.add(normalizeAddress(row.interacted_with));
+    if (row.token_contract) addresses.add(normalizeAddress(row.token_contract));
+    if (row.token_from) addresses.add(normalizeAddress(row.token_from));
+    if (row.token_to) addresses.add(normalizeAddress(row.token_to));
   });
   return addresses;
 }
@@ -152,7 +153,7 @@ export function buildAddressLabels(
   entities.forEach((e) => {
     if (e.wallet_address) {
       labels.push({
-        address: e.wallet_address.toLowerCase(),
+        address: normalizeAddress(e.wallet_address),
         name: e.name,
         color: e.color,
         type: "entity",
@@ -163,7 +164,7 @@ export function buildAddressLabels(
   tags.forEach((t) => {
     if (t.contract_address) {
       labels.push({
-        address: t.contract_address.toLowerCase(),
+        address: normalizeAddress(t.contract_address),
         name: t.name,
         color: t.color,
         type: "tag",
@@ -184,11 +185,11 @@ export type { DateRange } from "@/types/transactions";
  */
 function getRowAddresses(row: TransactionRow): Set<string> {
   const addresses = new Set<string>();
-  if (row.from_address) addresses.add(row.from_address.toLowerCase());
-  if (row.interacted_with) addresses.add(row.interacted_with.toLowerCase());
-  if (row.token_contract) addresses.add(row.token_contract.toLowerCase());
-  if (row.token_from) addresses.add(row.token_from.toLowerCase());
-  if (row.token_to) addresses.add(row.token_to.toLowerCase());
+  if (row.from_address) addresses.add(normalizeAddress(row.from_address));
+  if (row.interacted_with) addresses.add(normalizeAddress(row.interacted_with));
+  if (row.token_contract) addresses.add(normalizeAddress(row.token_contract));
+  if (row.token_from) addresses.add(normalizeAddress(row.token_from));
+  if (row.token_to) addresses.add(normalizeAddress(row.token_to));
   return addresses;
 }
 

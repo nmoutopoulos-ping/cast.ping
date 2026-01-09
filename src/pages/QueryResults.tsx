@@ -10,8 +10,9 @@ import { TransactionDataTable } from "@/components/transactions/TransactionDataT
 import { Download, RefreshCw, Search, CheckCircle, Wallet, Coins, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useEntitiesAndTags } from "@/hooks/useEntitiesAndTags";
 import { useElapsedTimer } from "@/hooks/useElapsedTimer";
-import type { TransactionRow, DbTag, ApiStatusInfo } from "@/types/transactions";
+import type { TransactionRow, ApiStatusInfo } from "@/types/transactions";
 import { CHAIN_CONFIGS, DEFAULT_CHAIN } from "@/types/transactions";
 import {
   mapDbTransactionToRow,
@@ -43,12 +44,14 @@ export default function QueryResults() {
   const walletParam = searchParams.get("wallet");
   const { user } = useAuth();
   
+  // Use the shared hook for tags
+  const { tags } = useEntitiesAndTags(user?.id);
+  
   const [walletAddress, setWalletAddress] = useState(walletParam || "");
   const [searchedWallet, setSearchedWallet] = useState(walletParam || "");
   const [selectedChain, setSelectedChain] = useState<string>(DEFAULT_CHAIN);
   const [searchType, setSearchType] = useState<"wallet" | "token">("wallet");
   const [rows, setRows] = useState<TransactionRow[]>([]);
-  const [tags, setTags] = useState<DbTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSavedToDb, setIsSavedToDb] = useState(false);
@@ -73,21 +76,10 @@ export default function QueryResults() {
   const elapsedSeconds = useElapsedTimer(apiStatus.startTime, isTimerActive);
 
   useEffect(() => {
-    if (user) {
-      fetchTags();
-    }
-  }, [user]);
-
-  useEffect(() => {
     if (savedQueryId && user) {
       loadSavedQuery();
     }
   }, [savedQueryId, user]);
-
-  const fetchTags = async () => {
-    const { data } = await supabase.from("tags").select("*");
-    if (data) setTags(data);
-  };
 
   useEffect(() => {
     if (walletParam && !savedQueryId && !hasProcessedWalletParam.current) {
