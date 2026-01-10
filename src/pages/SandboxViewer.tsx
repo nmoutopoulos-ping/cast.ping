@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, RefreshCw, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,47 @@ import {
   type DateRange,
 } from "@/lib/transactionUtils";
 import { formatNumber } from "@/lib/utils";
+
+// Session storage cache helpers
+const CACHE_PREFIX = "sandbox_cache_";
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface CachedData {
+  rows: TransactionRow[];
+  timestamp: number;
+}
+
+function getCacheKey(queryId: string): string {
+  return `${CACHE_PREFIX}${queryId}`;
+}
+
+function getCachedData(queryId: string): TransactionRow[] | null {
+  try {
+    const cached = sessionStorage.getItem(getCacheKey(queryId));
+    if (!cached) return null;
+    
+    const parsed: CachedData = JSON.parse(cached);
+    const isExpired = Date.now() - parsed.timestamp > CACHE_TTL_MS;
+    
+    if (isExpired) {
+      sessionStorage.removeItem(getCacheKey(queryId));
+      return null;
+    }
+    
+    return parsed.rows;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedData(queryId: string, rows: TransactionRow[]): void {
+  try {
+    const data: CachedData = { rows, timestamp: Date.now() };
+    sessionStorage.setItem(getCacheKey(queryId), JSON.stringify(data));
+  } catch {
+    // Storage full or unavailable - silently fail
+  }
+}
 
 // Use a subset of columns relevant for sandbox datasets
 const SANDBOX_COLUMNS = ALL_COLUMNS
@@ -128,15 +169,30 @@ export default function SandboxViewer() {
     ensureSavedQuery();
   }, [queryId, address, name]);
 
-  // Fetch cached results on mount
+  // Load data - check cache first, then fetch if needed
   useEffect(() => {
-    if (queryId) {
-      fetchCachedResults();
+    if (!queryId) return;
+
+    const cachedRows = getCachedData(queryId);
+    if (cachedRows && cachedRows.length > 0) {
+      setRows(cachedRows);
+      setApiStatus({
+        status: "complete",
+        message: `Loaded ${formatNumber(cachedRows.length)} transactions from cache`,
+      });
+      return;
     }
+
+    // No cache - fetch from API
+    fetchCachedResults(false);
   }, [queryId]);
 
+  const fetchCachedResults = useCallback(async (forceRefresh = false) => {
+    // Clear cache if forcing refresh
+    if (forceRefresh && queryId) {
+      sessionStorage.removeItem(getCacheKey(queryId));
+    }
 
-  const fetchCachedResults = async () => {
     setLoading(true);
     setError(null);
     const startTime = Date.now();
@@ -164,6 +220,11 @@ export default function SandboxViewer() {
       const rawRows = data?.result?.rows || [];
       const mappedRows = rawRows.map(mapDuneRowToTransactionRow);
 
+      // Save to cache
+      if (queryId) {
+        setCachedData(queryId, mappedRows);
+      }
+
       setRows(mappedRows);
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -178,7 +239,7 @@ export default function SandboxViewer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [queryId]);
 
   // Apply all filters to rows
   const filteredRows = useMemo(() => {
@@ -215,7 +276,7 @@ export default function SandboxViewer() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={fetchCachedResults} disabled={loading} className="gap-2">
+          <Button variant="outline" onClick={() => fetchCachedResults(true)} disabled={loading} className="gap-2">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -339,7 +400,7 @@ export default function SandboxViewer() {
       {!loading && !error && rows.length === 0 && (
         <div className="empty-state">
           <p className="empty-state-description">No transactions found for this dataset</p>
-          <Button variant="outline" onClick={fetchCachedResults} className="gap-2 mt-4">
+          <Button variant="outline" onClick={() => fetchCachedResults(true)} className="gap-2 mt-4">
             <RefreshCw className="w-4 h-4" />
             Retry
           </Button>
