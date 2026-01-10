@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { ApiStatusIndicator } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
+import { StablecoinMarketBar } from "@/components/stablecoins/StablecoinMarketBar";
 
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -439,14 +440,9 @@ export default function QueryResults() {
         </>
       )}
 
-      {/* Empty State */}
+      {/* Default State - Show Stablecoin Market Data */}
       {!loading && !error && rows.length === 0 && !searchedWallet && (
-        <div className="empty-state">
-          <div className="empty-state-icon">
-            <Search className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <p className="empty-state-description">Enter an address above to search for transactions</p>
-        </div>
+        <StablecoinMarketBar />
       )}
 
       {!loading && !error && rows.length === 0 && searchedWallet && (
