@@ -1,8 +1,9 @@
 import { useStablecoinData } from '@/hooks/useStablecoinData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
+import { RefreshCw, TrendingUp, AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -33,7 +34,29 @@ function getPriceColor(price: number): string {
 }
 
 export function StablecoinMarketBar() {
-  const { data, loading, error, refetch, lastUpdated } = useStablecoinData();
+  const { data, loading, error, refetch, lastUpdated, isAuthenticated } = useStablecoinData();
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <LogIn className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="font-medium mb-1">Sign in to view market data</h3>
+            <p className="text-sm text-muted-foreground">
+              Stablecoin prices and market caps require authentication
+            </p>
+          </div>
+          <Button asChild>
+            <Link to="/auth">Sign In</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

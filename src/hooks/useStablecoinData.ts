@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { externalSupabase, type StablecoinSnapshot } from '@/lib/externalSupabase';
+import { getExternalSupabaseClient, type StablecoinSnapshot } from '@/lib/externalSupabase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UseStablecoinDataResult {
   data: StablecoinSnapshot[];
@@ -7,21 +8,38 @@ interface UseStablecoinDataResult {
   error: string | null;
   refetch: () => Promise<void>;
   lastUpdated: Date | null;
+  isAuthenticated: boolean;
 }
 
 export function useStablecoinData(): UseStablecoinDataResult {
+  const { session, loading: authLoading } = useAuth();
   const [data, setData] = useState<StablecoinSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const isAuthenticated = !!session?.access_token;
+
   const fetchData = useCallback(async () => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // Require authentication
+    if (!session?.access_token) {
+      setLoading(false);
+      setError('Authentication required to view market data');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
+      // Create client with authenticated session JWT
+      const client = getExternalSupabaseClient(session.access_token);
+
       // Get the latest snapshot for each ticker (most recent as_of_date)
-      const { data: snapshots, error: fetchError } = await externalSupabase
+      const { data: snapshots, error: fetchError } = await client
         .from('stablecoin_market_snapshot')
         .select('*')
         .order('as_of_date', { ascending: false })
@@ -47,11 +65,11 @@ export function useStablecoinData(): UseStablecoinDataResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.access_token, authLoading]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData, lastUpdated };
+  return { data, loading, error, refetch: fetchData, lastUpdated, isAuthenticated };
 }
