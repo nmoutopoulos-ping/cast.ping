@@ -67,7 +67,18 @@ export function StablecoinMarketBar() {
   }
 
   if (data.length === 0) {
-    return null;
+    return (
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <TrendingUp className="w-4 h-4" />
+          <span className="text-sm">No stablecoin data available yet</span>
+          <Button variant="ghost" size="sm" onClick={refetch} className="ml-auto gap-1">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
