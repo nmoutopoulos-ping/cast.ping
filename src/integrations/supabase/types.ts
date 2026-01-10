@@ -204,6 +204,42 @@ export type Database = {
           },
         ]
       }
+      stablecoin_snapshots: {
+        Row: {
+          as_of_date: string
+          as_of_time: string
+          captured_at: string
+          coingecko_id: string
+          id: string
+          inserted_at: string
+          market_cap_usd: number | null
+          price_usd: number
+          ticker: string
+        }
+        Insert: {
+          as_of_date: string
+          as_of_time: string
+          captured_at?: string
+          coingecko_id: string
+          id?: string
+          inserted_at?: string
+          market_cap_usd?: number | null
+          price_usd: number
+          ticker: string
+        }
+        Update: {
+          as_of_date?: string
+          as_of_time?: string
+          captured_at?: string
+          coingecko_id?: string
+          id?: string
+          inserted_at?: string
+          market_cap_usd?: number | null
+          price_usd?: number
+          ticker?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           color: string

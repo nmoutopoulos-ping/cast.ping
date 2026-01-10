@@ -1,6 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getExternalSupabaseClient, type StablecoinSnapshot } from '@/lib/externalSupabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+
+export interface StablecoinSnapshot {
+  captured_at: string;
+  as_of_date: string;
+  as_of_time: string;
+  coingecko_id: string;
+  ticker: string;
+  price_usd: number;
+  market_cap_usd: number | null;
+  inserted_at: string;
+}
 
 interface UseStablecoinDataResult {
   data: StablecoinSnapshot[];
@@ -35,12 +46,9 @@ export function useStablecoinData(): UseStablecoinDataResult {
     setError(null);
 
     try {
-      // Create client with authenticated session JWT
-      const client = getExternalSupabaseClient(session.access_token);
-
-      // Get the latest snapshot for each ticker (most recent as_of_date)
-      const { data: snapshots, error: fetchError } = await client
-        .from('stablecoin_market_snapshot')
+      // Query from app's own database (stablecoin_snapshots table)
+      const { data: snapshots, error: fetchError } = await supabase
+        .from('stablecoin_snapshots')
         .select('*')
         .order('as_of_date', { ascending: false })
         .order('as_of_time', { ascending: false });
@@ -53,7 +61,7 @@ export function useStablecoinData(): UseStablecoinDataResult {
       const latestByTicker = new Map<string, StablecoinSnapshot>();
       for (const snapshot of snapshots || []) {
         if (!latestByTicker.has(snapshot.ticker)) {
-          latestByTicker.set(snapshot.ticker, snapshot);
+          latestByTicker.set(snapshot.ticker, snapshot as StablecoinSnapshot);
         }
       }
 
