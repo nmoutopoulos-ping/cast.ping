@@ -9,9 +9,22 @@ import {
   ChevronLeft,
   ChevronRight,
   Plug,
-  Search
+  Search,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const navigation = [
   { name: "Search", href: "/", icon: Search },
@@ -23,6 +36,7 @@ const navigation = [
 export function AppSidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, signOut } = useAuth();
 
   return (
     <aside 
@@ -61,6 +75,43 @@ export function AppSidebar() {
             </NavLink>
           );
         })}
+        
+        {/* Sign Out Button */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent",
+                collapsed && "justify-center px-2"
+              )}
+              title={collapsed ? "Sign Out" : undefined}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && "Sign Out"}
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Sign Out</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Are you sure you want to sign out?</p>
+                {user && (
+                  <div className="mt-3 p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-foreground">
+                      <span className="text-muted-foreground">Signed in as:</span>
+                      <br />
+                      <span className="font-medium">{user.email}</span>
+                    </p>
+                  </div>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={signOut}>Sign Out</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </nav>
 
       {/* Bottom status */}
