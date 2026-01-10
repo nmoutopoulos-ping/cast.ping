@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/dialog";
 import { ApiStatusIndicator } from "@/components/shared/ApiStatusIndicator";
 import { TransactionSkeletons } from "@/components/shared/LoadingSkeletons";
-import { StablecoinMarketBar } from "@/components/stablecoins/StablecoinMarketBar";
 
 export default function QueryResults() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -373,8 +372,6 @@ export default function QueryResults() {
         </div>
       </div>
 
-      {/* Stablecoin Market Data */}
-      <StablecoinMarketBar />
 
       {/* API Status Indicator */}
       <ApiStatusIndicator
