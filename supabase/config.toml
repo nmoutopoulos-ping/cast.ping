@@ -2,3 +2,6 @@ project_id = "yhruxtipjqrrjwwpwjza"
 
 [functions.dune-query]
 verify_jwt = false
+
+[functions.sync-stablecoins]
+verify_jwt = false
