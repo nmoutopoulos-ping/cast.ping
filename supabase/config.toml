@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.receive-stablecoins]
 verify_jwt = false
+
+[functions.receive-paxg]
+verify_jwt = false
