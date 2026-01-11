@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useStablecoinData } from '@/hooks/useMarketData';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor, formatNumber } from '@/lib/utils';
+import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor, formatTimeEST } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, AlertCircle, LogIn } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { PriceStabilityChart, TICKER_COLORS } from '@/components/stablecoins/PriceStabilityChart';
+import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
 import { TickerColorPicker, useTickerColors } from '@/components/stablecoins/TickerColorPicker';
+import { AuthRequiredCard } from '@/components/shared/AuthRequiredCard';
+import { useTickerVisibility } from '@/hooks/useTickerVisibility';
 import { MarketSnapshot } from '@/types/transactions';
 import {
   LineChart,
@@ -17,17 +19,18 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts';
 
 export default function StablecoinMarket() {
-  const { data, loading, error, refetch, lastUpdated, isAuthenticated } = useStablecoinData();
+  const { data, loading, error, refetch, isAuthenticated } = useStablecoinData();
   const { session } = useAuth();
   const [allSnapshots, setAllSnapshots] = useState<MarketSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
-  const [visibleTickers, setVisibleTickers] = useState<Set<string>>(new Set());
-  const [visiblePriceTickers, setVisiblePriceTickers] = useState<Set<string>>(new Set());
   const { customColors, saveColors, getColor } = useTickerColors();
+  
+  // Use shared hook for ticker visibility
+  const marketCapVisibility = useTickerVisibility();
+  const priceStabilityVisibility = useTickerVisibility();
 
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
@@ -63,14 +66,10 @@ export default function StablecoinMarket() {
           .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
           .map((s) => s.ticker)
       )];
-      if (visibleTickers.size === 0) {
-        setVisibleTickers(new Set(tickers));
-      }
-      if (visiblePriceTickers.size === 0) {
-        setVisiblePriceTickers(new Set(tickers));
-      }
+      marketCapVisibility.initializeTickers(tickers);
+      priceStabilityVisibility.initializeTickers(tickers);
     }
-  }, [allSnapshots]);
+  }, [allSnapshots, marketCapVisibility, priceStabilityVisibility]);
 
   const handleRefresh = async () => {
     await Promise.all([refetch(), fetchAllSnapshots()]);
@@ -78,26 +77,7 @@ export default function StablecoinMarket() {
 
   // Show login prompt if not authenticated
   if (!isAuthenticated && !loading) {
-    return (
-      <div className="p-6 lg:p-8">
-        <div className="rounded border bg-card p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="rounded bg-muted p-3">
-              <LogIn className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm mb-1">Authentication Required</h3>
-              <p className="text-xs text-muted-foreground">
-                Sign in to view stablecoin market data
-              </p>
-            </div>
-            <Button size="sm" asChild>
-              <Link to="/auth">Sign In</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <AuthRequiredCard description="Sign in to view stablecoin market data" />;
   }
 
   if (loading) {
@@ -153,57 +133,6 @@ export default function StablecoinMarket() {
       .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
       .map((s) => s.ticker)
   )];
-
-
-  const toggleTicker = (ticker: string) => {
-    setVisibleTickers((prev) => {
-      const next = new Set(prev);
-      if (next.has(ticker)) {
-        next.delete(ticker);
-      } else {
-        next.add(ticker);
-      }
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (visibleTickers.size === uniqueTickers.length) {
-      setVisibleTickers(new Set());
-    } else {
-      setVisibleTickers(new Set(uniqueTickers));
-    }
-  };
-
-  const togglePriceTicker = (ticker: string) => {
-    setVisiblePriceTickers((prev) => {
-      const next = new Set(prev);
-      if (next.has(ticker)) {
-        next.delete(ticker);
-      } else {
-        next.add(ticker);
-      }
-      return next;
-    });
-  };
-
-  const toggleAllPrice = () => {
-    if (visiblePriceTickers.size === uniqueTickers.length) {
-      setVisiblePriceTickers(new Set());
-    } else {
-      setVisiblePriceTickers(new Set(uniqueTickers));
-    }
-  };
-
-
-  // Helper to format time as EST (12h format)
-  const formatTimeEST = (time: string) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
-  };
 
   // Get latest market cap for each ticker (for hover display)
   const latestMarketCaps = sortedData.reduce((acc, coin) => {
@@ -289,17 +218,17 @@ export default function StablecoinMarket() {
             <div className="chart-title mb-0">Market Cap</div>
             <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={toggleAll}
+                onClick={() => marketCapVisibility.toggleAll(uniqueTickers)}
                 className="text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
               >
-                {visibleTickers.size === uniqueTickers.length ? 'Hide All' : 'Show All'}
+                {marketCapVisibility.visibleTickers.size === uniqueTickers.length ? 'Hide All' : 'Show All'}
               </button>
               {uniqueTickers.map((ticker) => (
                 <div key={ticker} className="relative group">
                   <button
-                    onClick={() => toggleTicker(ticker)}
+                    onClick={() => marketCapVisibility.toggleTicker(ticker)}
                     className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
-                      visibleTickers.has(ticker)
+                      marketCapVisibility.visibleTickers.has(ticker)
                         ? 'bg-muted hover:bg-muted/80'
                         : 'bg-transparent opacity-40 hover:opacity-60'
                     }`}
@@ -362,7 +291,7 @@ export default function StablecoinMarket() {
                   }}
                 />
                 {uniqueTickers
-                  .filter((ticker) => visibleTickers.has(ticker))
+                  .filter((ticker) => marketCapVisibility.visibleTickers.has(ticker))
                   .map((ticker) => (
                     <Line
                       key={ticker}
@@ -391,9 +320,9 @@ export default function StablecoinMarket() {
           showLegend={false}
           colorByTicker={true}
           height="h-72"
-          visibleTickers={visiblePriceTickers}
-          onToggleTicker={togglePriceTicker}
-          onToggleAll={toggleAllPrice}
+          visibleTickers={priceStabilityVisibility.visibleTickers}
+          onToggleTicker={priceStabilityVisibility.toggleTicker}
+          onToggleAll={() => priceStabilityVisibility.toggleAll(uniqueTickers)}
           allTickers={uniqueTickers}
           getTickerColor={getColor}
           colorPickerElement={
