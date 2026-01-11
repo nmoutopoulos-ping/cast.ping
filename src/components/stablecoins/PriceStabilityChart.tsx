@@ -1,0 +1,275 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Save, RotateCcw } from 'lucide-react';
+import { formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+  Legend,
+} from 'recharts';
+
+interface PriceDataPoint {
+  dateLabel: string;
+  priceValue: number;
+  ticker?: string;
+  as_of_date?: string;
+  as_of_time?: string;
+}
+
+interface PriceStabilityChartProps {
+  data: PriceDataPoint[];
+  storageKey: string;
+  title?: string;
+  showLegend?: boolean;
+  colorByTicker?: boolean;
+  height?: string;
+}
+
+const TICKER_COLORS: Record<string, string> = {
+  USDT: 'hsl(160, 60%, 45%)',
+  USDC: 'hsl(210, 80%, 55%)',
+  DAI: 'hsl(40, 80%, 50%)',
+  FRAX: 'hsl(0, 0%, 40%)',
+  TUSD: 'hsl(200, 70%, 50%)',
+  USDP: 'hsl(280, 60%, 55%)',
+  GUSD: 'hsl(180, 50%, 45%)',
+  LUSD: 'hsl(220, 70%, 60%)',
+  PYUSD: 'hsl(210, 100%, 50%)',
+  FDUSD: 'hsl(30, 80%, 50%)',
+};
+
+const DEFAULT_MIN = 0.9999;
+const DEFAULT_MAX = 1.0005;
+
+export function PriceStabilityChart({
+  data,
+  storageKey,
+  title = 'Price Stability (Target: $1.00)',
+  showLegend = false,
+  colorByTicker = false,
+  height = 'h-64',
+}: PriceStabilityChartProps) {
+  const [yMin, setYMin] = useState(DEFAULT_MIN);
+  const [yMax, setYMax] = useState(DEFAULT_MAX);
+  const [inputMin, setInputMin] = useState(DEFAULT_MIN.toString());
+  const [inputMax, setInputMax] = useState(DEFAULT_MAX.toString());
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Load saved settings on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(`price-stability-${storageKey}`);
+    if (saved) {
+      try {
+        const { min, max } = JSON.parse(saved);
+        setYMin(min);
+        setYMax(max);
+        setInputMin(min.toString());
+        setInputMax(max.toString());
+        setIsSaved(true);
+      } catch (e) {
+        console.error('Failed to parse saved chart settings', e);
+      }
+    }
+  }, [storageKey]);
+
+  const handleApply = () => {
+    const min = parseFloat(inputMin);
+    const max = parseFloat(inputMax);
+    if (!isNaN(min) && !isNaN(max) && min < max) {
+      setYMin(min);
+      setYMax(max);
+    }
+  };
+
+  const handleSave = () => {
+    const min = parseFloat(inputMin);
+    const max = parseFloat(inputMax);
+    if (!isNaN(min) && !isNaN(max) && min < max) {
+      setYMin(min);
+      setYMax(max);
+      localStorage.setItem(
+        `price-stability-${storageKey}`,
+        JSON.stringify({ min, max })
+      );
+      setIsSaved(true);
+    }
+  };
+
+  const handleReset = () => {
+    setYMin(DEFAULT_MIN);
+    setYMax(DEFAULT_MAX);
+    setInputMin(DEFAULT_MIN.toString());
+    setInputMax(DEFAULT_MAX.toString());
+    localStorage.removeItem(`price-stability-${storageKey}`);
+    setIsSaved(false);
+  };
+
+  // Group data by ticker for legend
+  const tickers = colorByTicker
+    ? [...new Set(data.map((d) => d.ticker).filter(Boolean))]
+    : [];
+
+  return (
+    <div className="chart-container">
+      <div className="flex items-center justify-between gap-4 mb-3">
+        <div className="chart-title mb-0">{title}</div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[10px] text-muted-foreground uppercase">Min</Label>
+            <Input
+              type="number"
+              step="0.0001"
+              value={inputMin}
+              onChange={(e) => {
+                setInputMin(e.target.value);
+                setIsSaved(false);
+              }}
+              onBlur={handleApply}
+              onKeyDown={(e) => e.key === 'Enter' && handleApply()}
+              className="h-7 w-20 text-xs font-mono"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[10px] text-muted-foreground uppercase">Max</Label>
+            <Input
+              type="number"
+              step="0.0001"
+              value={inputMax}
+              onChange={(e) => {
+                setInputMax(e.target.value);
+                setIsSaved(false);
+              }}
+              onBlur={handleApply}
+              onKeyDown={(e) => e.key === 'Enter' && handleApply()}
+              className="h-7 w-20 text-xs font-mono"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSave}
+            className={`h-7 gap-1 text-xs ${isSaved ? 'text-success border-success/50' : ''}`}
+          >
+            <Save className="w-3 h-3" />
+            {isSaved ? 'Saved' : 'Save'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="h-7 gap-1 text-xs"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      <div className={height}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--border))"
+              strokeOpacity={0.5}
+            />
+            <XAxis
+              dataKey="dateLabel"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              domain={[yMin, yMax]}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+              tickFormatter={(value) => `$${value.toFixed(4)}`}
+              width={60}
+            />
+            <ReferenceLine
+              y={1.0}
+              stroke="hsl(var(--success))"
+              strokeDasharray="4 4"
+              strokeWidth={1.5}
+              label={{
+                value: '$1.00 Peg',
+                position: 'right',
+                fill: 'hsl(var(--success))',
+                fontSize: 10,
+              }}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload as PriceDataPoint;
+                const deviation = ((d.priceValue - 1) * 100).toFixed(4);
+                const deviationColor =
+                  Math.abs(d.priceValue - 1) < 0.001
+                    ? 'text-success'
+                    : Math.abs(d.priceValue - 1) < 0.005
+                    ? 'text-warning'
+                    : 'text-destructive';
+                return (
+                  <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
+                    {d.ticker && (
+                      <div className="font-semibold mb-1">{d.ticker}</div>
+                    )}
+                    <div className="text-muted-foreground text-[10px]">
+                      {d.as_of_date} {d.as_of_time?.slice(0, 5)}
+                    </div>
+                    <div className="text-muted-foreground mt-1">
+                      Price:{' '}
+                      <span
+                        className={`font-mono font-medium ${getStablecoinPriceColor(
+                          d.priceValue
+                        )}`}
+                      >
+                        {formatStablecoinPrice(d.priceValue)}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      Deviation:{' '}
+                      <span className={`font-mono font-medium ${deviationColor}`}>
+                        {Number(deviation) >= 0 ? '+' : ''}
+                        {deviation}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+            {colorByTicker && tickers.length > 0 ? (
+              tickers.map((ticker) => (
+                <Scatter
+                  key={ticker}
+                  name={ticker}
+                  data={data.filter((d) => d.ticker === ticker)}
+                  dataKey="priceValue"
+                  fill={TICKER_COLORS[ticker as string] || 'hsl(var(--institutional-blue))'}
+                  fillOpacity={0.8}
+                />
+              ))
+            ) : (
+              <Scatter
+                dataKey="priceValue"
+                fill="hsl(var(--institutional-blue))"
+                fillOpacity={0.7}
+              />
+            )}
+            {showLegend && <Legend />}
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
