@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    /* Institutional light theme - slate/navy palette */
-    --background: 220 20% 98%;
+    /* Clean light theme - white/gray palette */
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -16,56 +16,56 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 222 47% 20%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 20%;
+    --secondary-foreground: 222 47% 11%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
     --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 20%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 72% 45%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 158 64% 32%;
-    --success-foreground: 210 40% 98%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 40%;
-    --warning-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
-    --ring: 222 47% 20%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 222 47% 11%;
 
-    --radius: 0.25rem;
+    --radius: 0.375rem;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 18%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 217 33% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 60%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
 
     /* Custom semantic tokens */
-    --direction-in: 158 64% 32%;
-    --direction-out: 0 60% 45%;
+    --direction-in: 142 71% 45%;
+    --direction-out: 0 84% 60%;
     --direction-self: 220 9% 46%;
     
     --table-header: 220 14% 97%;
     --table-row-hover: 220 14% 98%;
     --table-border: 220 13% 91%;
     
-    /* Institutional accent colors */
-    --gold: 40 65% 50%;
-    --gold-muted: 40 30% 85%;
-    --institutional-blue: 210 90% 45%;
-    --institutional-blue-muted: 210 40% 90%;
+    /* Accent colors */
+    --gold: 38 92% 50%;
+    --gold-muted: 38 40% 92%;
+    --institutional-blue: 217 91% 60%;
+    --institutional-blue-muted: 217 40% 94%;
   }
 
   .dark {
@@ -78,8 +78,8 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 210 40% 70%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 222 47% 12%;
     --secondary-foreground: 210 40% 96%;
@@ -93,7 +93,7 @@
     --destructive: 0 62% 48%;
     --destructive-foreground: 210 40% 96%;
 
-    --success: 158 55% 42%;
+    --success: 142 60% 42%;
     --success-foreground: 210 40% 96%;
 
     --warning: 38 80% 48%;
@@ -101,18 +101,18 @@
 
     --border: 222 47% 14%;
     --input: 222 47% 14%;
-    --ring: 217 33% 55%;
+    --ring: 217 91% 60%;
 
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 210 40% 70%;
-    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 12%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 222 47% 14%;
-    --sidebar-ring: 217 33% 55%;
+    --sidebar-ring: 217 91% 60%;
 
-    --direction-in: 158 55% 48%;
+    --direction-in: 142 60% 48%;
     --direction-out: 0 55% 52%;
     --direction-self: 220 9% 50%;
     
@@ -120,10 +120,10 @@
     --table-row-hover: 222 47% 11%;
     --table-border: 222 47% 12%;
     
-    --gold: 40 65% 55%;
-    --gold-muted: 40 25% 18%;
-    --institutional-blue: 210 80% 55%;
-    --institutional-blue-muted: 210 30% 18%;
+    --gold: 38 80% 55%;
+    --gold-muted: 38 25% 18%;
+    --institutional-blue: 217 80% 55%;
+    --institutional-blue-muted: 217 30% 18%;
   }
 }
 
