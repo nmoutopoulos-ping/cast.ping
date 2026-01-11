@@ -219,8 +219,16 @@ export default function StablecoinMarket() {
                   ? ((coin.market_cap_usd ?? 0) / totalMarketCap * 100)
                   : 0;
                 return (
-                  <tr key={coin.ticker}>
-                    <td className="font-medium">{coin.ticker}</td>
+                  <tr 
+                    key={coin.ticker} 
+                    className="cursor-pointer"
+                    onClick={() => window.location.href = `/stablecoins/${coin.ticker.toLowerCase()}`}
+                  >
+                    <td className="font-medium text-primary hover:underline">
+                      <Link to={`/stablecoins/${coin.ticker.toLowerCase()}`}>
+                        {coin.ticker}
+                      </Link>
+                    </td>
                     <td className={`text-right font-mono ${getStablecoinPriceColor(coin.price_usd)}`}>
                       {formatStablecoinPrice(coin.price_usd)}
                     </td>

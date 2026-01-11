@@ -13,6 +13,7 @@ import QueryResults from "@/pages/QueryResults";
 import ApiConnections from "@/pages/ApiConnections";
 import SandboxViewer from "@/pages/SandboxViewer";
 import StablecoinMarket from "@/pages/StablecoinMarket";
+import StablecoinDetail from "@/pages/StablecoinDetail";
 import PaxgAnalytics from "@/pages/PaxgAnalytics";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
           >
             <Route path="/" element={<QueryResults />} />
             <Route path="/stablecoins" element={<StablecoinMarket />} />
+            <Route path="/stablecoins/:ticker" element={<StablecoinDetail />} />
             <Route path="/paxg" element={<PaxgAnalytics />} />
             <Route path="/queries" element={<SavedQueries />} />
             <Route path="/queries/:id" element={<SavedSearchDetail />} />
