@@ -241,7 +241,7 @@ export default function StablecoinMarket() {
       ) : (
         <div className="chart-container">
           <div className="flex items-center justify-between mb-3">
-            <div className="chart-title mb-0">Market Caps Over Time</div>
+            <div className="chart-title mb-0">Market Cap</div>
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={toggleAll}
@@ -286,7 +286,8 @@ export default function StablecoinMarket() {
                   tickLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                   tickFormatter={(value) => formatMarketCap(value)}
-                  width={55}
+                  width={70}
+                  domain={['auto', 'auto']}
                 />
                 <Tooltip
                   content={({ active, payload, label }) => {
