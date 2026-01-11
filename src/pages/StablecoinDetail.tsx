@@ -209,7 +209,7 @@ export default function StablecoinDetail() {
                 interval="preserveStartEnd"
               />
               <YAxis 
-                domain={[0.999, 1.001]}
+                domain={[0.9999, 1.0005]}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
