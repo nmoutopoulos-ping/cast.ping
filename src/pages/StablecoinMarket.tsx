@@ -115,10 +115,10 @@ export default function StablecoinMarket() {
     );
   }
 
-  // Sort by market cap descending
-  const sortedData = [...data].sort((a, b) => 
-    (b.market_cap_usd ?? 0) - (a.market_cap_usd ?? 0)
-  );
+  // Filter out PAXG (not a stablecoin) and sort by market cap descending
+  const sortedData = [...data]
+    .filter((coin) => coin.ticker.toUpperCase() !== 'PAXG')
+    .sort((a, b) => (b.market_cap_usd ?? 0) - (a.market_cap_usd ?? 0));
 
   // Calculate total market cap
   const totalMarketCap = sortedData.reduce(
@@ -138,14 +138,16 @@ export default function StablecoinMarket() {
 
   const maxMarketCap = Math.max(...chartData.map(d => d.marketCap));
 
-  // Prepare scatter chart data with ticker info
-  const scatterData = allSnapshots.map((snapshot) => ({
-    dateLabel: snapshot.as_of_date,
-    priceValue: snapshot.price_usd,
-    ticker: snapshot.ticker,
-    as_of_date: snapshot.as_of_date,
-    as_of_time: snapshot.as_of_time,
-  }));
+  // Prepare scatter chart data with ticker info (exclude PAXG)
+  const scatterData = allSnapshots
+    .filter((snapshot) => snapshot.ticker.toUpperCase() !== 'PAXG')
+    .map((snapshot) => ({
+      dateLabel: snapshot.as_of_date,
+      priceValue: snapshot.price_usd,
+      ticker: snapshot.ticker,
+      as_of_date: snapshot.as_of_date,
+      as_of_time: snapshot.as_of_time,
+    }));
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
