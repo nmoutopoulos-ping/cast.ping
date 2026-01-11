@@ -196,9 +196,9 @@
     @apply font-mono text-xs tracking-tight;
   }
 
-  /* Institutional KPI cards - clean and dense */
+  /* Institutional KPI cards - clean and borderless */
   .kpi-card {
-    @apply bg-card rounded p-4 border border-border;
+    @apply p-4;
   }
 
   .kpi-value {
@@ -274,13 +274,13 @@
     @apply bg-destructive/5 border-destructive/30 text-destructive;
   }
 
-  /* Institutional chart container */
+  /* Institutional chart container - clean and borderless */
   .chart-container {
-    @apply bg-card rounded border border-border p-4;
+    @apply pt-6;
   }
 
   .chart-title {
-    @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3;
+    @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-4;
   }
 
   /* Institutional metric display */
