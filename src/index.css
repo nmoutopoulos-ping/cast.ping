@@ -176,7 +176,7 @@
   }
 
   .data-table th {
-    @apply bg-table-header text-left font-semibold text-muted-foreground px-3 py-2.5 sticky top-0 text-[10px] uppercase tracking-wider border-b border-table-border;
+    @apply bg-table-header font-semibold text-muted-foreground px-3 py-2.5 sticky top-0 text-[10px] uppercase tracking-wider border-b border-table-border;
   }
 
   .data-table td {
