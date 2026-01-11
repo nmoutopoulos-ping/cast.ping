@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { usePaxgData } from '@/hooks/useMarketData';
-import { formatMarketCap, formatCurrencyPrice, formatNumber } from '@/lib/utils';
+import { formatMarketCap, formatCurrencyPrice, formatNumber, formatTimeEST } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, AlertCircle, LogIn, TrendingUp } from 'lucide-react';
+import { RefreshCw, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthRequiredCard } from '@/components/shared/AuthRequiredCard';
 import {
   LineChart,
   Line,
@@ -56,24 +56,10 @@ export default function PaxgAnalytics() {
   // Show login prompt if not authenticated
   if (!user && !loading) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="rounded border bg-card p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="rounded bg-gold-muted p-3">
-              <LogIn className="w-5 h-5 text-gold" />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm mb-1">Authentication Required</h3>
-              <p className="text-xs text-muted-foreground">
-                Sign in to view PAXG analytics
-              </p>
-            </div>
-            <Button size="sm" asChild>
-              <Link to="/auth">Sign In</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <AuthRequiredCard 
+        description="Sign in to view PAXG analytics" 
+        iconClassName="text-gold"
+      />
     );
   }
 
@@ -118,14 +104,6 @@ export default function PaxgAnalytics() {
     );
   }
 
-  // Helper to format time as EST (12h format)
-  const formatTimeEST = (time: string) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
-  };
 
   // Prepare chart data
   const chartData = (historicalData || []).map((snapshot) => ({
