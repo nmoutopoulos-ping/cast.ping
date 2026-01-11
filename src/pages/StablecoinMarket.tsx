@@ -25,6 +25,7 @@ export default function StablecoinMarket() {
   const [allSnapshots, setAllSnapshots] = useState<MarketSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [visibleTickers, setVisibleTickers] = useState<Set<string>>(new Set());
+
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
     if (!session?.access_token) return;
@@ -50,6 +51,18 @@ export default function StablecoinMarket() {
   useEffect(() => {
     fetchAllSnapshots();
   }, [fetchAllSnapshots]);
+
+  // Initialize visible tickers when snapshots load
+  useEffect(() => {
+    if (allSnapshots.length > 0 && visibleTickers.size === 0) {
+      const tickers = [...new Set(
+        allSnapshots
+          .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
+          .map((s) => s.ticker)
+      )];
+      setVisibleTickers(new Set(tickers));
+    }
+  }, [allSnapshots]);
 
   const handleRefresh = async () => {
     await Promise.all([refetch(), fetchAllSnapshots()]);
@@ -133,12 +146,6 @@ export default function StablecoinMarket() {
       .map((s) => s.ticker)
   )];
 
-  // Initialize visible tickers when data loads
-  useEffect(() => {
-    if (uniqueTickers.length > 0 && visibleTickers.size === 0) {
-      setVisibleTickers(new Set(uniqueTickers));
-    }
-  }, [uniqueTickers.length]);
 
   const toggleTicker = (ticker: string) => {
     setVisibleTickers((prev) => {
