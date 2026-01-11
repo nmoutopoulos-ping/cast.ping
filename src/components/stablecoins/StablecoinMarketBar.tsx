@@ -104,12 +104,17 @@ export function StablecoinMarketBar() {
     );
   }
 
+  // Sort by market cap descending
+  const sortedData = [...data].sort((a, b) => 
+    (b.market_cap_usd ?? 0) - (a.market_cap_usd ?? 0)
+  );
+
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Stablecoin Prices</span>
+          <span className="text-sm font-medium">Stablecoin Market</span>
           {lastUpdated && (
             <span className="text-xs text-muted-foreground">
               Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
@@ -128,27 +133,30 @@ export function StablecoinMarketBar() {
       </div>
       
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {data.map((coin) => (
+        {sortedData.map((coin) => (
           <div
             key={coin.ticker}
-            className="flex-shrink-0 rounded-md border bg-muted/30 px-4 py-2.5 min-w-[140px]"
+            className="flex-shrink-0 rounded-md border bg-muted/30 px-4 py-3 min-w-[160px]"
           >
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center justify-between mb-1.5">
               <span className="font-semibold text-sm">{coin.ticker}</span>
+              <span className={`text-sm font-mono font-medium ${getPriceColor(coin.price_usd)}`}>
+                {formatPrice(coin.price_usd)}
+              </span>
             </div>
-            <div className={`text-lg font-mono font-medium ${getPriceColor(coin.price_usd)}`}>
-              {formatPrice(coin.price_usd)}
+            <div className="text-lg font-semibold text-foreground">
+              {formatMarketCap(coin.market_cap_usd)}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              MCap: {formatMarketCap(coin.market_cap_usd)}
+            <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wide">
+              Market Cap
             </div>
           </div>
         ))}
       </div>
       
-      {data.length > 0 && data[0].as_of_date && (
+      {sortedData.length > 0 && sortedData[0].as_of_date && (
         <div className="text-xs text-muted-foreground mt-2">
-          Data as of: {data[0].as_of_date} {data[0].as_of_time}
+          Data as of: {sortedData[0].as_of_date} {sortedData[0].as_of_time}
         </div>
       )}
     </div>
