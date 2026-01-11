@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { usePaxgData } from '@/hooks/useMarketData';
 import { formatMarketCap, formatCurrencyPrice, formatNumber } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +31,7 @@ interface PaxgSnapshot {
 export default function PaxgAnalytics() {
   const { data: latestPaxg, loading, refetch } = usePaxgData();
   const { user } = useAuth();
+  const [chartMode, setChartMode] = useState<'price' | 'marketcap'>('price');
 
   // Fetch historical data for chart
   const { data: historicalData } = useQuery({
@@ -128,13 +130,18 @@ export default function PaxgAnalytics() {
   const chartData = (historicalData || []).map((snapshot) => ({
     date: `${snapshot.as_of_date} ${formatTimeEST(snapshot.as_of_time || '')}`,
     price: snapshot.price_usd,
+    marketcap: snapshot.market_cap_usd || 0,
     displayDate: snapshot.as_of_date,
   }));
 
-  // Calculate price change if we have historical data
-  const priceChange = chartData.length >= 2 
-    ? ((chartData[chartData.length - 1].price - chartData[0].price) / chartData[0].price * 100)
-    : null;
+  // Calculate change based on current mode
+  const getChange = () => {
+    if (chartData.length < 2) return null;
+    const firstValue = chartMode === 'price' ? chartData[0].price : chartData[0].marketcap;
+    const lastValue = chartMode === 'price' ? chartData[chartData.length - 1].price : chartData[chartData.length - 1].marketcap;
+    return ((lastValue - firstValue) / firstValue * 100);
+  };
+  const periodChange = getChange();
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -175,13 +182,34 @@ export default function PaxgAnalytics() {
         </div>
       </div>
 
-      {/* Price Line Chart */}
+      {/* Price/Market Cap Line Chart */}
       <div className="chart-container">
         <div className="flex items-center justify-between mb-4">
-          <div className="chart-title">Price History</div>
-          {priceChange !== null && (
-            <div className={`text-xs font-medium tabular-nums ${priceChange >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}% period change
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setChartMode('price')}
+              className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                chartMode === 'price'
+                  ? 'bg-gold/20 text-gold'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              }`}
+            >
+              Price
+            </button>
+            <button
+              onClick={() => setChartMode('marketcap')}
+              className={`text-[10px] px-2 py-1 rounded transition-colors ${
+                chartMode === 'marketcap'
+                  ? 'bg-gold/20 text-gold'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              }`}
+            >
+              Market Cap
+            </button>
+          </div>
+          {periodChange !== null && (
+            <div className={`text-xs font-medium tabular-nums ${periodChange >= 0 ? 'text-success' : 'text-destructive'}`}>
+              {periodChange >= 0 ? '+' : ''}{periodChange.toFixed(2)}% period change
             </div>
           )}
         </div>
@@ -207,23 +235,26 @@ export default function PaxgAnalytics() {
                   minTickGap={50}
                 />
                 <YAxis 
-                  domain={['dataMin - 50', 'dataMax + 50']}
+                  domain={chartMode === 'price' ? ['dataMin - 50', 'dataMax + 50'] : ['auto', 'auto']}
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  tickFormatter={(value) => `$${formatNumber(value)}`}
+                  tickFormatter={(value) => chartMode === 'price' ? `$${formatNumber(value)}` : formatMarketCap(value)}
                   width={70}
                 />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
-                    const firstPrice = chartData[0]?.price || d.price;
-                    const changeFromStart = ((d.price - firstPrice) / firstPrice * 100);
+                    const firstValue = chartMode === 'price' ? chartData[0]?.price : chartData[0]?.marketcap;
+                    const currentValue = chartMode === 'price' ? d.price : d.marketcap;
+                    const changeFromStart = ((currentValue - firstValue) / firstValue * 100);
                     return (
                       <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
                         <div className="text-muted-foreground mb-1">{d.date}</div>
-                        <div className="font-semibold text-gold">{formatCurrencyPrice(d.price)}</div>
+                        <div className="font-semibold text-gold">
+                          {chartMode === 'price' ? formatCurrencyPrice(d.price) : formatMarketCap(d.marketcap)}
+                        </div>
                         <div className={`text-[10px] mt-1 ${changeFromStart >= 0 ? 'text-success' : 'text-destructive'}`}>
                           {changeFromStart >= 0 ? '+' : ''}{changeFromStart.toFixed(2)}% from start
                         </div>
@@ -233,7 +264,7 @@ export default function PaxgAnalytics() {
                 />
                 <Line 
                   type="monotone" 
-                  dataKey="price" 
+                  dataKey={chartMode}
                   stroke="hsl(var(--gold))"
                   strokeWidth={2}
                   dot={false}
@@ -246,7 +277,7 @@ export default function PaxgAnalytics() {
               <div className="text-center">
                 <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>Insufficient data for chart</p>
-                <p className="text-xs">Price history will appear after more data points are captured</p>
+                <p className="text-xs">Data will appear after more data points are captured</p>
               </div>
             </div>
           )}
