@@ -133,20 +133,21 @@ export default function StablecoinMarket() {
       .map((s) => s.ticker)
   )];
 
-  // Transform snapshots into line chart format: { date, USDT: mcap, USDC: mcap, ... }
+  // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ... }
   const marketCapLineData = (() => {
-    const groupedByDate: Record<string, Record<string, string | number>> = {};
+    const groupedByDateTime: Record<string, Record<string, string | number>> = {};
     allSnapshots
       .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
       .forEach((snapshot) => {
-        const dateKey = snapshot.as_of_date;
-        if (!groupedByDate[dateKey]) {
-          groupedByDate[dateKey] = { date: dateKey };
+        // Use full datetime for granularity
+        const dateTimeKey = `${snapshot.as_of_date} ${snapshot.as_of_time?.slice(0, 5) || '00:00'}`;
+        if (!groupedByDateTime[dateTimeKey]) {
+          groupedByDateTime[dateTimeKey] = { datetime: dateTimeKey };
         }
-        groupedByDate[dateKey][snapshot.ticker] = snapshot.market_cap_usd ?? 0;
+        groupedByDateTime[dateTimeKey][snapshot.ticker] = snapshot.market_cap_usd ?? 0;
       });
-    return Object.values(groupedByDate).sort((a, b) => 
-      String(a.date).localeCompare(String(b.date))
+    return Object.values(groupedByDateTime).sort((a, b) => 
+      String(a.datetime).localeCompare(String(b.datetime))
     );
   })();
 
@@ -213,7 +214,7 @@ export default function StablecoinMarket() {
                 margin={{ top: 10, right: 30, left: 10, bottom: 0 }}
               >
                 <XAxis
-                  dataKey="date"
+                  dataKey="datetime"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
