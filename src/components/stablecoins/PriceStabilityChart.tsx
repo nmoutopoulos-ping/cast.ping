@@ -126,7 +126,7 @@ export function PriceStabilityChart({
             <Label className="text-[10px] text-muted-foreground uppercase">Min</Label>
             <Input
               type="number"
-              step="0.0001"
+              step="0.00001"
               value={inputMin}
               onChange={(e) => {
                 setInputMin(e.target.value);
@@ -134,14 +134,14 @@ export function PriceStabilityChart({
               }}
               onBlur={handleApply}
               onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-              className="h-7 w-20 text-xs font-mono"
+              className="h-7 w-24 text-xs font-mono"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <Label className="text-[10px] text-muted-foreground uppercase">Max</Label>
             <Input
               type="number"
-              step="0.0001"
+              step="0.00001"
               value={inputMax}
               onChange={(e) => {
                 setInputMax(e.target.value);
@@ -149,7 +149,7 @@ export function PriceStabilityChart({
               }}
               onBlur={handleApply}
               onKeyDown={(e) => e.key === 'Enter' && handleApply()}
-              className="h-7 w-20 text-xs font-mono"
+              className="h-7 w-24 text-xs font-mono"
             />
           </div>
           <Button
