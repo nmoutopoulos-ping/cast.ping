@@ -33,7 +33,7 @@ interface PriceStabilityChartProps {
   height?: string;
 }
 
-const TICKER_COLORS: Record<string, string> = {
+export const TICKER_COLORS: Record<string, string> = {
   USDT: 'hsl(160, 60%, 45%)',
   USDC: 'hsl(210, 80%, 55%)',
   DAI: 'hsl(40, 80%, 50%)',
@@ -44,6 +44,8 @@ const TICKER_COLORS: Record<string, string> = {
   LUSD: 'hsl(220, 70%, 60%)',
   PYUSD: 'hsl(210, 100%, 50%)',
   FDUSD: 'hsl(30, 80%, 50%)',
+  USDS: 'hsl(320, 60%, 50%)',
+  USDG: 'hsl(90, 60%, 45%)',
 };
 
 const DEFAULT_MIN = 0.9999;

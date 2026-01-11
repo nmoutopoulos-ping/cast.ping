@@ -7,16 +7,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
+import { PriceStabilityChart, TICKER_COLORS } from '@/components/stablecoins/PriceStabilityChart';
 import { MarketSnapshot } from '@/types/transactions';
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  Cell,
+  Legend,
 } from 'recharts';
 
 export default function StablecoinMarket() {
@@ -126,17 +126,29 @@ export default function StablecoinMarket() {
     0
   );
 
-  // Prepare chart data for bar chart
-  const chartData = sortedData.map(coin => ({
-    ticker: coin.ticker,
-    marketCap: coin.market_cap_usd ?? 0,
-    price: coin.price_usd,
-    percentage: totalMarketCap > 0 
-      ? ((coin.market_cap_usd ?? 0) / totalMarketCap * 100)
-      : 0,
-  }));
+  // Get unique tickers for the line chart
+  const uniqueTickers = [...new Set(
+    allSnapshots
+      .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
+      .map((s) => s.ticker)
+  )];
 
-  const maxMarketCap = Math.max(...chartData.map(d => d.marketCap));
+  // Transform snapshots into line chart format: { date, USDT: mcap, USDC: mcap, ... }
+  const marketCapLineData = (() => {
+    const groupedByDate: Record<string, Record<string, string | number>> = {};
+    allSnapshots
+      .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
+      .forEach((snapshot) => {
+        const dateKey = snapshot.as_of_date;
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = { date: dateKey };
+        }
+        groupedByDate[dateKey][snapshot.ticker] = snapshot.market_cap_usd ?? 0;
+      });
+    return Object.values(groupedByDate).sort((a, b) => 
+      String(a.date).localeCompare(String(b.date))
+    );
+  })();
 
   // Prepare scatter chart data with ticker info (exclude PAXG)
   const scatterData = allSnapshots
@@ -188,67 +200,71 @@ export default function StablecoinMarket() {
         </div>
       </div>
 
-      {/* Horizontal Bar Chart */}
-      <div className="chart-container">
-        <div className="chart-title">Market Cap Distribution</div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 0, right: 40, left: 50, bottom: 0 }}
-              barCategoryGap="20%"
-            >
-              <XAxis 
-                type="number" 
-                tickFormatter={(value) => formatMarketCap(value)}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                domain={[0, maxMarketCap * 1.1]}
-              />
-              <YAxis 
-                type="category" 
-                dataKey="ticker" 
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }}
-                width={45}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload;
-                  return (
-                    <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
-                      <div className="font-semibold mb-1">{d.ticker}</div>
-                      <div className="text-muted-foreground">
-                        Market Cap: <span className="text-foreground font-medium">{formatMarketCap(d.marketCap)}</span>
-                      </div>
-                      <div className="text-muted-foreground">
-                        Share: <span className="text-foreground font-medium">{d.percentage.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  );
-                }}
-              />
-              <Bar 
-                dataKey="marketCap" 
-                radius={[0, 2, 2, 0]}
+      {/* Market Cap Line Chart */}
+      {snapshotsLoading ? (
+        <Skeleton className="h-64 w-full" />
+      ) : (
+        <div className="chart-container">
+          <div className="chart-title">Market Caps Over Time</div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={marketCapLineData}
+                margin={{ top: 10, right: 30, left: 10, bottom: 0 }}
               >
-                {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill="hsl(var(--institutional-blue))"
-                    fillOpacity={0.7 + (0.3 * (1 - index / chartData.length))}
-                    className="hover:opacity-100 transition-opacity"
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  tickFormatter={(value) => formatMarketCap(value)}
+                  width={55}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
+                        <div className="font-semibold mb-1">{label}</div>
+                        {payload.map((entry: any) => (
+                          <div key={entry.dataKey} className="flex items-center gap-2">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: entry.stroke }}
+                            />
+                            <span className="text-muted-foreground">{entry.dataKey}:</span>
+                            <span className="font-mono font-medium">
+                              {formatMarketCap(entry.value)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+                <Legend />
+                {uniqueTickers.map((ticker) => (
+                  <Line
+                    key={ticker}
+                    type="monotone"
+                    dataKey={ticker}
+                    stroke={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
                   />
                 ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Price Stability Chart - All Stablecoins */}
       {snapshotsLoading ? (
