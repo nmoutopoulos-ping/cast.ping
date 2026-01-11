@@ -104,9 +104,15 @@ export function StablecoinMarketBar() {
     (b.market_cap_usd ?? 0) - (a.market_cap_usd ?? 0)
   );
 
+  // Calculate total market cap
+  const totalMarketCap = sortedData.reduce(
+    (sum, coin) => sum + (coin.market_cap_usd ?? 0), 
+    0
+  );
+
   return (
     <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">Stablecoin Market</span>
@@ -125,6 +131,25 @@ export function StablecoinMarketBar() {
           <RefreshCw className="w-3 h-3" />
           <span className="text-xs">Refresh</span>
         </Button>
+      </div>
+
+      {/* Total Market Cap Summary */}
+      <div className="rounded-lg bg-primary/10 border border-primary/20 px-5 py-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+              Total Stablecoin Market Cap
+            </div>
+            <div className="text-2xl font-bold text-foreground">
+              {formatMarketCap(totalMarketCap)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm text-muted-foreground">
+              {sortedData.length} stablecoins tracked
+            </div>
+          </div>
+        </div>
       </div>
       
       <div className="grid gap-3">
