@@ -206,3 +206,22 @@ export const COLOR_PRESETS = [
   // Pinks/Magentas
   "#DB2777", "#EC4899", "#F472B6",
 ] as const;
+
+/**
+ * Market snapshot data structure (shared by stablecoins, PAXG, etc.)
+ */
+export interface MarketSnapshot {
+  captured_at: string;
+  as_of_date: string;
+  as_of_time: string;
+  coingecko_id: string;
+  ticker: string;
+  price_usd: number;
+  market_cap_usd: number | null;
+  inserted_at: string;
+}
+
+/**
+ * Supported market data table names
+ */
+export type MarketDataTable = 'stablecoin_snapshots' | 'paxg_snapshots';
