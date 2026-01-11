@@ -35,6 +35,8 @@ interface PriceStabilityChartProps {
   onToggleTicker?: (ticker: string) => void;
   onToggleAll?: () => void;
   allTickers?: string[];
+  getTickerColor?: (ticker: string) => string;
+  colorPickerElement?: React.ReactNode;
 }
 
 export const TICKER_COLORS: Record<string, string> = {
@@ -66,6 +68,8 @@ export function PriceStabilityChart({
   onToggleTicker,
   onToggleAll,
   allTickers = [],
+  getTickerColor,
+  colorPickerElement,
 }: PriceStabilityChartProps) {
   const [yMin, setYMin] = useState(DEFAULT_MIN);
   const [yMax, setYMax] = useState(DEFAULT_MAX);
@@ -138,6 +142,12 @@ export function PriceStabilityChart({
     : tickers;
 
   const hasTickerFiltering = onToggleTicker && onToggleAll && allTickers.length > 0;
+  
+  // Helper to get color - use prop or fallback to TICKER_COLORS
+  const resolveColor = (ticker: string) => {
+    if (getTickerColor) return getTickerColor(ticker);
+    return TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))';
+  };
 
   return (
     <div className="chart-container">
@@ -147,6 +157,7 @@ export function PriceStabilityChart({
           {/* Ticker filter bar - same layout as Market Cap chart */}
           {hasTickerFiltering && (
             <>
+              {colorPickerElement}
               <button
                 onClick={onToggleAll}
                 className="text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
@@ -165,7 +176,7 @@ export function PriceStabilityChart({
                 >
                   <div
                     className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
+                    style={{ backgroundColor: resolveColor(ticker) }}
                   />
                   <span>{ticker}</span>
                 </button>
@@ -308,7 +319,7 @@ export function PriceStabilityChart({
                   name={ticker}
                   data={filteredData.filter((d) => d.ticker === ticker)}
                   dataKey="priceValue"
-                  fill={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
+                  fill={resolveColor(ticker)}
                   fillOpacity={0.8}
                 />
               ))
