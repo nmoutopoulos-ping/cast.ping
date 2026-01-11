@@ -47,6 +47,7 @@ export function usePaxgData(): UsePaxgDataResult {
 
     try {
       // Query from app's own database (paxg_snapshots table) - get latest entry
+      // @ts-ignore - table exists but types not yet regenerated
       const { data: snapshots, error: fetchError } = await supabase
         .from('paxg_snapshots')
         .select('*')
