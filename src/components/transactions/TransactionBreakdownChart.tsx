@@ -28,9 +28,9 @@ interface ChartSlice {
   isUnassigned: boolean;
 }
 
-// Neutral colors for unassigned
-const UNASSIGNED_ENTITY_COLOR = "#94a3b8"; // slate-400
-const UNASSIGNED_TAG_COLOR = "#cbd5e1"; // slate-300
+// Muted institutional colors for unassigned
+const UNASSIGNED_ENTITY_COLOR = "#64748b"; // slate-500
+const UNASSIGNED_TAG_COLOR = "#94a3b8"; // slate-400
 
 export function TransactionBreakdownChart({
   rows,
@@ -130,7 +130,7 @@ export function TransactionBreakdownChart({
   // Calculate totals for percentage
   const total = useMemo(() => chartData.reduce((sum, d) => sum + d.value, 0), [chartData]);
 
-  // Custom tooltip
+  // Institutional tooltip - table style
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartSlice }> }) => {
     if (!active || !payload?.length) return null;
     
@@ -138,24 +138,29 @@ export function TransactionBreakdownChart({
     const percentage = ((data.value / total) * 100).toFixed(1);
     
     return (
-      <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-lg">
-        <div className="flex items-center gap-2 mb-1">
-          <div 
-            className="w-2.5 h-2.5 rounded-sm" 
-            style={{ backgroundColor: data.color }}
-          />
-          <span className="text-sm font-medium text-foreground">
-            {data.entityName}
-          </span>
-        </div>
-        {data.tagName !== "No Tag" && (
-          <div className="text-xs text-muted-foreground mb-1 pl-4">
-            {data.tagName}
-          </div>
-        )}
-        <div className="text-xs text-muted-foreground pl-4">
-          {formatNumber(data.value)} txns ({percentage}%)
-        </div>
+      <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
+        <table className="text-left">
+          <tbody>
+            <tr>
+              <td className="pr-3 text-muted-foreground">Entity</td>
+              <td className="font-medium">{data.entityName}</td>
+            </tr>
+            {data.tagName !== "No Tag" && (
+              <tr>
+                <td className="pr-3 text-muted-foreground">Tag</td>
+                <td className="font-medium">{data.tagName}</td>
+              </tr>
+            )}
+            <tr>
+              <td className="pr-3 text-muted-foreground">Count</td>
+              <td className="font-mono tabular-nums">{formatNumber(data.value)}</td>
+            </tr>
+            <tr>
+              <td className="pr-3 text-muted-foreground">Share</td>
+              <td className="font-mono tabular-nums">{percentage}%</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -166,26 +171,27 @@ export function TransactionBreakdownChart({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-base font-medium">Transaction Breakdown</h3>
-      <div className="flex items-start gap-6">
-        <div className="h-[220px] w-[280px] shrink-0">
+      <div className="chart-title">Transaction Breakdown by Entity</div>
+      <div className="flex items-start gap-8">
+        <div className="h-[200px] w-[240px] shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={55}
-                outerRadius={100}
+                innerRadius={50}
+                outerRadius={90}
                 paddingAngle={1}
                 dataKey="value"
                 stroke="hsl(var(--background))"
-                strokeWidth={2}
+                strokeWidth={1}
               >
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
                     fill={entry.color}
+                    opacity={0.85}
                     className="outline-none focus:outline-none"
                   />
                 ))}
@@ -194,11 +200,11 @@ export function TransactionBreakdownChart({
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex flex-col gap-4 pt-2">
+        <div className="flex flex-col gap-4 pt-1 text-xs">
           {/* Entity Legend */}
           <div>
-            <span className="text-xs font-medium text-foreground/70 uppercase tracking-wide">Entities</span>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Entities</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
               {Array.from(
                 chartData.reduce((map, slice) => {
                   const existing = map.get(slice.entityName);
@@ -216,11 +222,11 @@ export function TransactionBreakdownChart({
                 <div key={entityName} className="flex items-center gap-1.5">
                   <div 
                     className="w-2 h-2 rounded-sm shrink-0" 
-                    style={{ backgroundColor: data.color }}
+                    style={{ backgroundColor: data.color, opacity: 0.85 }}
                   />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-muted-foreground">
                     {entityName}
-                    <span className="ml-1 tabular-nums">
+                    <span className="ml-1 font-mono tabular-nums">
                       ({formatNumber(data.count)})
                     </span>
                   </span>
@@ -231,8 +237,8 @@ export function TransactionBreakdownChart({
           
           {/* Tag Legend */}
           <div>
-            <span className="text-xs font-medium text-foreground/70 uppercase tracking-wide">Tags</span>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tags</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
               {Array.from(
                 chartData.reduce((map, slice) => {
                   if (slice.tagName === "No Tag") return map;
@@ -251,18 +257,18 @@ export function TransactionBreakdownChart({
                 <div key={tagName} className="flex items-center gap-1.5">
                   <div 
                     className="w-2 h-2 rounded-sm shrink-0" 
-                    style={{ backgroundColor: data.color }}
+                    style={{ backgroundColor: data.color, opacity: 0.85 }}
                   />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-muted-foreground">
                     {tagName}
-                    <span className="ml-1 tabular-nums">
+                    <span className="ml-1 font-mono tabular-nums">
                       ({formatNumber(data.count)})
                     </span>
                   </span>
                 </div>
               ))}
               {!chartData.some(s => s.tagName !== "No Tag") && (
-                <span className="text-xs text-muted-foreground/60 italic">No tags assigned</span>
+                <span className="text-muted-foreground/50 italic">No tags assigned</span>
               )}
             </div>
           </div>

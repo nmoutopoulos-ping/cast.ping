@@ -1,5 +1,4 @@
 import { useStablecoinData, usePaxgData } from '@/hooks/useMarketData';
-import { MarketSnapshot } from '@/types/transactions';
 import { 
   formatMarketCap, 
   formatStablecoinPrice, 
@@ -7,35 +6,29 @@ import {
   getStablecoinPriceColor 
 } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, TrendingUp, AlertCircle, LogIn, Coins } from 'lucide-react';
+import { LogIn, Coins, CircleDollarSign, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 export function StablecoinMarketBar() {
-  const { data, loading, error, refetch, lastUpdated, isAuthenticated } = useStablecoinData();
-  const { data: paxgData, loading: paxgLoading, refetch: refetchPaxg } = usePaxgData();
-
-  const handleRefresh = () => {
-    refetch();
-    refetchPaxg();
-  };
+  const { data, loading, isAuthenticated } = useStablecoinData();
+  const { data: paxgData, loading: paxgLoading } = usePaxgData();
 
   // Show login prompt if not authenticated
   if (!isAuthenticated && !loading) {
     return (
-      <div className="rounded-lg border bg-card p-6">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="rounded-full bg-muted p-3">
-            <LogIn className="w-6 h-6 text-muted-foreground" />
+      <div className="rounded border bg-card p-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="rounded bg-muted p-2.5">
+            <LogIn className="w-5 h-5 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="font-medium mb-1">Sign in to view market data</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="font-medium text-sm mb-0.5">Sign in to view market data</h3>
+            <p className="text-xs text-muted-foreground">
               Market prices and caps require authentication
             </p>
           </div>
-          <Button asChild>
+          <Button size="sm" asChild className="h-8 text-xs">
             <Link to="/auth">Sign In</Link>
           </Button>
         </div>
@@ -45,31 +38,12 @@ export function StablecoinMarketBar() {
 
   if (loading || paxgLoading) {
     return (
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-        <Skeleton className="h-20 w-full mb-4" />
-        <div className="grid gap-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
+      <div className="rounded border bg-card p-4">
+        <Skeleton className="h-4 w-32 mb-3" />
+        <div className="grid gap-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
           ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">Failed to load market data: {error}</span>
-          <Button variant="ghost" size="sm" onClick={handleRefresh} className="ml-auto gap-1">
-            <RefreshCw className="w-3 h-3" />
-            Retry
-          </Button>
         </div>
       </div>
     );
@@ -77,15 +51,8 @@ export function StablecoinMarketBar() {
 
   if (data.length === 0 && !paxgData) {
     return (
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <TrendingUp className="w-4 h-4" />
-          <span className="text-sm">No market data available yet</span>
-          <Button variant="ghost" size="sm" onClick={handleRefresh} className="ml-auto gap-1">
-            <RefreshCw className="w-3 h-3" />
-            Refresh
-          </Button>
-        </div>
+      <div className="rounded border bg-card p-4">
+        <p className="text-xs text-muted-foreground">No market data available</p>
       </div>
     );
   }
@@ -103,154 +70,95 @@ export function StablecoinMarketBar() {
 
   return (
     <div className="space-y-4">
-      {/* PAXG Section */}
-      {paxgData && (
-        <MarketSection
-          icon={<Coins className="w-4 h-4 text-yellow-500" />}
-          title="Gold-Backed Assets"
-          asOfDate={paxgData.as_of_date}
-          asOfTime={paxgData.as_of_time}
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Stablecoin Summary Card */}
+        <Link 
+          to="/stablecoins"
+          className="rounded border bg-card p-4 hover:bg-muted/30 transition-colors group"
         >
-          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-5 py-4">
-            <MarketRow
-              ticker={paxgData.ticker}
-              price={formatCurrencyPrice(paxgData.price_usd)}
-              priceColorClass="text-yellow-600 dark:text-yellow-400"
-              marketCap={paxgData.market_cap_usd}
-            />
-          </div>
-        </MarketSection>
-      )}
-
-      {/* Stablecoin Section */}
-      <MarketSection
-        icon={<TrendingUp className="w-4 h-4 text-muted-foreground" />}
-        title="Stablecoin Market"
-        lastUpdated={lastUpdated}
-        onRefresh={handleRefresh}
-        asOfDate={sortedData[0]?.as_of_date}
-        asOfTime={sortedData[0]?.as_of_time}
-      >
-        {/* Total Market Cap Summary */}
-        <div className="rounded-lg bg-primary/10 border border-primary/20 px-5 py-4 mb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                Total Stablecoin Market Cap
+              <div className="flex items-center gap-2 mb-2">
+                <CircleDollarSign className="w-4 h-4 text-institutional-blue" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Stablecoin Market
+                </span>
               </div>
-              <div className="text-2xl font-bold text-foreground">
-                {formatMarketCap(totalMarketCap)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">
+              <div className="metric-large">{formatMarketCap(totalMarketCap)}</div>
+              <div className="metric-sublabel mt-1">
                 {sortedData.length} stablecoins tracked
               </div>
             </div>
+            <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
           </div>
+        </Link>
+
+        {/* PAXG Summary Card */}
+        {paxgData && (
+          <Link 
+            to="/paxg"
+            className="rounded border border-gold/30 bg-gold-muted/30 p-4 hover:bg-gold-muted/50 transition-colors group"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Coins className="w-4 h-4 text-gold" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    PAXG
+                  </span>
+                </div>
+                <div className="metric-large text-gold">{formatCurrencyPrice(paxgData.price_usd)}</div>
+                <div className="metric-sublabel mt-1">
+                  {formatMarketCap(paxgData.market_cap_usd)} market cap
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+            </div>
+          </Link>
+        )}
+      </div>
+
+      {/* Quick View Table */}
+      <div className="rounded border bg-card">
+        <div className="px-3 py-2 border-b">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Stablecoin Prices
+          </span>
         </div>
-        
-        <div className="grid gap-3">
-          {sortedData.map((coin) => (
+        <div className="divide-y divide-border">
+          {sortedData.slice(0, 5).map((coin) => (
             <div
               key={coin.ticker}
-              className="rounded-lg border bg-muted/30 px-5 py-4"
+              className="flex items-center justify-between px-3 py-2 text-xs"
             >
-              <MarketRow
-                ticker={coin.ticker}
-                price={formatStablecoinPrice(coin.price_usd)}
-                priceColorClass={getStablecoinPriceColor(coin.price_usd)}
-                marketCap={coin.market_cap_usd}
-              />
+              <span className="font-medium">{coin.ticker}</span>
+              <div className="flex items-center gap-4">
+                <span className={`font-mono ${getStablecoinPriceColor(coin.price_usd)}`}>
+                  {formatStablecoinPrice(coin.price_usd)}
+                </span>
+                <span className="text-muted-foreground w-16 text-right tabular-nums">
+                  {formatMarketCap(coin.market_cap_usd)}
+                </span>
+              </div>
             </div>
           ))}
         </div>
-      </MarketSection>
-    </div>
-  );
-}
-
-/** Reusable section wrapper for market data cards */
-interface MarketSectionProps {
-  icon: React.ReactNode;
-  title: string;
-  lastUpdated?: Date | null;
-  onRefresh?: () => void;
-  asOfDate?: string;
-  asOfTime?: string;
-  children: React.ReactNode;
-}
-
-function MarketSection({ 
-  icon, 
-  title, 
-  lastUpdated, 
-  onRefresh, 
-  asOfDate, 
-  asOfTime, 
-  children 
-}: MarketSectionProps) {
-  return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="text-sm font-medium">{title}</span>
-          {lastUpdated && (
-            <span className="text-xs text-muted-foreground">
-              Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-            </span>
-          )}
-        </div>
-        {onRefresh && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRefresh}
-            className="gap-1 h-7 px-2"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span className="text-xs">Refresh</span>
-          </Button>
-        )}
+        <Link 
+          to="/stablecoins"
+          className="flex items-center justify-center gap-1 px-3 py-2 text-xs text-muted-foreground hover:text-foreground border-t transition-colors"
+        >
+          View full dashboard
+          <ArrowRight className="w-3 h-3" />
+        </Link>
       </div>
-      
-      {children}
-      
-      {asOfDate && (
-        <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-          Data as of: {asOfDate} {asOfTime}
+
+      {/* Timestamp */}
+      {sortedData[0] && (
+        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+          Data as of: {sortedData[0].as_of_date} {sortedData[0].as_of_time}
         </div>
       )}
-    </div>
-  );
-}
-
-/** Reusable row for displaying ticker, price, and market cap */
-interface MarketRowProps {
-  ticker: string;
-  price: string;
-  priceColorClass: string;
-  marketCap: number | null;
-}
-
-function MarketRow({ ticker, price, priceColorClass, marketCap }: MarketRowProps) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <span className="font-bold text-lg">{ticker}</span>
-        <span className={`text-xl font-mono font-semibold ${priceColorClass}`}>
-          {price}
-        </span>
-      </div>
-      <div className="text-right">
-        <div className="text-xl font-semibold text-foreground">
-          {formatMarketCap(marketCap)}
-        </div>
-        <div className="text-xs text-muted-foreground uppercase tracking-wide">
-          Market Cap
-        </div>
-      </div>
     </div>
   );
 }
