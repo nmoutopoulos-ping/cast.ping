@@ -1,12 +1,22 @@
 import { useStablecoinData } from '@/hooks/useStablecoinData';
+import { usePaxgData } from '@/hooks/usePaxgData';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, TrendingUp, AlertCircle, LogIn } from 'lucide-react';
+import { RefreshCw, TrendingUp, AlertCircle, LogIn, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 function formatPrice(price: number): string {
   return price.toFixed(6);
+}
+
+function formatPaxgPrice(price: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price);
 }
 
 function formatMarketCap(value: number | null): string {
@@ -30,6 +40,12 @@ function getPriceColor(price: number): string {
 
 export function StablecoinMarketBar() {
   const { data, loading, error, refetch, lastUpdated, isAuthenticated } = useStablecoinData();
+  const { data: paxgData, loading: paxgLoading, refetch: refetchPaxg } = usePaxgData();
+
+  const handleRefresh = () => {
+    refetch();
+    refetchPaxg();
+  };
 
   // Show login prompt if not authenticated
   if (!isAuthenticated && !loading) {
@@ -42,7 +58,7 @@ export function StablecoinMarketBar() {
           <div>
             <h3 className="font-medium mb-1">Sign in to view market data</h3>
             <p className="text-sm text-muted-foreground">
-              Stablecoin prices and market caps require authentication
+              Market prices and caps require authentication
             </p>
           </div>
           <Button asChild>
@@ -53,16 +69,17 @@ export function StablecoinMarketBar() {
     );
   }
 
-  if (loading) {
+  if (loading || paxgLoading) {
     return (
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-center gap-3 mb-3">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-4 w-24" />
         </div>
-        <div className="flex gap-4 overflow-x-auto">
+        <Skeleton className="h-20 w-full mb-4" />
+        <div className="grid gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 w-40 flex-shrink-0" />
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
       </div>
@@ -74,8 +91,8 @@ export function StablecoinMarketBar() {
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
         <div className="flex items-center gap-2 text-destructive">
           <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">Failed to load stablecoin data: {error}</span>
-          <Button variant="ghost" size="sm" onClick={refetch} className="ml-auto gap-1">
+          <span className="text-sm">Failed to load market data: {error}</span>
+          <Button variant="ghost" size="sm" onClick={handleRefresh} className="ml-auto gap-1">
             <RefreshCw className="w-3 h-3" />
             Retry
           </Button>
@@ -84,13 +101,13 @@ export function StablecoinMarketBar() {
     );
   }
 
-  if (data.length === 0) {
+  if (data.length === 0 && !paxgData) {
     return (
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <TrendingUp className="w-4 h-4" />
-          <span className="text-sm">No stablecoin data available yet</span>
-          <Button variant="ghost" size="sm" onClick={refetch} className="ml-auto gap-1">
+          <span className="text-sm">No market data available yet</span>
+          <Button variant="ghost" size="sm" onClick={handleRefresh} className="ml-auto gap-1">
             <RefreshCw className="w-3 h-3" />
             Refresh
           </Button>
@@ -111,63 +128,28 @@ export function StablecoinMarketBar() {
   );
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Stablecoin Market</span>
-          {lastUpdated && (
-            <span className="text-xs text-muted-foreground">
-              Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
-            </span>
-          )}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={refetch}
-          className="gap-1 h-7 px-2"
-        >
-          <RefreshCw className="w-3 h-3" />
-          <span className="text-xs">Refresh</span>
-        </Button>
-      </div>
-
-      {/* Total Market Cap Summary */}
-      <div className="rounded-lg bg-primary/10 border border-primary/20 px-5 py-4 mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-              Total Stablecoin Market Cap
-            </div>
-            <div className="text-2xl font-bold text-foreground">
-              {formatMarketCap(totalMarketCap)}
+    <div className="space-y-4">
+      {/* PAXG Section */}
+      {paxgData && (
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Coins className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm font-medium">Gold-Backed Assets</span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-muted-foreground">
-              {sortedData.length} stablecoins tracked
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid gap-3">
-        {sortedData.map((coin) => (
-          <div
-            key={coin.ticker}
-            className="rounded-lg border bg-muted/30 px-5 py-4"
-          >
+          
+          <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-5 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="font-bold text-lg">{coin.ticker}</span>
-                <span className={`text-xl font-mono font-semibold ${getPriceColor(coin.price_usd)}`}>
-                  {formatPrice(coin.price_usd)}
+                <span className="font-bold text-lg">{paxgData.ticker}</span>
+                <span className="text-xl font-mono font-semibold text-yellow-600 dark:text-yellow-400">
+                  {formatPaxgPrice(paxgData.price_usd)}
                 </span>
               </div>
               <div className="text-right">
                 <div className="text-xl font-semibold text-foreground">
-                  {formatMarketCap(coin.market_cap_usd)}
+                  {formatMarketCap(paxgData.market_cap_usd)}
                 </div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">
                   Market Cap
@@ -175,14 +157,89 @@ export function StablecoinMarketBar() {
               </div>
             </div>
           </div>
-        ))}
-      </div>
-      
-      {sortedData.length > 0 && sortedData[0].as_of_date && (
-        <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
-          Data as of: {sortedData[0].as_of_date} {sortedData[0].as_of_time}
+          
+          {paxgData.as_of_date && (
+            <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+              Data as of: {paxgData.as_of_date} {paxgData.as_of_time}
+            </div>
+          )}
         </div>
       )}
+
+      {/* Stablecoin Section */}
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Stablecoin Market</span>
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+              </span>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            className="gap-1 h-7 px-2"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span className="text-xs">Refresh</span>
+          </Button>
+        </div>
+
+        {/* Total Market Cap Summary */}
+        <div className="rounded-lg bg-primary/10 border border-primary/20 px-5 py-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Total Stablecoin Market Cap
+              </div>
+              <div className="text-2xl font-bold text-foreground">
+                {formatMarketCap(totalMarketCap)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">
+                {sortedData.length} stablecoins tracked
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid gap-3">
+          {sortedData.map((coin) => (
+            <div
+              key={coin.ticker}
+              className="rounded-lg border bg-muted/30 px-5 py-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-lg">{coin.ticker}</span>
+                  <span className={`text-xl font-mono font-semibold ${getPriceColor(coin.price_usd)}`}>
+                    {formatPrice(coin.price_usd)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-semibold text-foreground">
+                    {formatMarketCap(coin.market_cap_usd)}
+                  </div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Market Cap
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {sortedData.length > 0 && sortedData[0].as_of_date && (
+          <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+            Data as of: {sortedData[0].as_of_date} {sortedData[0].as_of_time}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
