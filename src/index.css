@@ -6,27 +6,27 @@
 
 @layer base {
   :root {
-    /* Clean light theme - white/gray palette */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Clean light theme - soft blue-gray palette */
+    --background: 214 25% 92%;
+    --foreground: 210 50% 25%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 210 50% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 210 50% 20%;
 
-    --primary: 222 47% 11%;
+    --primary: 207 55% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 214 20% 96%;
+    --secondary-foreground: 210 50% 25%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 214 20% 94%;
+    --muted-foreground: 210 20% 45%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 214 20% 94%;
+    --accent-foreground: 210 50% 25%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -37,35 +37,35 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 222 47% 11%;
+    --border: 214 20% 85%;
+    --input: 214 20% 85%;
+    --ring: 207 55% 42%;
 
     --radius: 0.375rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-foreground: 210 50% 25%;
+    --sidebar-primary: 207 55% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 60%;
+    --sidebar-accent: 207 55% 42%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-border: 214 20% 88%;
+    --sidebar-ring: 207 55% 42%;
 
     /* Custom semantic tokens */
     --direction-in: 142 71% 45%;
     --direction-out: 0 84% 60%;
-    --direction-self: 220 9% 46%;
+    --direction-self: 210 20% 45%;
     
-    --table-header: 220 14% 97%;
-    --table-row-hover: 220 14% 98%;
-    --table-border: 220 13% 91%;
+    --table-header: 214 20% 96%;
+    --table-row-hover: 214 20% 94%;
+    --table-border: 214 20% 88%;
     
     /* Accent colors */
     --gold: 38 92% 50%;
     --gold-muted: 38 40% 92%;
-    --institutional-blue: 217 91% 60%;
-    --institutional-blue-muted: 217 40% 94%;
+    --institutional-blue: 207 55% 42%;
+    --institutional-blue-muted: 207 30% 90%;
   }
 
   .dark {
