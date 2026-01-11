@@ -115,9 +115,18 @@ export default function PaxgAnalytics() {
     );
   }
 
+  // Helper to format time as EST (12h format)
+  const formatTimeEST = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
+  };
+
   // Prepare chart data
   const chartData = (historicalData || []).map((snapshot) => ({
-    date: `${snapshot.as_of_date} ${snapshot.as_of_time?.slice(0, 5) || ''}`,
+    date: `${snapshot.as_of_date} ${formatTimeEST(snapshot.as_of_time || '')}`,
     price: snapshot.price_usd,
     displayDate: snapshot.as_of_date,
   }));
@@ -160,7 +169,7 @@ export default function PaxgAnalytics() {
         </div>
         <div className="kpi-card">
           <div className="kpi-value text-base font-normal text-muted-foreground">
-            {latestPaxg.as_of_date} {latestPaxg.as_of_time?.slice(0, 5)}
+            {latestPaxg.as_of_date} {formatTimeEST(latestPaxg.as_of_time || '')} EST
           </div>
           <div className="kpi-label">Data Timestamp</div>
         </div>
@@ -254,7 +263,7 @@ export default function PaxgAnalytics() {
 
       {/* Footer timestamp */}
       <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-        Data as of: {latestPaxg.as_of_date} {latestPaxg.as_of_time}
+        Data as of: {latestPaxg.as_of_date} {formatTimeEST(latestPaxg.as_of_time || '')} EST
       </div>
     </div>
   );

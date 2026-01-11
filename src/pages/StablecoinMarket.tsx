@@ -245,7 +245,7 @@ export default function StablecoinMarket() {
         </div>
         <div className="kpi-card">
           <div className="kpi-value text-base font-normal text-muted-foreground">
-            {sortedData[0]?.as_of_date} {sortedData[0]?.as_of_time?.slice(0, 5)}
+            {sortedData[0]?.as_of_date} {formatTimeEST(sortedData[0]?.as_of_time || '')} EST
           </div>
           <div className="kpi-label">Last Updated</div>
         </div>
