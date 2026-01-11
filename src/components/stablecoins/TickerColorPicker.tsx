@@ -109,18 +109,24 @@ export function TickerColorPicker({ tickers, customColors, onSave }: TickerColor
             </Button>
           </div>
           
-          <div className="grid grid-cols-2 gap-2">
-            {tickers.map((ticker) => (
-              <div key={ticker} className="flex items-center gap-2">
-                <Input
-                  type="color"
-                  value={editColors[ticker] || TICKER_COLORS[ticker] || '#4a90d9'}
-                  onChange={(e) => handleColorChange(ticker, e.target.value)}
-                  className="w-8 h-7 p-0.5 cursor-pointer"
-                />
-                <span className="text-xs font-medium">{ticker}</span>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            {tickers.map((ticker) => {
+              const currentColor = editColors[ticker] || TICKER_COLORS[ticker] || '#4a90d9';
+              return (
+                <div key={ticker} className="flex items-center gap-2">
+                  <Input
+                    type="color"
+                    value={currentColor}
+                    onChange={(e) => handleColorChange(ticker, e.target.value)}
+                    className="w-8 h-7 p-0.5 cursor-pointer flex-shrink-0"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-medium">{ticker}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono uppercase">{currentColor}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <Button
