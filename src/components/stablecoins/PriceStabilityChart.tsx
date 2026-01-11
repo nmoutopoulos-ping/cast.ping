@@ -215,12 +215,13 @@ export function PriceStabilityChart({
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload as PriceDataPoint;
                 const deviation = ((d.priceValue - 1) * 100).toFixed(4);
+                const deviationNum = parseFloat(deviation);
                 const deviationColor =
-                  Math.abs(d.priceValue - 1) < 0.001
+                  deviationNum < 0
+                    ? 'text-destructive'
+                    : deviationNum > 0
                     ? 'text-success'
-                    : Math.abs(d.priceValue - 1) < 0.005
-                    ? 'text-warning'
-                    : 'text-destructive';
+                    : 'text-muted-foreground';
                 return (
                   <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
                     {d.ticker && (
