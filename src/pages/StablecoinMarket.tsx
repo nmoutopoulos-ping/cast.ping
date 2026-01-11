@@ -69,7 +69,8 @@ export default function StablecoinMarket() {
       marketCapVisibility.initializeTickers(tickers);
       priceStabilityVisibility.initializeTickers(tickers);
     }
-  }, [allSnapshots, marketCapVisibility, priceStabilityVisibility]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSnapshots]);
 
   const handleRefresh = async () => {
     await Promise.all([refetch(), fetchAllSnapshots()]);
