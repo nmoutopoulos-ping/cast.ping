@@ -8,6 +8,7 @@ import { RefreshCw, AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { PriceStabilityChart, TICKER_COLORS } from '@/components/stablecoins/PriceStabilityChart';
+import { TickerColorPicker, useTickerColors } from '@/components/stablecoins/TickerColorPicker';
 import { MarketSnapshot } from '@/types/transactions';
 import {
   LineChart,
@@ -26,6 +27,7 @@ export default function StablecoinMarket() {
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [visibleTickers, setVisibleTickers] = useState<Set<string>>(new Set());
   const [visiblePriceTickers, setVisiblePriceTickers] = useState<Set<string>>(new Set());
+  const { customColors, saveColors, getColor } = useTickerColors();
 
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
@@ -304,7 +306,7 @@ export default function StablecoinMarket() {
                   >
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
+                      style={{ backgroundColor: getColor(ticker) }}
                     />
                     <span>{ticker}</span>
                   </button>
@@ -366,7 +368,7 @@ export default function StablecoinMarket() {
                       key={ticker}
                       type="monotone"
                       dataKey={ticker}
-                      stroke={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
+                      stroke={getColor(ticker)}
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 4 }}
@@ -393,6 +395,14 @@ export default function StablecoinMarket() {
           onToggleTicker={togglePriceTicker}
           onToggleAll={toggleAllPrice}
           allTickers={uniqueTickers}
+          getTickerColor={getColor}
+          colorPickerElement={
+            <TickerColorPicker
+              tickers={uniqueTickers}
+              customColors={customColors}
+              onSave={saveColors}
+            />
+          }
         />
       )}
 
