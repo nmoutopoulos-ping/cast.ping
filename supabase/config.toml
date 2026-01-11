@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.receive-paxg]
 verify_jwt = false
+
+[functions.receive-market-data]
+verify_jwt = false
