@@ -209,12 +209,12 @@ export default function StablecoinDetail() {
                 interval="preserveStartEnd"
               />
               <YAxis 
-                domain={[0.99, 1.01]}
+                domain={[0.999, 1.001]}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                tickFormatter={(value) => `$${value.toFixed(3)}`}
-                width={55}
+                tickFormatter={(value) => `$${value.toFixed(4)}`}
+                width={60}
               />
               <ReferenceLine 
                 y={1.0} 
