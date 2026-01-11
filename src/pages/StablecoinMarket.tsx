@@ -167,14 +167,30 @@ export default function StablecoinMarket() {
     }
   };
 
+  // Helper to format time as EST (12h format)
+  const formatTimeEST = (time: string) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`;
+  };
+
+  // Get latest market cap for each ticker (for hover display)
+  const latestMarketCaps = sortedData.reduce((acc, coin) => {
+    acc[coin.ticker] = coin.market_cap_usd ?? 0;
+    return acc;
+  }, {} as Record<string, number>);
+
   // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ... }
   const marketCapLineData = (() => {
     const groupedByDateTime: Record<string, Record<string, string | number>> = {};
     allSnapshots
       .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
       .forEach((snapshot) => {
-        // Use full datetime for granularity
-        const dateTimeKey = `${snapshot.as_of_date} ${snapshot.as_of_time?.slice(0, 5) || '00:00'}`;
+        // Use full datetime for granularity with EST format
+        const timeEST = formatTimeEST(snapshot.as_of_time || '00:00');
+        const dateTimeKey = `${snapshot.as_of_date} ${timeEST}`;
         if (!groupedByDateTime[dateTimeKey]) {
           groupedByDateTime[dateTimeKey] = { datetime: dateTimeKey };
         }
@@ -250,21 +266,26 @@ export default function StablecoinMarket() {
                 {visibleTickers.size === uniqueTickers.length ? 'Hide All' : 'Show All'}
               </button>
               {uniqueTickers.map((ticker) => (
-                <button
-                  key={ticker}
-                  onClick={() => toggleTicker(ticker)}
-                  className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
-                    visibleTickers.has(ticker)
-                      ? 'bg-muted hover:bg-muted/80'
-                      : 'bg-transparent opacity-40 hover:opacity-60'
-                  }`}
-                >
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
-                  />
-                  <span>{ticker}</span>
-                </button>
+                <div key={ticker} className="relative group">
+                  <button
+                    onClick={() => toggleTicker(ticker)}
+                    className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
+                      visibleTickers.has(ticker)
+                        ? 'bg-muted hover:bg-muted/80'
+                        : 'bg-transparent opacity-40 hover:opacity-60'
+                    }`}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
+                    />
+                    <span>{ticker}</span>
+                  </button>
+                  {/* Hover tooltip showing market cap */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover border rounded shadow-md text-[9px] text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                    {formatMarketCap(latestMarketCaps[ticker] || 0)}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
