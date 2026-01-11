@@ -30,10 +30,10 @@ import {
 
 const navigation = [
   { name: "Search", href: "/", icon: Search },
-  { name: "Stablecoin Market", href: "/stablecoins", icon: CircleDollarSign },
-  { name: "PAXG Analytics", href: "/paxg", icon: Coins },
   { name: "Saved Data", href: "/queries", icon: Database },
   { name: "Entities & Tags", href: "/entities", icon: Tags },
+  { name: "Stablecoins", href: "/stablecoins", icon: CircleDollarSign },
+  { name: "PAX Gold", href: "/paxg", icon: Coins },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
