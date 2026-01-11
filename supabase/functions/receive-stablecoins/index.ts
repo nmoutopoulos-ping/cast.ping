@@ -41,8 +41,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json()
     
-    // Accept either single object or array
-    const snapshots: StablecoinSnapshot[] = Array.isArray(body) ? body : [body]
+    // Accept: { rows: [...] }, direct array [...], or single object {...}
+    let snapshots: StablecoinSnapshot[]
+    if (body.rows && Array.isArray(body.rows)) {
+      snapshots = body.rows
+    } else if (Array.isArray(body)) {
+      snapshots = body
+    } else {
+      snapshots = [body]
+    }
 
     if (snapshots.length === 0) {
       return new Response(
