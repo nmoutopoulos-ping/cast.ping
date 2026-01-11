@@ -6,12 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 4,
-    maximumFractionDigits: 4,
-  }).format(price);
+  return price.toFixed(6);
 }
 
 function formatMarketCap(value: number | null): string {
@@ -132,30 +127,34 @@ export function StablecoinMarketBar() {
         </Button>
       </div>
       
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="grid gap-3">
         {sortedData.map((coin) => (
           <div
             key={coin.ticker}
-            className="flex-shrink-0 rounded-md border bg-muted/30 px-4 py-3 min-w-[160px]"
+            className="rounded-lg border bg-muted/30 px-5 py-4"
           >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-semibold text-sm">{coin.ticker}</span>
-              <span className={`text-sm font-mono font-medium ${getPriceColor(coin.price_usd)}`}>
-                {formatPrice(coin.price_usd)}
-              </span>
-            </div>
-            <div className="text-lg font-semibold text-foreground">
-              {formatMarketCap(coin.market_cap_usd)}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wide">
-              Market Cap
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-lg">{coin.ticker}</span>
+                <span className={`text-xl font-mono font-semibold ${getPriceColor(coin.price_usd)}`}>
+                  {formatPrice(coin.price_usd)}
+                </span>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-semibold text-foreground">
+                  {formatMarketCap(coin.market_cap_usd)}
+                </div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Market Cap
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
       
       {sortedData.length > 0 && sortedData[0].as_of_date && (
-        <div className="text-xs text-muted-foreground mt-2">
+        <div className="text-xs text-muted-foreground mt-3 pt-3 border-t">
           Data as of: {sortedData[0].as_of_date} {sortedData[0].as_of_time}
         </div>
       )}
