@@ -31,7 +31,8 @@ interface PaxgSnapshot {
 export default function PaxgAnalytics() {
   const { data: latestPaxg, loading, refetch } = usePaxgData();
   const { user } = useAuth();
-  const [chartMode, setChartMode] = useState<'price' | 'marketcap'>('price');
+  const [showPrice, setShowPrice] = useState(true);
+  const [showMarketCap, setShowMarketCap] = useState(true);
 
   // Fetch historical data for chart
   const { data: historicalData } = useQuery({
@@ -134,14 +135,10 @@ export default function PaxgAnalytics() {
     displayDate: snapshot.as_of_date,
   }));
 
-  // Calculate change based on current mode
-  const getChange = () => {
-    if (chartData.length < 2) return null;
-    const firstValue = chartMode === 'price' ? chartData[0].price : chartData[0].marketcap;
-    const lastValue = chartMode === 'price' ? chartData[chartData.length - 1].price : chartData[chartData.length - 1].marketcap;
-    return ((lastValue - firstValue) / firstValue * 100);
-  };
-  const periodChange = getChange();
+  // Calculate price change for display
+  const priceChange = chartData.length >= 2 
+    ? ((chartData[chartData.length - 1].price - chartData[0].price) / chartData[0].price * 100)
+    : null;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -165,14 +162,22 @@ export default function PaxgAnalytics() {
       </div>
 
       {/* KPI Tiles */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="kpi-card border-gold bg-gold-muted/30">
           <div className="kpi-value text-gold">{formatCurrencyPrice(latestPaxg.price_usd)}</div>
-          <div className="kpi-label">Current Price</div>
+          <div className="kpi-label">Price / Troy Oz</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-value">{formatMarketCap(latestPaxg.market_cap_usd)}</div>
           <div className="kpi-label">Market Cap</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-value">
+            {latestPaxg.market_cap_usd && latestPaxg.price_usd 
+              ? formatNumber(Math.round(latestPaxg.market_cap_usd / latestPaxg.price_usd))
+              : '—'}
+          </div>
+          <div className="kpi-label">Est. Troy Oz Supply</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-value text-base font-normal text-muted-foreground">
@@ -182,43 +187,40 @@ export default function PaxgAnalytics() {
         </div>
       </div>
 
-      {/* Price/Market Cap Line Chart */}
+      {/* Price/Market Cap Dual-Axis Line Chart */}
       <div className="chart-container">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setChartMode('price')}
-              className={`text-[10px] px-2 py-1 rounded transition-colors ${
-                chartMode === 'price'
+              onClick={() => setShowPrice(!showPrice)}
+              className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
+                showPrice
                   ? 'bg-gold/20 text-gold'
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground opacity-50'
               }`}
             >
-              Price
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              Price/oz
             </button>
             <button
-              onClick={() => setChartMode('marketcap')}
-              className={`text-[10px] px-2 py-1 rounded transition-colors ${
-                chartMode === 'marketcap'
-                  ? 'bg-gold/20 text-gold'
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              onClick={() => setShowMarketCap(!showMarketCap)}
+              className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
+                showMarketCap
+                  ? 'bg-institutional-blue/20 text-institutional-blue'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground opacity-50'
               }`}
             >
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--institutional-blue))' }} />
               Market Cap
             </button>
           </div>
-          {periodChange !== null && (
-            <div className={`text-xs font-medium tabular-nums ${periodChange >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {periodChange >= 0 ? '+' : ''}{periodChange.toFixed(2)}% period change
-            </div>
-          )}
         </div>
         <div className="h-80">
           {chartData.length > 1 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
-                margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
+                margin={{ top: 10, right: showMarketCap ? 70 : 30, left: 20, bottom: 10 }}
               >
                 <XAxis 
                   dataKey="displayDate" 
@@ -234,42 +236,85 @@ export default function PaxgAnalytics() {
                   }}
                   minTickGap={50}
                 />
-                <YAxis 
-                  domain={chartMode === 'price' ? ['dataMin - 50', 'dataMax + 50'] : ['auto', 'auto']}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  tickFormatter={(value) => chartMode === 'price' ? `$${formatNumber(value)}` : formatMarketCap(value)}
-                  width={70}
-                />
+                {/* Left Y-Axis: Price */}
+                {showPrice && (
+                  <YAxis 
+                    yAxisId="price"
+                    orientation="left"
+                    domain={['dataMin - 50', 'dataMax + 50']}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--gold))', fontSize: 10 }}
+                    tickFormatter={(value) => `$${formatNumber(value)}`}
+                    width={70}
+                  />
+                )}
+                {/* Right Y-Axis: Market Cap */}
+                {showMarketCap && (
+                  <YAxis 
+                    yAxisId="marketcap"
+                    orientation="right"
+                    domain={['auto', 'auto']}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--institutional-blue))', fontSize: 10 }}
+                    tickFormatter={(value) => formatMarketCap(value)}
+                    width={65}
+                  />
+                )}
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
-                    const firstValue = chartMode === 'price' ? chartData[0]?.price : chartData[0]?.marketcap;
-                    const currentValue = chartMode === 'price' ? d.price : d.marketcap;
-                    const changeFromStart = ((currentValue - firstValue) / firstValue * 100);
+                    const estSupply = d.marketcap && d.price ? Math.round(d.marketcap / d.price) : null;
                     return (
                       <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
                         <div className="text-muted-foreground mb-1">{d.date}</div>
-                        <div className="font-semibold text-gold">
-                          {chartMode === 'price' ? formatCurrencyPrice(d.price) : formatMarketCap(d.marketcap)}
-                        </div>
-                        <div className={`text-[10px] mt-1 ${changeFromStart >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {changeFromStart >= 0 ? '+' : ''}{changeFromStart.toFixed(2)}% from start
-                        </div>
+                        {showPrice && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-gold" />
+                            <span className="text-muted-foreground">Price/oz:</span>
+                            <span className="font-semibold text-gold">{formatCurrencyPrice(d.price)}</span>
+                          </div>
+                        )}
+                        {showMarketCap && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--institutional-blue))' }} />
+                            <span className="text-muted-foreground">Mkt Cap:</span>
+                            <span className="font-semibold" style={{ color: 'hsl(var(--institutional-blue))' }}>{formatMarketCap(d.marketcap)}</span>
+                          </div>
+                        )}
+                        {estSupply && (
+                          <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border">
+                            Est. Supply: {formatNumber(estSupply)} troy oz
+                          </div>
+                        )}
                       </div>
                     );
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey={chartMode}
-                  stroke="hsl(var(--gold))"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: 'hsl(var(--gold))' }}
-                />
+                {showPrice && (
+                  <Line 
+                    yAxisId="price"
+                    type="monotone" 
+                    dataKey="price"
+                    stroke="hsl(var(--gold))"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: 'hsl(var(--gold))' }}
+                  />
+                )}
+                {showMarketCap && (
+                  <Line 
+                    yAxisId="marketcap"
+                    type="monotone" 
+                    dataKey="marketcap"
+                    stroke="hsl(var(--institutional-blue))"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: 'hsl(var(--institutional-blue))' }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           ) : (
