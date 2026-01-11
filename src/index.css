@@ -6,9 +6,9 @@
 
 @layer base {
   :root {
-    /* Clean light theme - soft blue-gray palette */
-    --background: 214 25% 92%;
-    --foreground: 210 50% 25%;
+    /* Clean light theme - white background with steel-blue accents */
+    --background: 0 0% 100%;
+    --foreground: 210 50% 20%;
 
     --card: 0 0% 100%;
     --card-foreground: 210 50% 20%;
