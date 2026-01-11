@@ -7,17 +7,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import { MarketSnapshot } from '@/types/transactions';
+import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
 import {
   LineChart,
   Line,
-  ScatterChart,
-  Scatter,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip,
   CartesianGrid,
-  ReferenceLine,
 } from 'recharts';
 
 export default function StablecoinDetail() {
@@ -94,6 +92,7 @@ export default function StablecoinDetail() {
     dateLabel: snapshot.as_of_date,
     marketCapValue: snapshot.market_cap_usd ?? 0,
     priceValue: snapshot.price_usd,
+    ticker: snapshot.ticker,
   }));
 
   return (
@@ -190,80 +189,12 @@ export default function StablecoinDetail() {
         </div>
       </div>
 
-      {/* Price Scatter Plot */}
-      <div className="chart-container">
-        <div className="chart-title">Price Stability (Target: $1.00)</div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke="hsl(var(--border))" 
-                strokeOpacity={0.5}
-              />
-              <XAxis 
-                dataKey="dateLabel" 
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                domain={[0.9999, 1.0005]}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                tickFormatter={(value) => `$${value.toFixed(4)}`}
-                width={60}
-              />
-              <ReferenceLine 
-                y={1.0} 
-                stroke="hsl(var(--success))" 
-                strokeDasharray="4 4"
-                strokeWidth={1.5}
-                label={{ 
-                  value: '$1.00 Peg', 
-                  position: 'right', 
-                  fill: 'hsl(var(--success))', 
-                  fontSize: 10 
-                }}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const d = payload[0].payload as MarketSnapshot;
-                  const deviation = ((d.price_usd - 1) * 100).toFixed(4);
-                  const deviationColor = Math.abs(d.price_usd - 1) < 0.001 
-                    ? 'text-success' 
-                    : Math.abs(d.price_usd - 1) < 0.005 
-                      ? 'text-warning' 
-                      : 'text-destructive';
-                  return (
-                    <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
-                      <div className="font-semibold mb-1">{d.as_of_date} {d.as_of_time?.slice(0, 5)}</div>
-                      <div className="text-muted-foreground">
-                        Price: <span className={`font-mono font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
-                          {formatStablecoinPrice(d.price_usd)}
-                        </span>
-                      </div>
-                      <div className="text-muted-foreground">
-                        Deviation: <span className={`font-mono font-medium ${deviationColor}`}>
-                          {Number(deviation) >= 0 ? '+' : ''}{deviation}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }}
-              />
-              <Scatter 
-                dataKey="priceValue" 
-                fill="hsl(var(--institutional-blue))"
-                fillOpacity={0.7}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {/* Price Scatter Plot with dynamic Y-axis */}
+      <PriceStabilityChart
+        data={chartData}
+        storageKey={`detail-${displayTicker.toLowerCase()}`}
+        title={`${displayTicker} Price Stability (Target: $1.00)`}
+      />
 
       {/* Footer timestamp */}
       {latestData && (

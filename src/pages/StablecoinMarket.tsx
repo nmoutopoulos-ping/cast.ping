@@ -1,9 +1,14 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useStablecoinData } from '@/hooks/useMarketData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor, formatNumber } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
+import { MarketSnapshot } from '@/types/transactions';
 import {
   BarChart,
   Bar,
@@ -16,6 +21,39 @@ import {
 
 export default function StablecoinMarket() {
   const { data, loading, error, refetch, lastUpdated, isAuthenticated } = useStablecoinData();
+  const { session } = useAuth();
+  const [allSnapshots, setAllSnapshots] = useState<MarketSnapshot[]>([]);
+  const [snapshotsLoading, setSnapshotsLoading] = useState(true);
+
+  // Fetch all historical snapshots for the price stability chart
+  const fetchAllSnapshots = useCallback(async () => {
+    if (!session?.access_token) return;
+    
+    setSnapshotsLoading(true);
+    try {
+      // @ts-ignore - table exists but types may not be regenerated yet
+      const { data: snapshots, error: fetchError } = await supabase
+        .from('stablecoin_snapshots')
+        .select('*')
+        .order('as_of_date', { ascending: true })
+        .order('as_of_time', { ascending: true });
+
+      if (fetchError) throw new Error(fetchError.message);
+      setAllSnapshots(snapshots || []);
+    } catch (err) {
+      console.error('Failed to fetch all snapshots:', err);
+    } finally {
+      setSnapshotsLoading(false);
+    }
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    fetchAllSnapshots();
+  }, [fetchAllSnapshots]);
+
+  const handleRefresh = async () => {
+    await Promise.all([refetch(), fetchAllSnapshots()]);
+  };
 
   // Show login prompt if not authenticated
   if (!isAuthenticated && !loading) {
@@ -54,6 +92,7 @@ export default function StablecoinMarket() {
           ))}
         </div>
         <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
     );
@@ -66,7 +105,7 @@ export default function StablecoinMarket() {
           <div className="flex items-center gap-2 text-destructive text-sm">
             <AlertCircle className="w-4 h-4" />
             <span>Failed to load market data: {error}</span>
-            <Button variant="ghost" size="sm" onClick={refetch} className="ml-auto gap-1">
+            <Button variant="ghost" size="sm" onClick={handleRefresh} className="ml-auto gap-1">
               <RefreshCw className="w-3 h-3" />
               Retry
             </Button>
@@ -87,7 +126,7 @@ export default function StablecoinMarket() {
     0
   );
 
-  // Prepare chart data
+  // Prepare chart data for bar chart
   const chartData = sortedData.map(coin => ({
     ticker: coin.ticker,
     marketCap: coin.market_cap_usd ?? 0,
@@ -98,6 +137,15 @@ export default function StablecoinMarket() {
   }));
 
   const maxMarketCap = Math.max(...chartData.map(d => d.marketCap));
+
+  // Prepare scatter chart data with ticker info
+  const scatterData = allSnapshots.map((snapshot) => ({
+    dateLabel: snapshot.as_of_date,
+    priceValue: snapshot.price_usd,
+    ticker: snapshot.ticker,
+    as_of_date: snapshot.as_of_date,
+    as_of_time: snapshot.as_of_time,
+  }));
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -112,7 +160,7 @@ export default function StablecoinMarket() {
         <Button
           variant="outline"
           size="sm"
-          onClick={refetch}
+          onClick={handleRefresh}
           className="gap-1.5 h-8 text-xs"
         >
           <RefreshCw className="w-3 h-3" />
@@ -199,6 +247,20 @@ export default function StablecoinMarket() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Price Stability Chart - All Stablecoins */}
+      {snapshotsLoading ? (
+        <Skeleton className="h-72 w-full" />
+      ) : (
+        <PriceStabilityChart
+          data={scatterData}
+          storageKey="market-all-stablecoins"
+          title="Price Stability - All Stablecoins"
+          showLegend={true}
+          colorByTicker={true}
+          height="h-72"
+        />
+      )}
 
       {/* Data Table */}
       <div className="chart-container">
