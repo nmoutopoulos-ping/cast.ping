@@ -31,6 +31,10 @@ interface PriceStabilityChartProps {
   showLegend?: boolean;
   colorByTicker?: boolean;
   height?: string;
+  visibleTickers?: Set<string>;
+  onToggleTicker?: (ticker: string) => void;
+  onToggleAll?: () => void;
+  allTickers?: string[];
 }
 
 export const TICKER_COLORS: Record<string, string> = {
@@ -58,6 +62,10 @@ export function PriceStabilityChart({
   showLegend = false,
   colorByTicker = false,
   height = 'h-64',
+  visibleTickers,
+  onToggleTicker,
+  onToggleAll,
+  allTickers = [],
 }: PriceStabilityChartProps) {
   const [yMin, setYMin] = useState(DEFAULT_MIN);
   const [yMax, setYMax] = useState(DEFAULT_MAX);
@@ -114,16 +122,58 @@ export function PriceStabilityChart({
     setIsSaved(false);
   };
 
-  // Group data by ticker for legend
+  // Group data by ticker for legend (fallback if no external filtering)
   const tickers = colorByTicker
-    ? [...new Set(data.map((d) => d.ticker).filter(Boolean))]
+    ? [...new Set(data.map((d) => d.ticker).filter(Boolean))] as string[]
     : [];
+
+  // Filter data by visible tickers if provided
+  const filteredData = visibleTickers && colorByTicker
+    ? data.filter((d) => d.ticker && visibleTickers.has(d.ticker))
+    : data;
+
+  // Get tickers to display in scatter
+  const displayTickers = visibleTickers
+    ? allTickers.filter((t) => visibleTickers.has(t))
+    : tickers;
+
+  const hasTickerFiltering = onToggleTicker && onToggleAll && allTickers.length > 0;
 
   return (
     <div className="chart-container">
       <div className="flex items-center justify-between gap-4 mb-3">
         <div className="chart-title mb-0">{title}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Ticker filter bar - same layout as Market Cap chart */}
+          {hasTickerFiltering && (
+            <>
+              <button
+                onClick={onToggleAll}
+                className="text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+              >
+                {visibleTickers?.size === allTickers.length ? 'Hide All' : 'Show All'}
+              </button>
+              {allTickers.map((ticker) => (
+                <button
+                  key={ticker}
+                  onClick={() => onToggleTicker(ticker)}
+                  className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
+                    visibleTickers?.has(ticker)
+                      ? 'bg-muted hover:bg-muted/80'
+                      : 'bg-transparent opacity-40 hover:opacity-60'
+                  }`}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
+                  />
+                  <span>{ticker}</span>
+                </button>
+              ))}
+              <div className="w-px h-4 bg-border mx-1" />
+            </>
+          )}
+          {/* Y-Axis controls */}
           <div className="flex items-center gap-1.5">
             <Label className="text-[10px] text-muted-foreground uppercase">Min</Label>
             <Input
@@ -251,14 +301,14 @@ export function PriceStabilityChart({
                 );
               }}
             />
-            {colorByTicker && tickers.length > 0 ? (
-              tickers.map((ticker) => (
+            {colorByTicker && displayTickers.length > 0 ? (
+              displayTickers.map((ticker) => (
                 <Scatter
                   key={ticker}
                   name={ticker}
-                  data={data.filter((d) => d.ticker === ticker)}
+                  data={filteredData.filter((d) => d.ticker === ticker)}
                   dataKey="priceValue"
-                  fill={TICKER_COLORS[ticker as string] || 'hsl(var(--institutional-blue))'}
+                  fill={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
                   fillOpacity={0.8}
                 />
               ))

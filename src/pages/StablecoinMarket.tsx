@@ -25,6 +25,7 @@ export default function StablecoinMarket() {
   const [allSnapshots, setAllSnapshots] = useState<MarketSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [visibleTickers, setVisibleTickers] = useState<Set<string>>(new Set());
+  const [visiblePriceTickers, setVisiblePriceTickers] = useState<Set<string>>(new Set());
 
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
@@ -54,13 +55,18 @@ export default function StablecoinMarket() {
 
   // Initialize visible tickers when snapshots load
   useEffect(() => {
-    if (allSnapshots.length > 0 && visibleTickers.size === 0) {
+    if (allSnapshots.length > 0) {
       const tickers = [...new Set(
         allSnapshots
           .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
           .map((s) => s.ticker)
       )];
-      setVisibleTickers(new Set(tickers));
+      if (visibleTickers.size === 0) {
+        setVisibleTickers(new Set(tickers));
+      }
+      if (visiblePriceTickers.size === 0) {
+        setVisiblePriceTickers(new Set(tickers));
+      }
     }
   }, [allSnapshots]);
 
@@ -166,6 +172,27 @@ export default function StablecoinMarket() {
       setVisibleTickers(new Set(uniqueTickers));
     }
   };
+
+  const togglePriceTicker = (ticker: string) => {
+    setVisiblePriceTickers((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticker)) {
+        next.delete(ticker);
+      } else {
+        next.add(ticker);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllPrice = () => {
+    if (visiblePriceTickers.size === uniqueTickers.length) {
+      setVisiblePriceTickers(new Set());
+    } else {
+      setVisiblePriceTickers(new Set(uniqueTickers));
+    }
+  };
+
 
   // Helper to format time as EST (12h format)
   const formatTimeEST = (time: string) => {
@@ -358,10 +385,14 @@ export default function StablecoinMarket() {
         <PriceStabilityChart
           data={scatterData}
           storageKey="market-all-stablecoins"
-          title="Price Stability - All Stablecoins"
-          showLegend={true}
+          title="Price Stability"
+          showLegend={false}
           colorByTicker={true}
           height="h-72"
+          visibleTickers={visiblePriceTickers}
+          onToggleTicker={togglePriceTicker}
+          onToggleAll={toggleAllPrice}
+          allTickers={uniqueTickers}
         />
       )}
 
