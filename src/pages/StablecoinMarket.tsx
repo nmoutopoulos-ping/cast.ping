@@ -24,7 +24,7 @@ export default function StablecoinMarket() {
   const { session } = useAuth();
   const [allSnapshots, setAllSnapshots] = useState<MarketSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
-
+  const [visibleTickers, setVisibleTickers] = useState<Set<string>>(new Set());
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
     if (!session?.access_token) return;
@@ -133,6 +133,33 @@ export default function StablecoinMarket() {
       .map((s) => s.ticker)
   )];
 
+  // Initialize visible tickers when data loads
+  useEffect(() => {
+    if (uniqueTickers.length > 0 && visibleTickers.size === 0) {
+      setVisibleTickers(new Set(uniqueTickers));
+    }
+  }, [uniqueTickers.length]);
+
+  const toggleTicker = (ticker: string) => {
+    setVisibleTickers((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticker)) {
+        next.delete(ticker);
+      } else {
+        next.add(ticker);
+      }
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (visibleTickers.size === uniqueTickers.length) {
+      setVisibleTickers(new Set());
+    } else {
+      setVisibleTickers(new Set(uniqueTickers));
+    }
+  };
+
   // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ... }
   const marketCapLineData = (() => {
     const groupedByDateTime: Record<string, Record<string, string | number>> = {};
@@ -206,7 +233,34 @@ export default function StablecoinMarket() {
         <Skeleton className="h-64 w-full" />
       ) : (
         <div className="chart-container">
-          <div className="chart-title">Market Caps Over Time</div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="chart-title mb-0">Market Caps Over Time</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={toggleAll}
+                className="text-[10px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
+              >
+                {visibleTickers.size === uniqueTickers.length ? 'Hide All' : 'Show All'}
+              </button>
+              {uniqueTickers.map((ticker) => (
+                <button
+                  key={ticker}
+                  onClick={() => toggleTicker(ticker)}
+                  className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors ${
+                    visibleTickers.has(ticker)
+                      ? 'bg-muted hover:bg-muted/80'
+                      : 'bg-transparent opacity-40 hover:opacity-60'
+                  }`}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))' }}
+                  />
+                  <span>{ticker}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -249,18 +303,19 @@ export default function StablecoinMarket() {
                     );
                   }}
                 />
-                <Legend />
-                {uniqueTickers.map((ticker) => (
-                  <Line
-                    key={ticker}
-                    type="monotone"
-                    dataKey={ticker}
-                    stroke={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                ))}
+                {uniqueTickers
+                  .filter((ticker) => visibleTickers.has(ticker))
+                  .map((ticker) => (
+                    <Line
+                      key={ticker}
+                      type="monotone"
+                      dataKey={ticker}
+                      stroke={TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))'}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
