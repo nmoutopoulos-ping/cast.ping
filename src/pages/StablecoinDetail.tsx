@@ -18,6 +18,9 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+const DEFAULT_PRICE_MIN = 0.9999;
+const DEFAULT_PRICE_MAX = 1.0005;
+
 export default function StablecoinDetail() {
   const { ticker } = useParams<{ ticker: string }>();
   const { session, loading: authLoading } = useAuth();
@@ -25,6 +28,42 @@ export default function StablecoinDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState(false);
+  const [priceYMin, setPriceYMin] = useState(DEFAULT_PRICE_MIN);
+  const [priceYMax, setPriceYMax] = useState(DEFAULT_PRICE_MAX);
+
+  const displayTicker = ticker?.toUpperCase() || 'Unknown';
+  const priceStorageKey = `detail-${displayTicker.toLowerCase()}`;
+
+  // Load saved price axis settings (synced with PriceStabilityChart)
+  useEffect(() => {
+    const saved = localStorage.getItem(`price-stability-${priceStorageKey}`);
+    if (saved) {
+      try {
+        const { min, max } = JSON.parse(saved);
+        setPriceYMin(min);
+        setPriceYMax(max);
+      } catch (e) {
+        console.error('Failed to parse saved price settings', e);
+      }
+    }
+  }, [priceStorageKey]);
+
+  // Listen for storage changes to sync price axis in real-time
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `price-stability-${priceStorageKey}` && e.newValue) {
+        try {
+          const { min, max } = JSON.parse(e.newValue);
+          setPriceYMin(min);
+          setPriceYMax(max);
+        } catch (err) {
+          console.error('Failed to parse storage change', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [priceStorageKey]);
 
   const fetchData = useCallback(async () => {
     if (authLoading || !session?.access_token || !ticker) return;
@@ -85,7 +124,6 @@ export default function StablecoinDetail() {
   }
 
   const latestData = data[data.length - 1];
-  const displayTicker = ticker?.toUpperCase() || 'Unknown';
 
   // Prepare chart data with formatted dates
   const chartData = data.map((snapshot) => ({
@@ -95,6 +133,11 @@ export default function StablecoinDetail() {
     priceValue: snapshot.price_usd,
     ticker: snapshot.ticker,
   }));
+
+  // Calculate market cap min/max from data with padding
+  const marketCapValues = chartData.map(d => d.marketCapValue).filter(v => v > 0);
+  const marketCapMin = marketCapValues.length > 0 ? Math.min(...marketCapValues) * 0.98 : 0;
+  const marketCapMax = marketCapValues.length > 0 ? Math.max(...marketCapValues) * 1.02 : 100;
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -169,26 +212,27 @@ export default function StablecoinDetail() {
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                 interval="preserveStartEnd"
               />
-              {/* Left Y-Axis: Market Cap */}
+              {/* Left Y-Axis: Market Cap (auto-scaled to data range) */}
               <YAxis 
                 yAxisId="marketCap"
                 orientation="left"
+                domain={[marketCapMin, marketCapMax]}
                 tickFormatter={(value) => formatMarketCap(value)}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'hsl(var(--institutional-blue))', fontSize: 10 }}
                 width={70}
               />
-              {/* Right Y-Axis: Price (only in comparison mode) */}
+              {/* Right Y-Axis: Price (synced with PriceStabilityChart settings) */}
               {comparisonMode && (
                 <YAxis 
                   yAxisId="price"
                   orientation="right"
-                  domain={[0.995, 1.005]}
+                  domain={[priceYMin, priceYMax]}
                   tickFormatter={(value) => `$${value.toFixed(4)}`}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: 'hsl(var(--subdued-gold))', fontSize: 10 }}
+                  tick={{ fill: 'hsl(var(--price-coral))', fontSize: 10 }}
                   width={60}
                 />
               )}
@@ -208,7 +252,7 @@ export default function StablecoinDetail() {
                       </div>
                       {comparisonMode && (
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[hsl(var(--subdued-gold))]" />
+                          <span className="w-2 h-2 rounded-full bg-[hsl(var(--price-coral))]" />
                           <span className="text-muted-foreground">Price:</span>
                           <span className={`font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
                             {formatStablecoinPrice(d.price_usd)}
@@ -237,10 +281,10 @@ export default function StablecoinDetail() {
                   yAxisId="price"
                   type="monotone" 
                   dataKey="priceValue" 
-                  stroke="hsl(var(--subdued-gold))" 
+                  stroke="hsl(var(--price-coral))" 
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: 'hsl(var(--subdued-gold))' }}
+                  activeDot={{ r: 4, fill: 'hsl(var(--price-coral))' }}
                   name="Price"
                 />
               )}
@@ -254,7 +298,7 @@ export default function StablecoinDetail() {
               <span>Market Cap (Left)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-[hsl(var(--subdued-gold))]" />
+              <span className="w-3 h-0.5 bg-[hsl(var(--price-coral))]" />
               <span>Price (Right)</span>
             </div>
           </div>
