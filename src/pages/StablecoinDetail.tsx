@@ -9,8 +9,9 @@ import { ArrowLeft, RefreshCw, AlertCircle, ZoomIn, ZoomOut } from 'lucide-react
 import { MarketSnapshot } from '@/types/transactions';
 import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
 import {
-  LineChart,
+  ComposedChart,
   Line,
+  Scatter,
   XAxis,
   YAxis,
   ResponsiveContainer,
@@ -199,7 +200,7 @@ export default function StablecoinDetail() {
         </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: comparisonMode ? 70 : 30, left: 10, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: comparisonMode ? 70 : 30, left: 10, bottom: 0 }}>
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke="hsl(var(--border))" 
@@ -275,20 +276,26 @@ export default function StablecoinDetail() {
                 activeDot={{ r: 4, fill: 'hsl(var(--institutional-blue))' }}
                 name="Market Cap"
               />
-              {/* Price Line (only in comparison mode) */}
+              {/* Price Scatter Dots (only in comparison mode) */}
               {comparisonMode && (
-                <Line 
+                <Scatter 
                   yAxisId="price"
-                  type="monotone" 
                   dataKey="priceValue" 
-                  stroke="hsl(var(--price-coral))" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: 'hsl(var(--price-coral))' }}
+                  fill="hsl(var(--price-coral))"
                   name="Price"
+                  shape={(props: any) => (
+                    <circle 
+                      cx={props.cx} 
+                      cy={props.cy} 
+                      r={3} 
+                      fill="hsl(var(--price-coral))"
+                      stroke="hsl(var(--background))"
+                      strokeWidth={1}
+                    />
+                  )}
                 />
               )}
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
         {comparisonMode && (
