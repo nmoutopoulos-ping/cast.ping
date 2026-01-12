@@ -137,12 +137,12 @@ export default function StablecoinDetail() {
         </div>
       </div>
 
-      {/* Market Cap Line Chart */}
+      {/* Dual-Axis Chart: Market Cap + Price Stability */}
       <div className="chart-container">
-        <div className="chart-title">Market Cap Over Time</div>
-        <div className="h-64">
+        <div className="chart-title">Market Cap & Price Stability Over Time</div>
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 70, left: 10, bottom: 0 }}>
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke="hsl(var(--border))" 
@@ -155,37 +155,87 @@ export default function StablecoinDetail() {
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
                 interval="preserveStartEnd"
               />
+              {/* Left Y-Axis: Market Cap */}
               <YAxis 
+                yAxisId="marketCap"
+                orientation="left"
                 tickFormatter={(value) => formatMarketCap(value)}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                tick={{ fill: 'hsl(var(--institutional-blue))', fontSize: 10 }}
                 width={70}
+              />
+              {/* Right Y-Axis: Price */}
+              <YAxis 
+                yAxisId="price"
+                orientation="right"
+                domain={[0.995, 1.005]}
+                tickFormatter={(value) => `$${value.toFixed(4)}`}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--subdued-gold))', fontSize: 10 }}
+                width={60}
               />
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const d = payload[0].payload as MarketSnapshot;
+                  const deviation = ((d.price_usd - 1) * 100).toFixed(4);
+                  const deviationSign = d.price_usd >= 1 ? '+' : '';
                   return (
-                    <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
-                      <div className="font-semibold mb-1">{d.as_of_date}</div>
-                      <div className="text-muted-foreground">
-                        Market Cap: <span className="text-foreground font-medium">{formatMarketCap(d.market_cap_usd)}</span>
+                    <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs space-y-1">
+                      <div className="font-semibold">{d.as_of_date} {d.as_of_time}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[hsl(var(--institutional-blue))]" />
+                        <span className="text-muted-foreground">Market Cap:</span>
+                        <span className="text-foreground font-medium">{formatMarketCap(d.market_cap_usd)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[hsl(var(--subdued-gold))]" />
+                        <span className="text-muted-foreground">Price:</span>
+                        <span className={`font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
+                          {formatStablecoinPrice(d.price_usd)}
+                        </span>
+                        <span className="text-muted-foreground text-[10px]">({deviationSign}{deviation}%)</span>
                       </div>
                     </div>
                   );
                 }}
               />
+              {/* Market Cap Line */}
               <Line 
+                yAxisId="marketCap"
                 type="monotone" 
                 dataKey="marketCapValue" 
                 stroke="hsl(var(--institutional-blue))" 
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, fill: 'hsl(var(--institutional-blue))' }}
+                name="Market Cap"
+              />
+              {/* Price Line */}
+              <Line 
+                yAxisId="price"
+                type="monotone" 
+                dataKey="priceValue" 
+                stroke="hsl(var(--subdued-gold))" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: 'hsl(var(--subdued-gold))' }}
+                name="Price"
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+        <div className="flex justify-center gap-6 mt-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 bg-[hsl(var(--institutional-blue))]" />
+            <span>Market Cap (Left)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 bg-[hsl(var(--subdued-gold))]" />
+            <span>Price (Right)</span>
+          </div>
         </div>
       </div>
 
