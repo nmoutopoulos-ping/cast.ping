@@ -66,6 +66,8 @@
     --gold-muted: 38 40% 92%;
     --institutional-blue: 207 55% 42%;
     --institutional-blue-muted: 207 30% 90%;
+    --price-coral: 12 76% 55%;
+    --subdued-gold: 38 70% 50%;
   }
 
   .dark {
@@ -124,6 +126,8 @@
     --gold-muted: 38 25% 18%;
     --institutional-blue: 217 80% 55%;
     --institutional-blue-muted: 217 30% 18%;
+    --price-coral: 12 70% 60%;
+    --subdued-gold: 38 60% 55%;
   }
 }
 
