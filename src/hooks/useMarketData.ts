@@ -73,8 +73,10 @@ export function useMarketData<T = MarketSnapshot[]>(
         setData(latestData);
       } else {
         // Return latest entry per ticker (for stablecoins)
+        // Filter out PAXG as it belongs in its own table
         const latestByTicker = new Map<string, MarketSnapshot>();
         for (const snapshot of snapshots || []) {
+          if (snapshot.ticker === 'PAXG') continue; // Skip PAXG in stablecoin data
           if (!latestByTicker.has(snapshot.ticker)) {
             latestByTicker.set(snapshot.ticker, snapshot as MarketSnapshot);
           }
