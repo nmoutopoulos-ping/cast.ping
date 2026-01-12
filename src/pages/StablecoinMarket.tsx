@@ -31,6 +31,7 @@ export default function StablecoinMarket() {
   // Use shared hook for ticker visibility
   const marketCapVisibility = useTickerVisibility();
   const priceStabilityVisibility = useTickerVisibility();
+  const [showTotal, setShowTotal] = useState(false);
 
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
@@ -141,7 +142,7 @@ export default function StablecoinMarket() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ... }
+  // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ..., Total: sum }
   const marketCapLineData = (() => {
     const groupedByDateTime: Record<string, Record<string, string | number>> = {};
     allSnapshots
@@ -151,9 +152,10 @@ export default function StablecoinMarket() {
         const timeEST = formatTimeEST(snapshot.as_of_time || '00:00');
         const dateTimeKey = `${snapshot.as_of_date} ${timeEST}`;
         if (!groupedByDateTime[dateTimeKey]) {
-          groupedByDateTime[dateTimeKey] = { datetime: dateTimeKey };
+          groupedByDateTime[dateTimeKey] = { datetime: dateTimeKey, Total: 0 };
         }
         groupedByDateTime[dateTimeKey][snapshot.ticker] = snapshot.market_cap_usd ?? 0;
+        (groupedByDateTime[dateTimeKey].Total as number) += snapshot.market_cap_usd ?? 0;
       });
     return Object.values(groupedByDateTime).sort((a, b) => 
       String(a.datetime).localeCompare(String(b.datetime))
@@ -224,6 +226,26 @@ export default function StablecoinMarket() {
               >
                 {marketCapVisibility.visibleTickers.size === uniqueTickers.length ? 'Hide All' : 'Show All'}
               </button>
+              {/* Total Market Cap toggle */}
+              <div className="relative group">
+                <button
+                  onClick={() => setShowTotal(!showTotal)}
+                  className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors font-medium ${
+                    showTotal
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30'
+                      : 'bg-transparent opacity-40 hover:opacity-60'
+                  }`}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: 'hsl(var(--primary))' }}
+                  />
+                  <span>Total</span>
+                </button>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover border rounded shadow-md text-[9px] text-muted-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  {formatMarketCap(totalMarketCap)}
+                </div>
+              </div>
               {uniqueTickers.map((ticker) => (
                 <div key={ticker} className="relative group">
                   <button
@@ -272,10 +294,49 @@ export default function StablecoinMarket() {
                 <Tooltip
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
+                    // Find total entry if showing total
+                    const totalEntry = payload.find((p: any) => p.dataKey === 'Total');
+                    const otherEntries = payload.filter((p: any) => p.dataKey !== 'Total');
+                    
                     return (
-                      <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs">
-                        <div className="font-semibold mb-1">{label}</div>
-                        {payload.map((entry: any) => (
+                      <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs min-w-[180px]">
+                        <div className="font-semibold mb-2 text-foreground">{label}</div>
+                        {totalEntry && (
+                          <>
+                            <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: totalEntry.stroke }}
+                              />
+                              <span className="font-medium text-foreground">Total:</span>
+                              <span className="font-mono font-bold ml-auto">
+                                {formatMarketCap(Number(totalEntry.value) || 0)}
+                              </span>
+                            </div>
+                            {/* Show breakdown when Total is visible */}
+                            <div className="space-y-1">
+                              {uniqueTickers
+                                .map((ticker) => {
+                                  const dataPoint = payload[0]?.payload;
+                                  const value = dataPoint?.[ticker] ?? 0;
+                                  const totalVal = Number(totalEntry.value) || 0;
+                                  const pct = totalVal > 0 ? ((value / totalVal) * 100).toFixed(1) : '0.0';
+                                  return (
+                                    <div key={ticker} className="flex items-center gap-2 text-[10px]">
+                                      <div
+                                        className="w-1.5 h-1.5 rounded-full"
+                                        style={{ backgroundColor: getColor(ticker) }}
+                                      />
+                                      <span className="text-muted-foreground">{ticker}</span>
+                                      <span className="font-mono ml-auto">{formatMarketCap(value)}</span>
+                                      <span className="text-muted-foreground w-10 text-right">{pct}%</span>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </>
+                        )}
+                        {!totalEntry && otherEntries.map((entry: any) => (
                           <div key={entry.dataKey} className="flex items-center gap-2">
                             <div
                               className="w-2 h-2 rounded-full"
@@ -291,6 +352,17 @@ export default function StablecoinMarket() {
                     );
                   }}
                 />
+                {/* Total line */}
+                {showTotal && (
+                  <Line
+                    type="monotone"
+                    dataKey="Total"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.5}
+                    dot={false}
+                    activeDot={{ r: 5 }}
+                  />
+                )}
                 {uniqueTickers
                   .filter((ticker) => marketCapVisibility.visibleTickers.has(ticker))
                   .map((ticker) => (
