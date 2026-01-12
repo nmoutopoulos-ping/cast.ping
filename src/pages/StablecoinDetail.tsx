@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, ZoomIn, ZoomOut } from 'lucide-react';
 import { MarketSnapshot } from '@/types/transactions';
 import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
 import {
@@ -24,6 +24,7 @@ export default function StablecoinDetail() {
   const [data, setData] = useState<MarketSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comparisonMode, setComparisonMode] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (authLoading || !session?.access_token || !ticker) return;
@@ -137,12 +138,25 @@ export default function StablecoinDetail() {
         </div>
       </div>
 
-      {/* Dual-Axis Chart: Market Cap + Price Stability */}
+      {/* Market Cap Chart (with optional Price Comparison) */}
       <div className="chart-container">
-        <div className="chart-title">Market Cap & Price Stability Over Time</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="chart-title">
+            {comparisonMode ? 'Market Cap & Price Correlation' : 'Market Cap Over Time'}
+          </div>
+          <Button
+            variant={comparisonMode ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setComparisonMode(!comparisonMode)}
+            className="gap-1.5 h-7 text-xs"
+          >
+            {comparisonMode ? <ZoomOut className="w-3 h-3" /> : <ZoomIn className="w-3 h-3" />}
+            {comparisonMode ? 'Exit Comparison' : 'Compare with Price'}
+          </Button>
+        </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 70, left: 10, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: comparisonMode ? 70 : 30, left: 10, bottom: 0 }}>
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke="hsl(var(--border))" 
@@ -165,17 +179,19 @@ export default function StablecoinDetail() {
                 tick={{ fill: 'hsl(var(--institutional-blue))', fontSize: 10 }}
                 width={70}
               />
-              {/* Right Y-Axis: Price */}
-              <YAxis 
-                yAxisId="price"
-                orientation="right"
-                domain={[0.995, 1.005]}
-                tickFormatter={(value) => `$${value.toFixed(4)}`}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--subdued-gold))', fontSize: 10 }}
-                width={60}
-              />
+              {/* Right Y-Axis: Price (only in comparison mode) */}
+              {comparisonMode && (
+                <YAxis 
+                  yAxisId="price"
+                  orientation="right"
+                  domain={[0.995, 1.005]}
+                  tickFormatter={(value) => `$${value.toFixed(4)}`}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(var(--subdued-gold))', fontSize: 10 }}
+                  width={60}
+                />
+              )}
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
@@ -190,14 +206,16 @@ export default function StablecoinDetail() {
                         <span className="text-muted-foreground">Market Cap:</span>
                         <span className="text-foreground font-medium">{formatMarketCap(d.market_cap_usd)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[hsl(var(--subdued-gold))]" />
-                        <span className="text-muted-foreground">Price:</span>
-                        <span className={`font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
-                          {formatStablecoinPrice(d.price_usd)}
-                        </span>
-                        <span className="text-muted-foreground text-[10px]">({deviationSign}{deviation}%)</span>
-                      </div>
+                      {comparisonMode && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[hsl(var(--subdued-gold))]" />
+                          <span className="text-muted-foreground">Price:</span>
+                          <span className={`font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
+                            {formatStablecoinPrice(d.price_usd)}
+                          </span>
+                          <span className="text-muted-foreground text-[10px]">({deviationSign}{deviation}%)</span>
+                        </div>
+                      )}
                     </div>
                   );
                 }}
@@ -213,30 +231,34 @@ export default function StablecoinDetail() {
                 activeDot={{ r: 4, fill: 'hsl(var(--institutional-blue))' }}
                 name="Market Cap"
               />
-              {/* Price Line */}
-              <Line 
-                yAxisId="price"
-                type="monotone" 
-                dataKey="priceValue" 
-                stroke="hsl(var(--subdued-gold))" 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: 'hsl(var(--subdued-gold))' }}
-                name="Price"
-              />
+              {/* Price Line (only in comparison mode) */}
+              {comparisonMode && (
+                <Line 
+                  yAxisId="price"
+                  type="monotone" 
+                  dataKey="priceValue" 
+                  stroke="hsl(var(--subdued-gold))" 
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: 'hsl(var(--subdued-gold))' }}
+                  name="Price"
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex justify-center gap-6 mt-2 text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-[hsl(var(--institutional-blue))]" />
-            <span>Market Cap (Left)</span>
+        {comparisonMode && (
+          <div className="flex justify-center gap-6 mt-2 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-[hsl(var(--institutional-blue))]" />
+              <span>Market Cap (Left)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-[hsl(var(--subdued-gold))]" />
+              <span>Price (Right)</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-[hsl(var(--subdued-gold))]" />
-            <span>Price (Right)</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Price Scatter Plot with dynamic Y-axis */}
