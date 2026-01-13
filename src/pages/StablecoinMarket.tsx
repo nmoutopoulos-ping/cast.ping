@@ -455,12 +455,14 @@ export default function StablecoinMarket() {
                   }
                 };
                 
-                return sortedData.map((coin) => {
+                return sortedData.map((coin, index) => {
                   const percentage = totalMarketCap > 0 
                     ? ((coin.market_cap_usd ?? 0) / totalMarketCap * 100)
                     : 0;
                   const priceRank = priceRankMap.get(coin.ticker) || 0;
                   const priceColor = getPriceColorScale(coin.price_usd);
+                  // Market cap rank is based on sortedData order (already sorted by market cap desc)
+                  const marketCapRank = index + 1;
                   
                   return (
                     <tr 
@@ -487,10 +489,26 @@ export default function StablecoinMarket() {
                         </div>
                       </td>
                       <td className="text-right font-mono tabular-nums">
-                        {formatMarketCap(coin.market_cap_usd)}
+                        <div className="flex items-center justify-end gap-2">
+                          <span 
+                            className="text-[9px] text-muted-foreground/60 font-normal"
+                            title={`Rank #${marketCapRank} by market cap`}
+                          >
+                            {marketCapRank}{getRankSuffix(marketCapRank)}
+                          </span>
+                          <span>{formatMarketCap(coin.market_cap_usd)}</span>
+                        </div>
                       </td>
                       <td className="text-right text-muted-foreground tabular-nums">
-                        {percentage.toFixed(2)}%
+                        <div className="flex items-center justify-end gap-2">
+                          <span 
+                            className="text-[9px] text-muted-foreground/60 font-normal"
+                            title={`Rank #${marketCapRank} by market share`}
+                          >
+                            {marketCapRank}{getRankSuffix(marketCapRank)}
+                          </span>
+                          <span>{percentage.toFixed(2)}%</span>
+                        </div>
                       </td>
                     </tr>
                   );
