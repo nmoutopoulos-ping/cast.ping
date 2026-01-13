@@ -410,6 +410,33 @@ export type Database = {
           },
         ]
       }
+      user_ticker_colors: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

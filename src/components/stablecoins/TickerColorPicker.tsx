@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Palette, Save, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { TICKER_COLORS } from './PriceStabilityChart';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface TickerColorPickerProps {
   tickers: string[];
@@ -16,36 +19,95 @@ interface TickerColorPickerProps {
   onSave: (colors: Record<string, string>) => void;
 }
 
-const STORAGE_KEY = 'stablecoin-custom-colors';
-
 export function useTickerColors() {
-  const [customColors, setCustomColors] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return {};
-      }
-    }
-    return {};
-  });
+  const { user } = useAuth();
+  const [customColors, setCustomColors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const saveColors = (colors: Record<string, string>) => {
-    setCustomColors(colors);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(colors));
+  // Fetch colors from database on mount
+  useEffect(() => {
+    const fetchColors = async () => {
+      if (!user) {
+        setCustomColors({});
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_ticker_colors')
+          .select('ticker, color')
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        const colorsMap: Record<string, string> = {};
+        data?.forEach((row) => {
+          colorsMap[row.ticker] = row.color;
+        });
+        setCustomColors(colorsMap);
+      } catch (err) {
+        console.error('Failed to fetch ticker colors:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchColors();
+  }, [user]);
+
+  const saveColors = async (colors: Record<string, string>) => {
+    if (!user) {
+      toast.error('You must be logged in to save colors');
+      return;
+    }
+
+    try {
+      // Upsert each ticker color
+      const upserts = Object.entries(colors).map(([ticker, color]) => ({
+        user_id: user.id,
+        ticker,
+        color,
+      }));
+
+      const { error } = await supabase
+        .from('user_ticker_colors')
+        .upsert(upserts, { onConflict: 'user_id,ticker' });
+
+      if (error) throw error;
+
+      setCustomColors(colors);
+      toast.success('Ticker colors saved');
+    } catch (err) {
+      console.error('Failed to save ticker colors:', err);
+      toast.error('Failed to save colors');
+    }
   };
 
-  const resetColors = () => {
-    setCustomColors({});
-    localStorage.removeItem(STORAGE_KEY);
+  const resetColors = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_ticker_colors')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setCustomColors({});
+      toast.success('Colors reset to defaults');
+    } catch (err) {
+      console.error('Failed to reset ticker colors:', err);
+      toast.error('Failed to reset colors');
+    }
   };
 
   const getColor = (ticker: string) => {
     return customColors[ticker] || TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))';
   };
 
-  return { customColors, saveColors, resetColors, getColor };
+  return { customColors, saveColors, resetColors, getColor, isLoading };
 }
 
 export function TickerColorPicker({ tickers, customColors, onSave }: TickerColorPickerProps) {
