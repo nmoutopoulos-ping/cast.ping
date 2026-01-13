@@ -104,14 +104,19 @@ export default function PaxgAnalytics() {
     );
   }
 
-
-  // Prepare chart data
-  const chartData = (historicalData || []).map((snapshot) => ({
-    date: `${snapshot.as_of_date} ${formatTimeEST(snapshot.as_of_time || '')}`,
-    price: snapshot.price_usd,
-    marketcap: snapshot.market_cap_usd || 0,
-    displayDate: snapshot.as_of_date,
-  }));
+  // Prepare chart data - use as_of_date and as_of_time from database
+  const chartData = (historicalData || []).map((snapshot) => {
+    // Format as_of_time (HH:MM:SS) to 12-hour format
+    const timeFormatted = formatTimeEST(snapshot.as_of_time || '');
+    return {
+      date: `${snapshot.as_of_date} ${timeFormatted}`,
+      price: snapshot.price_usd,
+      marketcap: snapshot.market_cap_usd || 0,
+      displayDate: snapshot.as_of_date,
+      as_of_date: snapshot.as_of_date,
+      as_of_time: timeFormatted,
+    };
+  });
 
   // Calculate price change for display
   const priceChange = chartData.length >= 2 
