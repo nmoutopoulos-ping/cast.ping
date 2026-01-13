@@ -34,7 +34,7 @@ export default function PaxgAnalytics() {
   const [showPrice, setShowPrice] = useState(true);
   const [showMarketCap, setShowMarketCap] = useState(true);
 
-  // Fetch historical data for chart
+  // Fetch historical data for chart - get latest 200 records, then reverse for ascending display
   const { data: historicalData } = useQuery({
     queryKey: ['paxg-history'],
     queryFn: async () => {
@@ -42,12 +42,13 @@ export default function PaxgAnalytics() {
       const { data, error } = await supabase
         .from('paxg_snapshots')
         .select('*')
-        .order('as_of_date', { ascending: true })
-        .order('as_of_time', { ascending: true })
-        .limit(100);
+        .order('as_of_date', { ascending: false })
+        .order('as_of_time', { ascending: false })
+        .limit(200);
       
       if (error) throw error;
-      return (data as PaxgSnapshot[]) || [];
+      // Reverse to get chronological order for the chart
+      return ((data as PaxgSnapshot[]) || []).reverse();
     },
     enabled: !!user,
     staleTime: 30000,
