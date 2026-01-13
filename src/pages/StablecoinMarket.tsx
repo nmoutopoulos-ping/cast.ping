@@ -422,33 +422,80 @@ export default function StablecoinMarket() {
               </tr>
             </thead>
             <tbody>
-              {sortedData.map((coin) => {
-                const percentage = totalMarketCap > 0 
-                  ? ((coin.market_cap_usd ?? 0) / totalMarketCap * 100)
-                  : 0;
-                return (
-                  <tr 
-                    key={coin.ticker} 
-                    className="cursor-pointer"
-                    onClick={() => window.location.href = `/stablecoins/${coin.ticker.toLowerCase()}`}
-                  >
-                    <td className="font-medium text-primary hover:underline">
-                      <Link to={`/stablecoins/${coin.ticker.toLowerCase()}`}>
-                        {coin.ticker}
-                      </Link>
-                    </td>
-                    <td className={`text-right font-mono ${getStablecoinPriceColor(coin.price_usd)}`}>
-                      {formatStablecoinPrice(coin.price_usd)}
-                    </td>
-                    <td className="text-right font-mono tabular-nums">
-                      {formatMarketCap(coin.market_cap_usd)}
-                    </td>
-                    <td className="text-right text-muted-foreground tabular-nums">
-                      {percentage.toFixed(2)}%
-                    </td>
-                  </tr>
-                );
-              })}
+              {(() => {
+                // Sort by price descending to get rankings
+                const priceRanked = [...sortedData].sort((a, b) => b.price_usd - a.price_usd);
+                const priceRankMap = new Map(priceRanked.map((coin, idx) => [coin.ticker, idx + 1]));
+                
+                // Calculate price range for color scaling
+                const prices = sortedData.map(c => c.price_usd);
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const priceRange = maxPrice - minPrice;
+                
+                const getRankSuffix = (rank: number) => {
+                  if (rank === 1) return 'st';
+                  if (rank === 2) return 'nd';
+                  if (rank === 3) return 'rd';
+                  return 'th';
+                };
+                
+                const getPriceColorScale = (price: number) => {
+                  if (priceRange === 0) return 'text-foreground';
+                  const normalized = (price - minPrice) / priceRange;
+                  // Scale from red (low) through yellow (mid) to green (high)
+                  if (normalized < 0.5) {
+                    // Red to yellow (low to mid)
+                    const intensity = normalized * 2;
+                    return `hsl(${intensity * 60}, 70%, 45%)`;
+                  } else {
+                    // Yellow to green (mid to high)
+                    const intensity = (normalized - 0.5) * 2;
+                    return `hsl(${60 + intensity * 60}, 70%, 40%)`;
+                  }
+                };
+                
+                return sortedData.map((coin) => {
+                  const percentage = totalMarketCap > 0 
+                    ? ((coin.market_cap_usd ?? 0) / totalMarketCap * 100)
+                    : 0;
+                  const priceRank = priceRankMap.get(coin.ticker) || 0;
+                  const priceColor = getPriceColorScale(coin.price_usd);
+                  
+                  return (
+                    <tr 
+                      key={coin.ticker} 
+                      className="cursor-pointer"
+                      onClick={() => window.location.href = `/stablecoins/${coin.ticker.toLowerCase()}`}
+                    >
+                      <td className="font-medium text-primary hover:underline">
+                        <Link to={`/stablecoins/${coin.ticker.toLowerCase()}`}>
+                          {coin.ticker}
+                        </Link>
+                      </td>
+                      <td className="text-right font-mono">
+                        <div className="flex items-center justify-end gap-2">
+                          <span 
+                            className="text-[9px] text-muted-foreground/60 font-normal"
+                            title={`Rank #${priceRank} by current price`}
+                          >
+                            {priceRank}{getRankSuffix(priceRank)}
+                          </span>
+                          <span style={{ color: priceColor }}>
+                            {formatStablecoinPrice(coin.price_usd)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="text-right font-mono tabular-nums">
+                        {formatMarketCap(coin.market_cap_usd)}
+                      </td>
+                      <td className="text-right text-muted-foreground tabular-nums">
+                        {percentage.toFixed(2)}%
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
