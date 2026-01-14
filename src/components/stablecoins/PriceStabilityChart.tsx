@@ -142,6 +142,10 @@ export function PriceStabilityChart({
     : tickers;
 
   const hasTickerFiltering = onToggleTicker && onToggleAll && allTickers.length > 0;
+
+  // Get full X-axis domain from all data (not filtered) to maintain consistent chart width
+  const allDateLabels = [...new Set(data.map((d) => d.dateLabel))].sort();
+  const xDomain = allDateLabels.length > 0 ? [allDateLabels[0], allDateLabels[allDateLabels.length - 1]] : undefined;
   
   // Helper to get color - use prop or fallback to TICKER_COLORS
   const resolveColor = (ticker: string) => {
@@ -246,6 +250,9 @@ export function PriceStabilityChart({
             />
             <XAxis
               dataKey="dateLabel"
+              type="category"
+              domain={xDomain}
+              allowDuplicatedCategory={false}
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
