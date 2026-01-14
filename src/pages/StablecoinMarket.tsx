@@ -163,15 +163,19 @@ export default function StablecoinMarket() {
   })();
 
   // Prepare scatter chart data with ticker info (exclude PAXG)
+  // Use combined date+time for the X-axis to show all data points
   const scatterData = allSnapshots
     .filter((snapshot) => snapshot.ticker.toUpperCase() !== 'PAXG')
-    .map((snapshot) => ({
-      dateLabel: snapshot.as_of_date,
-      priceValue: snapshot.price_usd,
-      ticker: snapshot.ticker,
-      as_of_date: snapshot.as_of_date,
-      as_of_time: snapshot.as_of_time,
-    }));
+    .map((snapshot) => {
+      const timeEST = formatTimeEST(snapshot.as_of_time || '00:00');
+      return {
+        dateLabel: `${snapshot.as_of_date} ${timeEST}`,
+        priceValue: snapshot.price_usd,
+        ticker: snapshot.ticker,
+        as_of_date: snapshot.as_of_date,
+        as_of_time: snapshot.as_of_time,
+      };
+    });
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
