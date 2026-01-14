@@ -238,7 +238,7 @@ export function PriceStabilityChart({
 
       <div className={height}>
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart data={data} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+          <ScatterChart data={filteredData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="hsl(var(--border))"
