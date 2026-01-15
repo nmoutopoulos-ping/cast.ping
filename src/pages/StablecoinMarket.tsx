@@ -3,6 +3,7 @@ import { useStablecoinData } from '@/hooks/useMarketData';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor, formatTimeEST } from '@/lib/utils';
+import { snapshotsToPriceData, snapshotsToMarketCapLineData, getUniqueTickers, formatAxisDateTime } from '@/lib/marketDataUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
+  Brush,
 } from 'recharts';
 
 export default function StablecoinMarket() {
@@ -76,11 +78,7 @@ export default function StablecoinMarket() {
   // Initialize visible tickers when snapshots load
   useEffect(() => {
     if (allSnapshots.length > 0) {
-      const tickers = [...new Set(
-        allSnapshots
-          .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
-          .map((s) => s.ticker)
-      )];
+      const tickers = getUniqueTickers(allSnapshots);
       marketCapVisibility.initializeTickers(tickers);
       priceStabilityVisibility.initializeTickers(tickers);
     }
@@ -143,12 +141,8 @@ export default function StablecoinMarket() {
     0
   );
 
-  // Get unique tickers for the line chart
-  const uniqueTickers = [...new Set(
-    allSnapshots
-      .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
-      .map((s) => s.ticker)
-  )];
+  // Get unique tickers
+  const uniqueTickers = getUniqueTickers(allSnapshots);
 
   // Get latest market cap for each ticker (for hover display)
   const latestMarketCaps = sortedData.reduce((acc, coin) => {
@@ -156,45 +150,11 @@ export default function StablecoinMarket() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Transform snapshots into line chart format: { datetime, USDT: mcap, USDC: mcap, ..., Total: sum }
-  const marketCapLineData = (() => {
-    const groupedByDateTime: Record<string, Record<string, string | number>> = {};
-    allSnapshots
-      .filter((s) => s.ticker.toUpperCase() !== 'PAXG')
-      .forEach((snapshot) => {
-        // Use full datetime for granularity with EST format
-        const timeEST = formatTimeEST(snapshot.as_of_time || '00:00');
-        const dateTimeKey = `${snapshot.as_of_date} ${timeEST}`;
-        if (!groupedByDateTime[dateTimeKey]) {
-          groupedByDateTime[dateTimeKey] = { datetime: dateTimeKey, Total: 0 };
-        }
-        groupedByDateTime[dateTimeKey][snapshot.ticker] = snapshot.market_cap_usd ?? 0;
-        (groupedByDateTime[dateTimeKey].Total as number) += snapshot.market_cap_usd ?? 0;
-      });
-    return Object.values(groupedByDateTime).sort((a, b) => 
-      String(a.datetime).localeCompare(String(b.datetime))
-    );
-  })();
+  // Use shared utility for market cap line data
+  const marketCapLineData = snapshotsToMarketCapLineData(allSnapshots);
 
-  // Prepare scatter chart data with ticker info (exclude PAXG)
-  // Use combined date+time for the X-axis to show all data points
-  const scatterData = allSnapshots
-    .filter((snapshot) => snapshot.ticker.toUpperCase() !== 'PAXG')
-    .map((snapshot) => {
-      const rawTime = snapshot.as_of_time || '00:00:00';
-      const timeWithSeconds = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
-      const x = Date.parse(`${snapshot.as_of_date}T${timeWithSeconds}Z`);
-      const timeEST = formatTimeEST(timeWithSeconds);
-
-      return {
-        x: Number.isNaN(x) ? undefined : x,
-        dateLabel: `${snapshot.as_of_date} ${timeEST}`,
-        priceValue: snapshot.price_usd,
-        ticker: snapshot.ticker,
-        as_of_date: snapshot.as_of_date,
-        as_of_time: snapshot.as_of_time,
-      };
-    });
+  // Use shared utility for scatter chart data
+  const scatterData = snapshotsToPriceData(allSnapshots);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -297,13 +257,17 @@ export default function StablecoinMarket() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={marketCapLineData}
-                margin={{ top: 10, right: 30, left: 10, bottom: 0 }}
+                margin={{ top: 10, right: 30, left: 10, bottom: 30 }}
               >
                 <XAxis
-                  dataKey="datetime"
+                  dataKey="x"
+                  type="number"
+                  scale="linear"
+                  domain={['dataMin', 'dataMax']}
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                  tickFormatter={(v) => formatAxisDateTime(Number(v))}
                   interval="preserveStartEnd"
                 />
                 <YAxis
@@ -320,10 +284,11 @@ export default function StablecoinMarket() {
                     // Find total entry if showing total
                     const totalEntry = payload.find((p: any) => p.dataKey === 'Total');
                     const otherEntries = payload.filter((p: any) => p.dataKey !== 'Total');
+                    const dataPoint = payload[0]?.payload;
                     
                     return (
                       <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs min-w-[180px]">
-                        <div className="font-semibold mb-2 text-foreground">{label}</div>
+                        <div className="font-semibold mb-2 text-foreground">{dataPoint?.datetime}</div>
                         {totalEntry && (
                           <>
                             <div className="flex items-center gap-2 pb-2 mb-2 border-b border-border">
@@ -338,24 +303,22 @@ export default function StablecoinMarket() {
                             </div>
                             {/* Show breakdown when Total is visible */}
                             <div className="space-y-1">
-                              {uniqueTickers
-                                .map((ticker) => {
-                                  const dataPoint = payload[0]?.payload;
-                                  const value = dataPoint?.[ticker] ?? 0;
-                                  const totalVal = Number(totalEntry.value) || 0;
-                                  const pct = totalVal > 0 ? ((value / totalVal) * 100).toFixed(1) : '0.0';
-                                  return (
-                                    <div key={ticker} className="flex items-center gap-2 text-[10px]">
-                                      <div
-                                        className="w-1.5 h-1.5 rounded-full"
-                                        style={{ backgroundColor: getColor(ticker) }}
-                                      />
-                                      <span className="text-muted-foreground">{ticker}</span>
-                                      <span className="font-mono ml-auto">{formatMarketCap(value)}</span>
-                                      <span className="text-muted-foreground w-10 text-right">{pct}%</span>
-                                    </div>
-                                  );
-                                })}
+                              {uniqueTickers.map((ticker) => {
+                                const value = dataPoint?.[ticker] ?? 0;
+                                const totalVal = Number(totalEntry.value) || 0;
+                                const pct = totalVal > 0 ? ((value / totalVal) * 100).toFixed(1) : '0.0';
+                                return (
+                                  <div key={ticker} className="flex items-center gap-2 text-[10px]">
+                                    <div
+                                      className="w-1.5 h-1.5 rounded-full"
+                                      style={{ backgroundColor: getColor(ticker) }}
+                                    />
+                                    <span className="text-muted-foreground">{ticker}</span>
+                                    <span className="font-mono ml-auto">{formatMarketCap(value)}</span>
+                                    <span className="text-muted-foreground w-10 text-right">{pct}%</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </>
                         )}
@@ -373,6 +336,17 @@ export default function StablecoinMarket() {
                         ))}
                       </div>
                     );
+                  }}
+                />
+                {/* Interactive Brush for timeline zoom */}
+                <Brush
+                  dataKey="x"
+                  height={20}
+                  stroke="hsl(var(--primary))"
+                  fill="hsl(var(--muted))"
+                  tickFormatter={(v) => {
+                    const d = new Date(v);
+                    return `${d.getMonth() + 1}/${d.getDate()}`;
                   }}
                 />
                 {/* Total line */}
@@ -468,11 +442,9 @@ export default function StablecoinMarket() {
                   const normalized = (price - minPrice) / priceRange;
                   // Scale from red (low) through yellow (mid) to green (high)
                   if (normalized < 0.5) {
-                    // Red to yellow (low to mid)
                     const intensity = normalized * 2;
                     return `hsl(${intensity * 60}, 70%, 45%)`;
                   } else {
-                    // Yellow to green (mid to high)
                     const intensity = (normalized - 0.5) * 2;
                     return `hsl(${60 + intensity * 60}, 70%, 40%)`;
                   }
@@ -484,7 +456,6 @@ export default function StablecoinMarket() {
                     : 0;
                   const priceRank = priceRankMap.get(coin.ticker) || 0;
                   const priceColor = getPriceColorScale(coin.price_usd);
-                  // Market cap rank is based on sortedData order (already sorted by market cap desc)
                   const marketCapRank = index + 1;
                   
                   return (

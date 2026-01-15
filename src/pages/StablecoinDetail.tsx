@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
+import { snapshotsToChartData, formatAxisDateTime } from '@/lib/marketDataUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, AlertCircle, ZoomIn, ZoomOut } from 'lucide-react';
@@ -17,6 +18,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   CartesianGrid,
+  Brush,
 } from 'recharts';
 
 const DEFAULT_PRICE_MIN = 0.9999;
@@ -126,14 +128,8 @@ export default function StablecoinDetail() {
 
   const latestData = data[data.length - 1];
 
-  // Prepare chart data with formatted dates
-  const chartData = data.map((snapshot) => ({
-    ...snapshot,
-    dateLabel: snapshot.as_of_date,
-    marketCapValue: snapshot.market_cap_usd ?? 0,
-    priceValue: snapshot.price_usd,
-    ticker: snapshot.ticker,
-  }));
+  // Use shared utility for chart data transformation
+  const chartData = snapshotsToChartData(data);
 
   // Calculate market cap min/max from data with padding
   const marketCapValues = chartData.map(d => d.marketCapValue).filter(v => v > 0);
@@ -200,17 +196,21 @@ export default function StablecoinDetail() {
         </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: comparisonMode ? 70 : 30, left: 10, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: comparisonMode ? 70 : 30, left: 10, bottom: 30 }}>
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke="hsl(var(--border))" 
                 strokeOpacity={0.5}
               />
               <XAxis 
-                dataKey="dateLabel" 
+                dataKey="x"
+                type="number"
+                scale="linear"
+                domain={['dataMin', 'dataMax']}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                tickFormatter={(v) => formatAxisDateTime(Number(v))}
                 interval="preserveStartEnd"
               />
               {/* Left Y-Axis: Market Cap (auto-scaled to data range) */}
@@ -240,29 +240,40 @@ export default function StablecoinDetail() {
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
-                  const d = payload[0].payload as MarketSnapshot;
-                  const deviation = ((d.price_usd - 1) * 100).toFixed(4);
-                  const deviationSign = d.price_usd >= 1 ? '+' : '';
+                  const d = payload[0].payload as MarketSnapshot & { marketCapValue: number; priceValue: number };
+                  const deviation = ((d.priceValue - 1) * 100).toFixed(4);
+                  const deviationSign = d.priceValue >= 1 ? '+' : '';
                   return (
                     <div className="rounded border bg-popover px-3 py-2 shadow-md text-xs space-y-1">
                       <div className="font-semibold">{d.as_of_date} {d.as_of_time}</div>
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-[hsl(var(--institutional-blue))]" />
                         <span className="text-muted-foreground">Market Cap:</span>
-                        <span className="text-foreground font-medium">{formatMarketCap(d.market_cap_usd)}</span>
+                        <span className="text-foreground font-medium">{formatMarketCap(d.marketCapValue)}</span>
                       </div>
                       {comparisonMode && (
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-[hsl(var(--price-coral))]" />
                           <span className="text-muted-foreground">Price:</span>
-                          <span className={`font-medium ${getStablecoinPriceColor(d.price_usd)}`}>
-                            {formatStablecoinPrice(d.price_usd)}
+                          <span className={`font-medium ${getStablecoinPriceColor(d.priceValue)}`}>
+                            {formatStablecoinPrice(d.priceValue)}
                           </span>
                           <span className="text-muted-foreground text-[10px]">({deviationSign}{deviation}%)</span>
                         </div>
                       )}
                     </div>
                   );
+                }}
+              />
+              {/* Interactive Brush for timeline zoom */}
+              <Brush
+                dataKey="x"
+                height={20}
+                stroke="hsl(var(--primary))"
+                fill="hsl(var(--muted))"
+                tickFormatter={(v) => {
+                  const d = new Date(v);
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
                 }}
               />
               {/* Market Cap Line */}
