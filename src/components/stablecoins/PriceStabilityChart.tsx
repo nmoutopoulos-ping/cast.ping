@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, RotateCcw } from 'lucide-react';
 import { formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
+import { formatAxisDateTime } from '@/lib/marketDataUtils';
 import {
   ScatterChart,
   Scatter,
@@ -13,13 +14,13 @@ import {
   Tooltip,
   CartesianGrid,
   ReferenceLine,
-  Legend,
+  Brush,
 } from 'recharts';
 
-interface PriceDataPoint {
+export interface PriceDataPoint {
   /** Label form used when we don't have a numeric X value */
   dateLabel: string;
-  /** Optional numeric x (ms since epoch) for true time-scale rendering */
+  /** Numeric x (ms since epoch) for true time-scale rendering */
   x?: number;
   priceValue: number;
   ticker?: string;
@@ -79,6 +80,8 @@ export function PriceStabilityChart({
   const [inputMin, setInputMin] = useState(DEFAULT_MIN.toString());
   const [inputMax, setInputMax] = useState(DEFAULT_MAX.toString());
   const [isSaved, setIsSaved] = useState(false);
+  const [brushStartIndex, setBrushStartIndex] = useState<number | undefined>(undefined);
+  const [brushEndIndex, setBrushEndIndex] = useState<number | undefined>(undefined);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -127,6 +130,8 @@ export function PriceStabilityChart({
     setInputMax(DEFAULT_MAX.toString());
     localStorage.removeItem(`price-stability-${storageKey}`);
     setIsSaved(false);
+    setBrushStartIndex(undefined);
+    setBrushEndIndex(undefined);
   };
 
   // Group data by ticker for legend (fallback if no external filtering)
@@ -146,37 +151,10 @@ export function PriceStabilityChart({
 
   const hasTickerFiltering = onToggleTicker && onToggleAll && allTickers.length > 0;
 
-  // Prefer a true time axis when numeric x values are provided.
-  const hasNumericX = data.some((d) => typeof d.x === 'number' && !Number.isNaN(d.x));
-
-  // Keep X-axis span stable even when tickers are filtered out
-  const xExtent = (() => {
-    if (!hasNumericX) return null;
-    const xs = data
-      .map((d) => d.x)
-      .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
-    if (xs.length === 0) return null;
-    return [Math.min(...xs), Math.max(...xs)] as const;
-  })();
-
-  const allDateLabels = [...new Set(data.map((d) => d.dateLabel))].sort();
-
-  const formatAxisDateTime = (value: number) => {
-    const d = new Date(value);
-    const date = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(d);
-    const time = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(d);
-    return `${date} ${time}`;
-  };
+  // Sort data by x for brush to work correctly and eliminate visual gaps
+  const sortedFilteredData = useMemo(() => {
+    return [...filteredData].sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
+  }, [filteredData]);
 
   // Helper to get color - use prop or fallback to TICKER_COLORS
   const resolveColor = (ticker: string) => {
@@ -184,12 +162,20 @@ export function PriceStabilityChart({
     return TICKER_COLORS[ticker] || 'hsl(var(--institutional-blue))';
   };
 
+  // Handle brush change
+  const handleBrushChange = (brushData: { startIndex?: number; endIndex?: number }) => {
+    if (brushData.startIndex !== undefined && brushData.endIndex !== undefined) {
+      setBrushStartIndex(brushData.startIndex);
+      setBrushEndIndex(brushData.endIndex);
+    }
+  };
+
   return (
     <div className="chart-container">
       <div className="flex items-center justify-between gap-4 mb-3">
         <div className="chart-title mb-0">{title}</div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Ticker filter bar - same layout as Market Cap chart */}
+          {/* Ticker filter bar */}
           {hasTickerFiltering && (
             <>
               {colorPickerElement}
@@ -273,37 +259,27 @@ export function PriceStabilityChart({
 
       <div className={height}>
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart data={filteredData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+          <ScatterChart 
+            data={sortedFilteredData} 
+            margin={{ top: 10, right: 30, left: 10, bottom: 30 }}
+          >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="hsl(var(--border))"
               strokeOpacity={0.5}
             />
-            {hasNumericX ? (
-              <XAxis
-                dataKey="x"
-                type="number"
-                scale="time"
-                domain={xExtent ? [xExtent[0], xExtent[1]] : ['auto', 'auto']}
-                allowDataOverflow
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                tickFormatter={(v) => formatAxisDateTime(Number(v))}
-                interval="preserveStartEnd"
-              />
-            ) : (
-              <XAxis
-                dataKey="dateLabel"
-                type="category"
-                ticks={allDateLabels}
-                allowDuplicatedCategory={false}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-            )}
+            {/* Time-scale X axis with data sorted by timestamp */}
+            <XAxis
+              dataKey="x"
+              type="number"
+              scale="linear"
+              domain={['dataMin', 'dataMax']}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+              tickFormatter={(v) => formatAxisDateTime(Number(v))}
+              interval="preserveStartEnd"
+            />
             <YAxis
               domain={[yMin, yMax]}
               axisLine={false}
@@ -365,12 +341,26 @@ export function PriceStabilityChart({
                 );
               }}
             />
+            {/* Interactive Brush for timeline zoom */}
+            <Brush
+              dataKey="x"
+              height={20}
+              stroke="hsl(var(--primary))"
+              fill="hsl(var(--muted))"
+              tickFormatter={(v) => {
+                const d = new Date(v);
+                return `${d.getMonth() + 1}/${d.getDate()}`;
+              }}
+              startIndex={brushStartIndex}
+              endIndex={brushEndIndex}
+              onChange={handleBrushChange}
+            />
             {colorByTicker && displayTickers.length > 0 ? (
               displayTickers.map((ticker) => (
                 <Scatter
                   key={ticker}
                   name={ticker}
-                  data={filteredData.filter((d) => d.ticker === ticker)}
+                  data={sortedFilteredData.filter((d) => d.ticker === ticker)}
                   dataKey="priceValue"
                   fill={resolveColor(ticker)}
                   fillOpacity={0.8}
@@ -383,7 +373,6 @@ export function PriceStabilityChart({
                 fillOpacity={0.7}
               />
             )}
-            {showLegend && <Legend />}
           </ScatterChart>
         </ResponsiveContainer>
       </div>
