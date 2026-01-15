@@ -17,7 +17,10 @@ import {
 } from 'recharts';
 
 interface PriceDataPoint {
+  /** Label form used when we don't have a numeric X value */
   dateLabel: string;
+  /** Optional numeric x (ms since epoch) for true time-scale rendering */
+  x?: number;
   priceValue: number;
   ticker?: string;
   as_of_date?: string;
@@ -143,10 +146,38 @@ export function PriceStabilityChart({
 
   const hasTickerFiltering = onToggleTicker && onToggleAll && allTickers.length > 0;
 
-  // Get full X-axis domain from all data (not filtered) to maintain consistent chart width
+  // Prefer a true time axis when numeric x values are provided.
+  const hasNumericX = data.some((d) => typeof d.x === 'number' && !Number.isNaN(d.x));
+
+  // Keep X-axis span stable even when tickers are filtered out
+  const xExtent = (() => {
+    if (!hasNumericX) return null;
+    const xs = data
+      .map((d) => d.x)
+      .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
+    if (xs.length === 0) return null;
+    return [Math.min(...xs), Math.max(...xs)] as const;
+  })();
+
   const allDateLabels = [...new Set(data.map((d) => d.dateLabel))].sort();
-  const xDomain = allDateLabels.length > 0 ? [allDateLabels[0], allDateLabels[allDateLabels.length - 1]] : undefined;
-  
+
+  const formatAxisDateTime = (value: number) => {
+    const d = new Date(value);
+    const date = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+    const time = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(d);
+    return `${date} ${time}`;
+  };
+
   // Helper to get color - use prop or fallback to TICKER_COLORS
   const resolveColor = (ticker: string) => {
     if (getTickerColor) return getTickerColor(ticker);
@@ -248,16 +279,31 @@ export function PriceStabilityChart({
               stroke="hsl(var(--border))"
               strokeOpacity={0.5}
             />
-            <XAxis
-              dataKey="dateLabel"
-              type="category"
-              domain={xDomain}
-              allowDuplicatedCategory={false}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-              interval="preserveStartEnd"
-            />
+            {hasNumericX ? (
+              <XAxis
+                dataKey="x"
+                type="number"
+                scale="time"
+                domain={xExtent ? [xExtent[0], xExtent[1]] : ['auto', 'auto']}
+                allowDataOverflow
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                tickFormatter={(v) => formatAxisDateTime(Number(v))}
+                interval="preserveStartEnd"
+              />
+            ) : (
+              <XAxis
+                dataKey="dateLabel"
+                type="category"
+                ticks={allDateLabels}
+                allowDuplicatedCategory={false}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                interval="preserveStartEnd"
+              />
+            )}
             <YAxis
               domain={[yMin, yMax]}
               axisLine={false}

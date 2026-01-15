@@ -36,18 +36,32 @@ export default function StablecoinMarket() {
   // Fetch all historical snapshots for the price stability chart
   const fetchAllSnapshots = useCallback(async () => {
     if (!session?.access_token) return;
-    
+
     setSnapshotsLoading(true);
     try {
-      // @ts-ignore - table exists but types may not be regenerated yet
-      const { data: snapshots, error: fetchError } = await supabase
-        .from('stablecoin_snapshots')
-        .select('*')
-        .order('as_of_date', { ascending: true })
-        .order('as_of_time', { ascending: true });
+      // PostgREST defaults to 1000 rows per request; page through to fetch full history.
+      const pageSize = 1000;
+      let from = 0;
+      const all: MarketSnapshot[] = [];
 
-      if (fetchError) throw new Error(fetchError.message);
-      setAllSnapshots(snapshots || []);
+      while (true) {
+        // @ts-ignore - table exists but types may not be regenerated yet
+        const { data: page, error: fetchError } = await supabase
+          .from('stablecoin_snapshots')
+          .select('*')
+          .order('as_of_date', { ascending: true })
+          .order('as_of_time', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (fetchError) throw new Error(fetchError.message);
+
+        all.push(...((page as MarketSnapshot[]) || []));
+
+        if (!page || page.length < pageSize) break;
+        from += pageSize;
+      }
+
+      setAllSnapshots(all);
     } catch (err) {
       console.error('Failed to fetch all snapshots:', err);
     } finally {
@@ -167,8 +181,13 @@ export default function StablecoinMarket() {
   const scatterData = allSnapshots
     .filter((snapshot) => snapshot.ticker.toUpperCase() !== 'PAXG')
     .map((snapshot) => {
-      const timeEST = formatTimeEST(snapshot.as_of_time || '00:00');
+      const rawTime = snapshot.as_of_time || '00:00:00';
+      const timeWithSeconds = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
+      const x = Date.parse(`${snapshot.as_of_date}T${timeWithSeconds}Z`);
+      const timeEST = formatTimeEST(timeWithSeconds);
+
       return {
+        x: Number.isNaN(x) ? undefined : x,
         dateLabel: `${snapshot.as_of_date} ${timeEST}`,
         priceValue: snapshot.price_usd,
         ticker: snapshot.ticker,
