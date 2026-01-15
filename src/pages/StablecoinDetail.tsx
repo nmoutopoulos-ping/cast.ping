@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, AlertCircle, ZoomIn, ZoomOut } from 'lucide-react';
 import { MarketSnapshot } from '@/types/transactions';
-import { PriceStabilityChart } from '@/components/stablecoins/PriceStabilityChart';
+
 import {
   ComposedChart,
   Line,
@@ -323,12 +323,6 @@ export default function StablecoinDetail() {
         )}
       </div>
 
-      {/* Price Scatter Plot with dynamic Y-axis */}
-      <PriceStabilityChart
-        data={chartData}
-        storageKey={`detail-${displayTicker.toLowerCase()}`}
-        title={`${displayTicker} Price Stability (Target: $1.00)`}
-      />
 
       {/* Footer timestamp */}
       {latestData && (
