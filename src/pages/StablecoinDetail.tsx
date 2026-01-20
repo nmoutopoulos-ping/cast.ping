@@ -1,9 +1,15 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMarketCap, formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
-import { snapshotsToChartData, formatAxisDateTime } from '@/lib/marketDataUtils';
+import { snapshotsToChartData, formatAxisDateTime, formatBrushTickDate } from '@/lib/marketDataUtils';
+import {
+  getXDomainFromBrushRange,
+  isFullBrushRange,
+  rescaleBrushRange,
+  type BrushRange,
+} from '@/lib/brushUtils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, AlertCircle, ZoomIn, ZoomOut } from 'lucide-react';
@@ -33,6 +39,8 @@ export default function StablecoinDetail() {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [priceYMin, setPriceYMin] = useState(DEFAULT_PRICE_MIN);
   const [priceYMax, setPriceYMax] = useState(DEFAULT_PRICE_MAX);
+  const [brushRange, setBrushRange] = useState<BrushRange | null>(null);
+  const prevDataLenRef = useRef(0);
 
   const displayTicker = ticker?.toUpperCase() || 'Unknown';
   const priceStorageKey = `detail-${displayTicker.toLowerCase()}`;
@@ -131,6 +139,40 @@ export default function StablecoinDetail() {
   // Use shared utility for chart data transformation
   const chartData = snapshotsToChartData(data);
 
+  // Keep brush selection stable when data length changes (e.g. refetch).
+  useEffect(() => {
+    const nextLen = chartData.length;
+    const prevLen = prevDataLenRef.current;
+    prevDataLenRef.current = nextLen;
+
+    if (nextLen < 2) {
+      if (brushRange) setBrushRange(null);
+      return;
+    }
+
+    if (!brushRange) {
+      setBrushRange({ startIndex: 0, endIndex: nextLen - 1 });
+      return;
+    }
+
+    if (prevLen !== nextLen) {
+      setBrushRange(rescaleBrushRange(brushRange, prevLen, nextLen));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartData.length]);
+
+  const xDomain = useMemo(() => {
+    if (!brushRange) return ['dataMin', 'dataMax'] as const;
+    if (isFullBrushRange(brushRange, chartData.length)) return ['dataMin', 'dataMax'] as const;
+    const domain = getXDomainFromBrushRange(chartData, brushRange);
+    return domain ?? (['dataMin', 'dataMax'] as const);
+  }, [brushRange, chartData]);
+
+  const handleBrushChange = (r: { startIndex?: number; endIndex?: number }) => {
+    if (r.startIndex === undefined || r.endIndex === undefined) return;
+    setBrushRange({ startIndex: r.startIndex, endIndex: r.endIndex });
+  };
+
   // Calculate market cap min/max from data with padding
   const marketCapValues = chartData.map(d => d.marketCapValue).filter(v => v > 0);
   const marketCapMin = marketCapValues.length > 0 ? Math.min(...marketCapValues) * 0.98 : 0;
@@ -206,7 +248,7 @@ export default function StablecoinDetail() {
                 dataKey="x"
                 type="number"
                 scale="linear"
-                domain={['dataMin', 'dataMax']}
+                domain={xDomain as any}
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
@@ -271,10 +313,10 @@ export default function StablecoinDetail() {
                 height={20}
                 stroke="hsl(var(--primary))"
                 fill="hsl(var(--muted))"
-                tickFormatter={(v) => {
-                  const d = new Date(v);
-                  return `${d.getMonth() + 1}/${d.getDate()}`;
-                }}
+                tickFormatter={(v) => formatBrushTickDate(Number(v))}
+                startIndex={brushRange?.startIndex}
+                endIndex={brushRange?.endIndex}
+                onChange={handleBrushChange}
               />
               {/* Market Cap Line */}
               <Line 

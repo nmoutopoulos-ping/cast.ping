@@ -1,10 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, RotateCcw } from 'lucide-react';
 import { formatStablecoinPrice, getStablecoinPriceColor } from '@/lib/utils';
-import { formatAxisDateTime } from '@/lib/marketDataUtils';
+import { formatAxisDateTime, formatBrushTickDate } from '@/lib/marketDataUtils';
+import {
+  getXDomainFromBrushRange,
+  isFullBrushRange,
+  rescaleBrushRange,
+  type BrushRange,
+} from '@/lib/brushUtils';
 import {
   ScatterChart,
   Scatter,
@@ -80,8 +86,8 @@ export function PriceStabilityChart({
   const [inputMin, setInputMin] = useState(DEFAULT_MIN.toString());
   const [inputMax, setInputMax] = useState(DEFAULT_MAX.toString());
   const [isSaved, setIsSaved] = useState(false);
-  const [brushStartIndex, setBrushStartIndex] = useState<number | undefined>(undefined);
-  const [brushEndIndex, setBrushEndIndex] = useState<number | undefined>(undefined);
+  const [brushRange, setBrushRange] = useState<BrushRange | null>(null);
+  const prevDataLenRef = useRef(0);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -130,8 +136,7 @@ export function PriceStabilityChart({
     setInputMax(DEFAULT_MAX.toString());
     localStorage.removeItem(`price-stability-${storageKey}`);
     setIsSaved(false);
-    setBrushStartIndex(undefined);
-    setBrushEndIndex(undefined);
+    setBrushRange(null);
   };
 
   // Group data by ticker for legend (fallback if no external filtering)
@@ -156,6 +161,29 @@ export function PriceStabilityChart({
     return [...filteredData].sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
   }, [filteredData]);
 
+  // Keep brush selection stable when data length changes (e.g. toggling tickers).
+  useEffect(() => {
+    const nextLen = sortedFilteredData.length;
+    const prevLen = prevDataLenRef.current;
+    prevDataLenRef.current = nextLen;
+
+    if (nextLen < 2) {
+      if (brushRange) setBrushRange(null);
+      return;
+    }
+
+    // Initialize to full range once data exists.
+    if (!brushRange) {
+      setBrushRange({ startIndex: 0, endIndex: nextLen - 1 });
+      return;
+    }
+
+    if (prevLen !== nextLen) {
+      setBrushRange(rescaleBrushRange(brushRange, prevLen, nextLen));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedFilteredData.length]);
+
   // Helper to get color - use prop or fallback to TICKER_COLORS
   const resolveColor = (ticker: string) => {
     if (getTickerColor) return getTickerColor(ticker);
@@ -164,11 +192,18 @@ export function PriceStabilityChart({
 
   // Handle brush change
   const handleBrushChange = (brushData: { startIndex?: number; endIndex?: number }) => {
-    if (brushData.startIndex !== undefined && brushData.endIndex !== undefined) {
-      setBrushStartIndex(brushData.startIndex);
-      setBrushEndIndex(brushData.endIndex);
-    }
+    if (brushData.startIndex === undefined || brushData.endIndex === undefined) return;
+    setBrushRange({ startIndex: brushData.startIndex, endIndex: brushData.endIndex });
   };
+
+  const xDomain = useMemo(() => {
+    if (!brushRange) return ['dataMin', 'dataMax'] as const;
+    if (isFullBrushRange(brushRange, sortedFilteredData.length)) {
+      return ['dataMin', 'dataMax'] as const;
+    }
+    const domain = getXDomainFromBrushRange(sortedFilteredData, brushRange);
+    return domain ?? (['dataMin', 'dataMax'] as const);
+  }, [brushRange, sortedFilteredData]);
 
   return (
     <div className="chart-container">
@@ -273,7 +308,7 @@ export function PriceStabilityChart({
               dataKey="x"
               type="number"
               scale="linear"
-              domain={['dataMin', 'dataMax']}
+              domain={xDomain as any}
               axisLine={false}
               tickLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
@@ -347,12 +382,9 @@ export function PriceStabilityChart({
               height={20}
               stroke="hsl(var(--primary))"
               fill="hsl(var(--muted))"
-              tickFormatter={(v) => {
-                const d = new Date(v);
-                return `${d.getMonth() + 1}/${d.getDate()}`;
-              }}
-              startIndex={brushStartIndex}
-              endIndex={brushEndIndex}
+              tickFormatter={(v) => formatBrushTickDate(Number(v))}
+              startIndex={brushRange?.startIndex}
+              endIndex={brushRange?.endIndex}
               onChange={handleBrushChange}
             />
             {colorByTicker && displayTickers.length > 0 ? (
