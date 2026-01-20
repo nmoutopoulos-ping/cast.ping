@@ -152,6 +152,15 @@ export function formatAxisDateTime(value: number): string {
 }
 
 /**
+ * Lightweight tick formatter for Brush mini-axis.
+ * Intentionally uses the user's local timezone to preserve existing behavior.
+ */
+export function formatBrushTickDate(value: number): string {
+  const d = new Date(value);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/**
  * Get unique tickers from snapshots, excluding PAXG by default
  */
 export function getUniqueTickers(snapshots: MarketSnapshot[], excludePaxg = true): string[] {
