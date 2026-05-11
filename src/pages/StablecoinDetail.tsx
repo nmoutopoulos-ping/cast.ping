@@ -104,6 +104,38 @@ export default function StablecoinDetail() {
     fetchData();
   }, [fetchData]);
 
+  // Use shared utility for chart data transformation
+  const chartData = useMemo(() => snapshotsToChartData(data), [data]);
+
+  // Keep brush selection stable when data length changes (e.g. refetch).
+  useEffect(() => {
+    const nextLen = chartData.length;
+    const prevLen = prevDataLenRef.current;
+    prevDataLenRef.current = nextLen;
+
+    if (nextLen < 2) {
+      if (brushRange) setBrushRange(null);
+      return;
+    }
+
+    if (!brushRange) {
+      setBrushRange({ startIndex: 0, endIndex: nextLen - 1 });
+      return;
+    }
+
+    if (prevLen !== nextLen) {
+      setBrushRange(rescaleBrushRange(brushRange, prevLen, nextLen));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartData.length]);
+
+  const xDomain = useMemo(() => {
+    if (!brushRange) return ['dataMin', 'dataMax'] as const;
+    if (isFullBrushRange(brushRange, chartData.length)) return ['dataMin', 'dataMax'] as const;
+    const domain = getXDomainFromBrushRange(chartData, brushRange);
+    return domain ?? (['dataMin', 'dataMax'] as const);
+  }, [brushRange, chartData]);
+
   if (loading) {
     return (
       <div className="p-6 lg:p-8 space-y-6">
@@ -135,38 +167,6 @@ export default function StablecoinDetail() {
   }
 
   const latestData = data[data.length - 1];
-
-  // Use shared utility for chart data transformation
-  const chartData = snapshotsToChartData(data);
-
-  // Keep brush selection stable when data length changes (e.g. refetch).
-  useEffect(() => {
-    const nextLen = chartData.length;
-    const prevLen = prevDataLenRef.current;
-    prevDataLenRef.current = nextLen;
-
-    if (nextLen < 2) {
-      if (brushRange) setBrushRange(null);
-      return;
-    }
-
-    if (!brushRange) {
-      setBrushRange({ startIndex: 0, endIndex: nextLen - 1 });
-      return;
-    }
-
-    if (prevLen !== nextLen) {
-      setBrushRange(rescaleBrushRange(brushRange, prevLen, nextLen));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartData.length]);
-
-  const xDomain = useMemo(() => {
-    if (!brushRange) return ['dataMin', 'dataMax'] as const;
-    if (isFullBrushRange(brushRange, chartData.length)) return ['dataMin', 'dataMax'] as const;
-    const domain = getXDomainFromBrushRange(chartData, brushRange);
-    return domain ?? (['dataMin', 'dataMax'] as const);
-  }, [brushRange, chartData]);
 
   const handleBrushChange = (r: { startIndex?: number; endIndex?: number }) => {
     if (r.startIndex === undefined || r.endIndex === undefined) return;
